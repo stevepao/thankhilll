@@ -2,19 +2,21 @@
 /**
  * index.php — "Today" screen: write today’s gratitude note and save to the database.
  *
- * Single implicit user for now (no user_id column). Uses POST + redirect to avoid duplicate submits.
+ * Requires an authenticated session and writes notes for the current user.
  */
 declare(strict_types=1);
 
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/auth.php';
+
+$userId = requireLogin();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $content = trim((string) ($_POST['content'] ?? ''));
     if ($content !== '') {
-        $stmt = db()->prepare('INSERT INTO notes (content) VALUES (?)');
-        $stmt->execute([$content]);
+        $stmt = db()->prepare('INSERT INTO notes (user_id, content, visibility) VALUES (?, ?, ?)');
+        $stmt->execute([$userId, $content, 'private']);
     }
-    header('Location: index.php?saved=1');
+    header('Location: /index.php?saved=1');
     exit;
 }
 
