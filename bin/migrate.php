@@ -88,7 +88,10 @@ try {
             $appliedCount++;
             echo "Applied {$filename}.\n";
         } catch (Throwable $e) {
-            $pdo->rollBack();
+            // MySQL DDL can auto-commit; only rollback if a transaction is still active.
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             throw new RuntimeException("Migration failed for {$filename}: " . $e->getMessage(), 0, $e);
         }
     }
