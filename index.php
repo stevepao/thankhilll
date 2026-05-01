@@ -1056,7 +1056,7 @@ require_once __DIR__ . '/header.php';
                 </section>
             <?php endif; ?>
 
-            <script src="/note_resize.js"></script>
+            <script src="<?= e(asset_url('/note_resize.js')) ?>"></script>
             <script>
                 (function () {
                     function bindTodayPhotoResize(opts) {
@@ -1219,7 +1219,7 @@ require_once __DIR__ . '/header.php';
                 })();
             </script>
             <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
-            <script src="/reactions/reactions.js"></script>
+            <script src="<?= e(asset_url('/reactions/reactions.js')) ?>"></script>
             <script>
                 (function () {
                     if (window.mountThoughtReactions) {

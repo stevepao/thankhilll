@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/escape.php';
+require_once __DIR__ . '/includes/assets.php';
 
 $pageTitle = $pageTitle ?? 'Gratitude';
 $headerUser = currentUser();
@@ -20,7 +21,7 @@ $headerUser = currentUser();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($pageTitle) ?> — Gratitude</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="<?= e(asset_url('/styles.css')) ?>">
 </head>
 <body>
     <div class="app">
