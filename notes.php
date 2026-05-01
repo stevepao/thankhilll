@@ -184,7 +184,7 @@ require_once __DIR__ . '/header.php';
                             $previewBlob .= ($previewBlob !== '' ? "\n\n" : '') . trim($tr['body']);
                         }
                         $preview = note_plain_preview($previewBlob, 220);
-                        $thumb = $photosByNote[$nid][0] ?? null;
+                        $thumbs = $photosByNote[$nid] ?? [];
                         ?>
                         <li class="notes-library__card">
                             <a class="notes-library__card-main" href="/note.php?id=<?= $nid ?>">
@@ -198,17 +198,21 @@ require_once __DIR__ . '/header.php';
                                 <?php if ($groupsLabel !== ''): ?>
                                     <p class="notes-library__groups">Shared in <?= e($groupsLabel) ?></p>
                                 <?php endif; ?>
-                                <?php if ($thumb !== null): ?>
-                                    <div class="notes-library__thumb-wrap">
-                                        <img
-                                            src="/media/note_photo.php?id=<?= (int) $thumb['id'] ?>"
-                                            alt=""
-                                            class="notes-library__thumb"
-                                            loading="lazy"
-                                            width="<?= (int) $thumb['width'] ?>"
-                                            height="<?= (int) $thumb['height'] ?>"
-                                        >
-                                    </div>
+                                <?php if (count($thumbs) > 0): ?>
+                                    <ul class="today-note-photos today-note-photos--notes">
+                                        <?php foreach ($thumbs as $thumb): ?>
+                                            <li class="today-note-photos__item">
+                                                <img
+                                                    src="/media/note_photo.php?id=<?= (int) $thumb['id'] ?>"
+                                                    alt=""
+                                                    class="today-note-photos__img"
+                                                    loading="lazy"
+                                                    width="<?= (int) $thumb['width'] ?>"
+                                                    height="<?= (int) $thumb['height'] ?>"
+                                                >
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
                                 <?php endif; ?>
                                 <p class="notes-library__preview"><?= e($preview) ?></p>
                             </a>

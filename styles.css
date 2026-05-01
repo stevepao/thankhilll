@@ -695,21 +695,8 @@ body {
     text-decoration: underline;
 }
 
-.notes-library__thumb-wrap {
+.today-note-photos--notes {
     margin: 0.35rem 0 0.5rem;
-    border-radius: var(--note-photo-preview-radius);
-    overflow: hidden;
-    border: 1px solid var(--border);
-    max-height: var(--note-photo-preview-max-h);
-    background: var(--bg);
-}
-
-.notes-library__thumb {
-    display: block;
-    width: 100%;
-    height: auto;
-    max-height: var(--note-photo-preview-max-h);
-    object-fit: var(--note-photo-preview-fit);
 }
 
 /* Today inline photos */
