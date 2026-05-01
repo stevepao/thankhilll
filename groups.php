@@ -19,6 +19,7 @@ $currentNav = 'groups';
 $inviteDeclinedFlash = isset($_GET['invite_declined']);
 $inviteErrFlash = isset($_GET['invite_err']);
 $leftGroupFlash = isset($_GET['left_group']);
+$groupDeletedFlash = isset($_GET['group_deleted']);
 $showYourGroupsHeading = count($pendingInvites) > 0 && count($groups) > 0;
 
 require_once __DIR__ . '/header.php';
@@ -36,6 +37,9 @@ require_once __DIR__ . '/header.php';
             <?php endif; ?>
             <?php if ($leftGroupFlash): ?>
                 <p class="flash" role="status">You’ve left the group.</p>
+            <?php endif; ?>
+            <?php if ($groupDeletedFlash): ?>
+                <p class="flash" role="status">The group has been deleted.</p>
             <?php endif; ?>
 
             <?php if (count($pendingInvites) > 0): ?>

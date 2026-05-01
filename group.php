@@ -83,6 +83,11 @@ $inviteRequestErr = isset($_GET['invite_request_err']) ? (string) $_GET['invite_
 $highlightInviteRequests = isset($_GET['invite_requests']);
 $leaveErrOwner = isset($_GET['leave_err']) && $_GET['leave_err'] === 'owner';
 
+$deleteGroupConfirmMsg = "Delete this group?\n\n"
+    . "The group will be removed for everyone. Shared access through this group will stop.\n\n"
+    . "None of your notes or thoughts will be deleted—they stay on each person’s account.\n\n"
+    . "This cannot be undone.";
+
 $pageTitle = (string) $groupRow['name'];
 $currentNav = 'groups';
 
@@ -287,5 +292,24 @@ require_once __DIR__ . '/header.php';
                     </form>
                 <?php endif; ?>
             </section>
+
+            <?php if ($isOwner): ?>
+                <section class="detail-section delete-group-section" aria-labelledby="delete-group-heading">
+                    <h2 id="delete-group-heading" class="detail-section__title">Delete group</h2>
+                    <p class="muted-note">
+                        Remove this group for every member. Sharing through this group ends; notes and thoughts are not deleted.
+                    </p>
+                    <form
+                        class="delete-group-form stack-top"
+                        method="post"
+                        action="/group_delete.php"
+                        onsubmit='return confirm(<?= json_encode($deleteGroupConfirmMsg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>);'
+                    >
+                        <?php csrf_hidden_field(); ?>
+                        <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                        <button type="submit" class="btn btn--danger-fill">Delete group</button>
+                    </form>
+                </section>
+            <?php endif; ?>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

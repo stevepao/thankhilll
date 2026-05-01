@@ -103,3 +103,27 @@ function user_preferences_merge_save(PDO $pdo, int $userId, array $patch): void
     $current = user_preferences_load($pdo, $userId);
     user_preferences_save($pdo, $userId, array_merge($current, $patch));
 }
+
+/** Drop a group id from last_used_group_ids (e.g. after the group is deleted). */
+function user_preferences_strip_last_used_group_id(PDO $pdo, int $userId, int $groupId): void
+{
+    if ($userId <= 0 || $groupId <= 0) {
+        return;
+    }
+
+    $prefs = user_preferences_load($pdo, $userId);
+    $ids = $prefs['last_used_group_ids'] ?? [];
+    if (!is_array($ids)) {
+        return;
+    }
+
+    $filtered = [];
+    foreach ($ids as $id) {
+        $n = (int) $id;
+        if ($n > 0 && $n !== $groupId) {
+            $filtered[] = $n;
+        }
+    }
+    $prefs['last_used_group_ids'] = $filtered;
+    user_preferences_save($pdo, $userId, $prefs);
+}

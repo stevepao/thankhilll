@@ -191,7 +191,23 @@ body {
     opacity: 0.92;
 }
 
+.btn--danger-fill {
+    background: #9a2842;
+    color: #fff;
+    border: 2px solid #9a2842;
+}
+
+.btn--danger-fill:active {
+    opacity: 0.9;
+}
+
 .leave-group-section {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+.delete-group-section {
     margin-top: 2rem;
     padding-top: 1.25rem;
     border-top: 1px solid var(--border);

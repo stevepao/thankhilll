@@ -90,6 +90,26 @@ function group_member_leave(PDO $pdo, int $userId, int $groupId): string
 }
 
 /**
+ * Permanently delete a group (owner only). Cascades memberships, invitations,
+ * invite requests, and note_groups rows; does not delete notes, thoughts, or users.
+ */
+function group_delete_by_owner(PDO $pdo, int $ownerUserId, int $groupId): bool
+{
+    if ($groupId <= 0 || $ownerUserId <= 0) {
+        return false;
+    }
+
+    if (!user_is_group_owner($pdo, $ownerUserId, $groupId)) {
+        return false;
+    }
+
+    $del = $pdo->prepare('DELETE FROM `groups` WHERE id = ? AND owner_user_id = ?');
+    $del->execute([$groupId, $ownerUserId]);
+
+    return $del->rowCount() === 1;
+}
+
+/**
  * Groups the user belongs to, with member counts.
  *
  * @return list<array{id:int,name:string,member_count:int}>
