@@ -1,4 +1,16 @@
 (() => {
+    /** emoji-picker-element sometimes omits top-level `unicode`; fall back to DB emoji record. */
+    function unicodeFromEmojiClickDetail(detail) {
+        if (!detail || typeof detail !== 'object') {
+            return '';
+        }
+        if (typeof detail.unicode === 'string' && detail.unicode !== '') {
+            return detail.unicode;
+        }
+        const fromEmoji = detail.emoji && typeof detail.emoji.unicode === 'string' ? detail.emoji.unicode : '';
+        return fromEmoji !== '' ? fromEmoji : '';
+    }
+
     function renderReactionButtons(listEl, thoughtId, reactions) {
         if (!listEl) {
             return;
@@ -37,6 +49,22 @@
         let pickerHost = null;
         let activeThoughtId = 0;
         let activeContainer = null;
+        /** Per-thought epoch so slower responses cannot overwrite newer reaction state. */
+        const reactionToggleEpoch = new Map();
+
+        pickerMount.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+        });
+
+        function clickEventInsidePicker(ev) {
+            if (!pickerMount || pickerMount.hidden) {
+                return false;
+            }
+            if (typeof ev.composedPath === 'function') {
+                return ev.composedPath().includes(pickerMount);
+            }
+            return Boolean(ev.target?.closest?.('#thought-reaction-picker'));
+        }
 
         function ensurePicker() {
             if (!pickerMount || pickerHost) {
@@ -46,11 +74,12 @@
             pickerHost.className = 'thought-reaction-picker';
             pickerMount.appendChild(pickerHost);
             pickerHost.addEventListener('emoji-click', (ev) => {
-                const unicode = ev?.detail?.unicode || '';
-                if (!unicode || activeThoughtId <= 0) {
+                const tid = activeThoughtId;
+                const unicode = unicodeFromEmojiClickDetail(ev.detail);
+                if (!unicode || tid <= 0) {
                     return;
                 }
-                sendToggle(activeThoughtId, unicode);
+                sendToggle(tid, unicode);
             });
         }
 
@@ -80,6 +109,10 @@
         }
 
         async function sendToggle(thoughtId, emoji) {
+            const nextEpoch = (reactionToggleEpoch.get(thoughtId) || 0) + 1;
+            reactionToggleEpoch.set(thoughtId, nextEpoch);
+            const epoch = nextEpoch;
+
             try {
                 const body = new URLSearchParams();
                 body.set('csrf_token', csrfToken);
@@ -98,6 +131,10 @@
                 const data = await res.json();
                 if (!res.ok || !data.ok) {
                     throw new Error(data.error || 'Could not update reaction.');
+                }
+
+                if ((reactionToggleEpoch.get(thoughtId) || 0) !== epoch) {
+                    return;
                 }
 
                 const container =
@@ -138,7 +175,7 @@
                 return;
             }
 
-            if (pickerMount && !pickerMount.hidden && !ev.target.closest('#thought-reaction-picker')) {
+            if (pickerMount && !pickerMount.hidden && !clickEventInsidePicker(ev)) {
                 hidePicker();
             }
         });
