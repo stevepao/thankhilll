@@ -229,6 +229,111 @@ body {
     color: var(--text);
 }
 
+.today-quiet--below-composer {
+    margin-bottom: 0;
+}
+
+.today-yours-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.today-yours-panel--edit {
+    padding-top: 0.15rem;
+}
+
+.today-yours-meta {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.35;
+}
+
+.today-yours-meta--private {
+    font-style: italic;
+}
+
+.today-yours-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+}
+
+.note-form--compact .note-form__label:first-of-type {
+    margin-top: 0;
+}
+
+.today-edit-media-fieldset {
+    margin-top: 0.25rem;
+}
+
+.today-edit-existing-photos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.today-edit-existing-photos__item {
+    margin: 0;
+}
+
+.today-edit-existing-photos__label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.today-edit-existing-photos__thumb {
+    display: block;
+    max-height: var(--note-photo-preview-max-h);
+    width: auto;
+    max-width: 100%;
+    object-fit: var(--note-photo-preview-fit);
+    border-radius: var(--note-photo-preview-radius);
+    border: 1px solid var(--border);
+}
+
+.today-edit-existing-photos__hint {
+    font-size: 0.72rem;
+}
+
+.today-edit-photo-cap-hint {
+    margin-top: 0.35rem;
+}
+
+.today-edit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.35rem;
+}
+
+.today-edit-inline-error {
+    margin-top: 0;
+}
+
+.btn--ghost {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    box-shadow: none;
+}
+
+.btn--ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
 .today-shared-card {
     background: var(--surface);
     border: 1px solid var(--border);

@@ -190,17 +190,17 @@ function note_media_resolve_absolute(string $relativePath): ?string
 }
 
 /**
- * Normalize multipart photos[] from the Today form (JPEG/PNG uploads only).
+ * Normalize multipart file field (e.g. photos[] or photos_edit[]) from a form.
  *
  * @return array{ok:true,items:list<array{tmp:string,size:int}>}|array{ok:false,error:string}
  */
-function note_media_normalize_uploads_from_request(): array
+function note_media_normalize_uploads_from_field(string $fieldName): array
 {
-    if (!isset($_FILES['photos'])) {
+    if (!isset($_FILES[$fieldName])) {
         return ['ok' => true, 'items' => []];
     }
 
-    $f = $_FILES['photos'];
+    $f = $_FILES[$fieldName];
     if (!is_array($f['tmp_name'])) {
         $tmps = [$f['tmp_name']];
         $errs = [$f['error'] ?? UPLOAD_ERR_OK];
@@ -232,6 +232,43 @@ function note_media_normalize_uploads_from_request(): array
     }
 
     return ['ok' => true, 'items' => $items];
+}
+
+/** @see note_media_normalize_uploads_from_field('photos') */
+function note_media_normalize_uploads_from_request(): array
+{
+    return note_media_normalize_uploads_from_field('photos');
+}
+
+/**
+ * Delete stored files and rows for media IDs that belong to this note only.
+ *
+ * @param list<int> $mediaIds
+ */
+function note_media_delete_rows_for_note(PDO $pdo, int $noteId, array $mediaIds): void
+{
+    $seen = [];
+    foreach ($mediaIds as $raw) {
+        $mid = is_numeric($raw) ? (int) $raw : 0;
+        if ($mid <= 0 || isset($seen[$mid])) {
+            continue;
+        }
+        $seen[$mid] = true;
+
+        $stmt = $pdo->prepare(
+            'SELECT file_path FROM note_media WHERE id = ? AND note_id = ? LIMIT 1'
+        );
+        $stmt->execute([$mid, $noteId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $del = $pdo->prepare('DELETE FROM note_media WHERE id = ? AND note_id = ?');
+        $del->execute([$mid, $noteId]);
+
+        note_media_delete_relative((string) $row['file_path']);
+    }
 }
 
 /**
