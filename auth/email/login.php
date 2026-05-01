@@ -22,7 +22,9 @@ if (isset($_GET['reset'])) {
 $showSent = isset($_GET['sent']);
 $showCodeErr = isset($_GET['code_err']) || isset($_GET['err']);
 $pendingEmail = email_otp_session_get_pending_email();
-$emphasizeVerify = $pendingEmail !== null || $showSent;
+$verifyExplicit = array_key_exists('verify', $_GET);
+/** Step 2 (verify only): pending session, just sent a code, or explicit cross-device path */
+$showVerifyStep = $pendingEmail !== null || $showSent || $verifyExplicit;
 
 $pageTitle = 'Sign in with Email';
 $currentNav = '';
@@ -30,21 +32,18 @@ $showNav = false;
 
 require_once dirname(__DIR__, 2) . '/header.php';
 
-$verifyHintKnown = 'Enter the 6-digit code from your email (you can open the message on any device).';
-$verifyHintBoth = 'Enter the email you used when requesting the code and the 6-digit code from your inbox.';
+$verifyHintKnown = 'Enter the 6-digit code below. You can open the message on any device.';
+$verifyHintBoth = 'Enter the email you used to request the code and the 6-digit code from your inbox.';
 ?>
 
-            <?php if ($showSent): ?>
+            <?php if ($showSent && $showVerifyStep): ?>
                 <p class="flash" role="status">If the email is valid, a code was sent.</p>
             <?php endif; ?>
 
-            <div class="email-auth-flow<?= $emphasizeVerify ? ' email-auth-flow--prioritize-verify' : '' ?>">
-
-                <section class="email-auth__step email-auth__step--send<?= $emphasizeVerify ? ' email-auth__step--secondary' : '' ?>" aria-labelledby="email-auth-send-heading">
-                    <h2 id="email-auth-send-heading" class="email-auth__step-title"><?= $emphasizeVerify ? 'Resend or change email' : 'Step 1 — Send code' ?></h2>
-                    <?php if ($emphasizeVerify): ?>
-                        <p class="email-auth__hint">Need a new code? Enter your email below. Your previous code may stop working.</p>
-                    <?php endif; ?>
+            <?php if (!$showVerifyStep): ?>
+                <section class="email-auth email-auth--send" aria-labelledby="email-auth-send-heading">
+                    <h2 id="email-auth-send-heading" class="email-auth__headline email-auth__headline--send">We'll email you a sign-in code</h2>
+                    <p class="email-auth__hint">Enter your email address and we'll send a 6-digit code.</p>
                     <form class="note-form" method="post" action="/auth/email/request_code.php">
                         <?php csrf_hidden_field(); ?>
                         <label class="note-form__label" for="request_email">Email</label>
@@ -54,14 +53,15 @@ $verifyHintBoth = 'Enter the email you used when requesting the code and the 6-d
                             id="request_email"
                             name="email"
                             autocomplete="username"
-                            value="<?= $pendingEmail !== null ? e($pendingEmail) : '' ?>"
+                            value=""
                         >
                         <button type="submit" class="btn btn--primary">Send code</button>
                     </form>
+                    <p class="email-auth__alt"><a href="/auth/email/login.php?verify=1">I already have a code</a></p>
                 </section>
-
-                <section class="email-auth__step email-auth__step--verify<?= $emphasizeVerify ? ' email-auth__step--primary' : ' email-auth__step--secondary' ?>" aria-labelledby="email-auth-verify-heading">
-                    <h2 id="email-auth-verify-heading" class="email-auth__step-title">Step 2 — Enter code</h2>
+            <?php else: ?>
+                <section class="email-auth email-auth--verify" aria-labelledby="email-auth-verify-heading">
+                    <h2 id="email-auth-verify-heading" class="email-auth__headline">Enter the code we emailed you.</h2>
 
                     <?php if ($showCodeErr): ?>
                         <p class="flash flash--error email-auth__code-flash" role="alert">Invalid or expired code. Try again or request a new code.</p>
@@ -103,16 +103,42 @@ $verifyHintBoth = 'Enter the email you used when requesting the code and the 6-d
                         >
 
                         <button type="submit" class="btn btn--primary">Verify and sign in</button>
-
-                        <?php if ($pendingEmail !== null): ?>
-                            <p class="email-auth__footnote">
-                                <a href="/auth/email/login.php?reset=1">Use a different email</a>
-                            </p>
-                        <?php endif; ?>
                     </form>
-                </section>
 
-            </div>
+                    <div class="email-auth__secondary">
+                        <?php if ($pendingEmail !== null): ?>
+                            <form method="post" action="/auth/email/request_code.php" class="email-auth__inline-form">
+                                <?php csrf_hidden_field(); ?>
+                                <input type="hidden" name="email" value="<?= e($pendingEmail) ?>">
+                                <button type="submit" class="email-auth__link-btn">Didn't get a code? Resend</button>
+                            </form>
+                        <?php else: ?>
+                            <details class="email-auth__resend-details">
+                                <summary class="email-auth__resend-summary">Didn't get a code? Resend</summary>
+                                <div class="email-auth__resend-panel">
+                                    <form method="post" action="/auth/email/request_code.php" class="note-form note-form--compact">
+                                        <?php csrf_hidden_field(); ?>
+                                        <label class="note-form__label" for="resend_email">Email</label>
+                                        <input
+                                            type="email"
+                                            class="note-form__input"
+                                            id="resend_email"
+                                            name="email"
+                                            autocomplete="username"
+                                            required
+                                        >
+                                        <button type="submit" class="btn btn--ghost">Send code again</button>
+                                    </form>
+                                </div>
+                            </details>
+                        <?php endif; ?>
+
+                        <p class="email-auth__footnote">
+                            <a href="/auth/email/login.php?reset=1">Use a different email</a>
+                        </p>
+                    </div>
+                </section>
+            <?php endif; ?>
 
             <p class="empty-state"><a href="/login.php">Other sign-in options</a></p>
 

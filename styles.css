@@ -108,39 +108,82 @@ body {
     color: #7f1d1d;
 }
 
-.email-auth__step-title {
-    font-weight: 600;
-    font-size: 1rem;
-    margin: 1.25rem 0 0.5rem;
+.email-auth {
+    max-width: 22rem;
 }
 
-.email-auth__step-title--first {
+.email-auth__headline {
+    font-weight: 600;
+    font-size: 1.25rem;
+    line-height: 1.3;
+    margin: 0 0 0.5rem;
+}
+
+.email-auth__headline--send {
     margin-top: 0;
 }
 
 .email-auth__hint {
-    margin: 0 0 0.75rem;
+    margin: 0 0 1rem;
     color: var(--muted);
     font-size: 0.95rem;
 }
 
-.email-auth-flow--prioritize-verify {
-    display: flex;
-    flex-direction: column;
+.email-auth__alt {
+    margin: 1rem 0 0;
+    font-size: 0.9rem;
 }
 
-.email-auth-flow--prioritize-verify .email-auth__step--verify {
-    order: -1;
+.email-auth__secondary {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
 }
 
-.email-auth__step--secondary .email-auth__step-title {
-    color: var(--muted);
-    font-weight: 500;
-    font-size: 0.95rem;
+.email-auth__inline-form {
+    margin: 0 0 0.65rem;
 }
 
-.email-auth__step--primary .email-auth__step-title {
-    margin-top: 0;
+.email-auth__link-btn {
+    display: inline;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 0.9rem;
+    color: var(--accent);
+    text-decoration: underline;
+    cursor: pointer;
+    width: auto;
+    text-align: left;
+}
+
+.email-auth__link-btn:hover {
+    text-decoration: none;
+}
+
+.email-auth__resend-details {
+    margin: 0 0 0.65rem;
+}
+
+.email-auth__resend-summary {
+    font-size: 0.9rem;
+    color: var(--accent);
+    cursor: pointer;
+}
+
+.email-auth__resend-summary:hover {
+    text-decoration: underline;
+}
+
+.email-auth__resend-panel {
+    margin-top: 0.75rem;
+    padding: 0 0 0.25rem;
+}
+
+.note-form--compact .note-form__input {
+    margin-bottom: 0.65rem;
 }
 
 .email-auth__email-readonly {
@@ -158,7 +201,7 @@ body {
 }
 
 .email-auth__footnote {
-    margin: 0.75rem 0 0;
+    margin: 0;
     font-size: 0.9rem;
 }
 

@@ -19,7 +19,7 @@ csrf_verify_post_or_abort();
 
 $email = email_auth_normalize($_POST['email'] ?? null);
 if ($email === null) {
-    header('Location: /auth/email/login.php?code_err=1');
+    header('Location: /auth/email/login.php?verify=1&code_err=1');
     exit;
 }
 
