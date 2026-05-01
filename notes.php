@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/group_helpers.php';
-require_once __DIR__ . '/includes/note_preview.php';
+require_once __DIR__ . '/includes/note_library_card.php';
 require_once __DIR__ . '/includes/user_preferences.php';
 require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
@@ -176,73 +176,16 @@ require_once __DIR__ . '/header.php';
                 <ul class="notes-library">
                     <?php foreach ($notes as $note): ?>
                         <?php
-                        $authorId = (int) $note['user_id'];
-                        $isMine = ($authorId === $userId);
-                        $authorLabel = trim((string) ($note['author_name'] ?? ''));
-                        if ($authorLabel === '') {
-                            $authorLabel = 'Someone';
-                        }
-                        $groupsLabel = trim((string) ($note['shared_group_names'] ?? ''));
-                        $ts = strtotime((string) $note['entry_date']);
-                        $dateLabel = $ts ? date('M j, Y', $ts) : '';
                         $nid = (int) $note['id'];
-                        $thoughtRows = $thoughtsByNote[$nid] ?? [];
-                        $previewBlob = '';
-                        foreach ($thoughtRows as $tr) {
-                            $previewBlob .= ($previewBlob !== '' ? "\n\n" : '') . trim($tr['body']);
-                        }
-                        $preview = note_plain_preview($previewBlob, 220);
-                        $thumbs = $photosByNote[$nid] ?? [];
-                        $noteReactions = [];
-                        foreach ($thoughtRows as $tr) {
-                            $tid = (int) $tr['id'];
-                            foreach ($reactionByThought[$tid] ?? [] as $rx) {
-                                $emoji = (string) $rx['emoji'];
-                                if (!isset($noteReactions[$emoji])) {
-                                    $noteReactions[$emoji] = 0;
-                                }
-                                $noteReactions[$emoji] += (int) $rx['count'];
-                            }
-                        }
+                        note_library_card_render(
+                            $note,
+                            $userId,
+                            $thoughtsByNote[$nid] ?? [],
+                            $photosByNote[$nid] ?? [],
+                            $reactionByThought,
+                            NOTE_LIBRARY_CARD_PREVIEW_MAX
+                        );
                         ?>
-                        <li class="notes-library__card">
-                            <a class="notes-library__card-main" href="/note.php?id=<?= $nid ?>">
-                                <time
-                                    class="notes-library__date"
-                                    datetime="<?= e((string) $note['entry_date']) ?>"
-                                ><?= e($dateLabel) ?></time>
-                                <?php if (!$isMine): ?>
-                                    <p class="notes-library__author"><?= e($authorLabel) ?></p>
-                                <?php endif; ?>
-                                <?php if ($groupsLabel !== ''): ?>
-                                    <p class="notes-library__groups">Shared in <?= e($groupsLabel) ?></p>
-                                <?php endif; ?>
-                                <?php if (count($thumbs) > 0): ?>
-                                    <ul class="today-note-photos today-note-photos--notes">
-                                        <?php foreach ($thumbs as $thumb): ?>
-                                            <li class="today-note-photos__item">
-                                                <img
-                                                    src="/media/note_photo.php?id=<?= (int) $thumb['id'] ?>"
-                                                    alt=""
-                                                    class="today-note-photos__img"
-                                                    loading="lazy"
-                                                    width="<?= (int) $thumb['width'] ?>"
-                                                    height="<?= (int) $thumb['height'] ?>"
-                                                >
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php endif; ?>
-                                <?php if (count($noteReactions) > 0): ?>
-                                    <p class="notes-library__reactions" aria-label="Thought reactions">
-                                        <?php foreach ($noteReactions as $emoji => $count): ?>
-                                            <span class="thought-reaction-pill"><?= e($emoji) ?> <?= (int) $count ?></span>
-                                        <?php endforeach; ?>
-                                    </p>
-                                <?php endif; ?>
-                                <p class="notes-library__preview"><?= e($preview) ?></p>
-                            </a>
-                        </li>
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>

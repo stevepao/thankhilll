@@ -10,7 +10,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/validation.php';
 require_once __DIR__ . '/includes/group_helpers.php';
-require_once __DIR__ . '/includes/note_preview.php';
+require_once __DIR__ . '/includes/note_library_card.php';
 require_once __DIR__ . '/includes/user_preferences.php';
 require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_access.php';
@@ -561,26 +561,26 @@ $sharedToday = [];
 if ($showSharedOnToday) {
     $sharedStmt = $pdo->prepare(
         <<<'SQL'
-        SELECT n.id,
-               n.entry_date,
-               u.display_name AS author_name,
-               (
-                   SELECT MIN(g.name)
-                   FROM note_groups ng
-                   INNER JOIN `groups` g ON g.id = ng.group_id
-                   INNER JOIN group_members gm ON gm.group_id = ng.group_id AND gm.user_id = ?
-                   WHERE ng.note_id = n.id
-               ) AS shared_via_group_name
+        SELECT
+            n.id,
+            n.entry_date,
+            n.user_id,
+            MAX(COALESCE(u.display_name, '')) AS author_name,
+            GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ', ') AS shared_group_names
         FROM notes n
-        INNER JOIN users u ON u.id = n.user_id
+        LEFT JOIN users u ON u.id = n.user_id
+        LEFT JOIN note_groups ng ON ng.note_id = n.id
+        LEFT JOIN group_members gm ON gm.group_id = ng.group_id AND gm.user_id = ?
+        LEFT JOIN `groups` g ON g.id = ng.group_id AND gm.user_id IS NOT NULL
         WHERE n.user_id <> ?
           AND n.entry_date = CURDATE()
           AND EXISTS (
               SELECT 1
-              FROM note_groups ng2
-              INNER JOIN group_members gm2 ON gm2.group_id = ng2.group_id AND gm2.user_id = ?
-              WHERE ng2.note_id = n.id
+              FROM note_groups ngx
+              INNER JOIN group_members gmx ON gmx.group_id = ngx.group_id AND gmx.user_id = ?
+              WHERE ngx.note_id = n.id
           )
+        GROUP BY n.id, n.entry_date, n.user_id
         ORDER BY n.entry_date DESC, n.id DESC
         SQL
     );
@@ -596,6 +596,16 @@ $todayPhotos = note_media_grouped_by_note($pdo, $todayNoteIds);
 
 $sharedThoughtsByNote = $sharedToday !== []
     ? note_thoughts_grouped_by_note($pdo, array_column($sharedToday, 'id'), $userId)
+    : [];
+
+$sharedTodayThoughtIdsForReactions = [];
+foreach ($sharedThoughtsByNote as $rows) {
+    foreach ($rows as $tr) {
+        $sharedTodayThoughtIdsForReactions[] = (int) $tr['id'];
+    }
+}
+$sharedTodayReactionByThought = $sharedTodayThoughtIdsForReactions !== []
+    ? thought_reactions_grouped_by_thought($pdo, $sharedTodayThoughtIdsForReactions, $userId)
     : [];
 
 $primaryPhotosList = $todayPhotos[$todayPrimaryId] ?? [];
@@ -1045,47 +1055,19 @@ require_once __DIR__ . '/header.php';
                     <?php if (count($sharedToday) === 0): ?>
                         <p class="today-quiet">Nothing shared yet today.</p>
                     <?php else: ?>
-                        <ul class="today-shared-list">
+                        <ul class="notes-library">
                             <?php foreach ($sharedToday as $sn): ?>
                                 <?php
-                                $authorLabel = trim((string) ($sn['author_name'] ?? ''));
-                                if ($authorLabel === '') {
-                                    $authorLabel = 'Someone';
-                                }
-                                $groupLabel = trim((string) ($sn['shared_via_group_name'] ?? ''));
-                                if ($groupLabel === '') {
-                                    $groupLabel = 'your group';
-                                }
                                 $snId = (int) $sn['id'];
-                                $blob = '';
-                                foreach ($sharedThoughtsByNote[$snId] ?? [] as $thRow) {
-                                    $blob .= ($blob !== '' ? "\n\n" : '') . trim($thRow['body']);
-                                }
-                                $preview = note_plain_preview($blob, 160);
+                                note_library_card_render(
+                                    $sn,
+                                    $userId,
+                                    $sharedThoughtsByNote[$snId] ?? [],
+                                    $todayPhotos[$snId] ?? [],
+                                    $sharedTodayReactionByThought,
+                                    NOTE_LIBRARY_CARD_PREVIEW_MAX
+                                );
                                 ?>
-                                <li class="today-shared-card">
-                                    <p class="today-shared-card__meta">
-                                        <span class="today-shared-card__author"><?= e($authorLabel) ?></span>
-                                        <span class="today-shared-card__context"> · Shared in <?= e($groupLabel) ?></span>
-                                    </p>
-                                    <p class="today-shared-card__preview"><?= e($preview) ?></p>
-                                    <?php if (!empty($todayPhotos[$snId])): ?>
-                                        <ul class="today-note-photos today-note-photos--shared">
-                                            <?php foreach ($todayPhotos[$snId] as $ph): ?>
-                                                <li class="today-note-photos__item">
-                                                    <img
-                                                        src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
-                                                        alt=""
-                                                        class="today-note-photos__img"
-                                                        loading="lazy"
-                                                        width="<?= (int) $ph['width'] ?>"
-                                                        height="<?= (int) $ph['height'] ?>"
-                                                    >
-                                                </li>
-                                            <?php endforeach; ?>
-                                        </ul>
-                                    <?php endif; ?>
-                                </li>
                             <?php endforeach; ?>
                         </ul>
                     <?php endif; ?>
