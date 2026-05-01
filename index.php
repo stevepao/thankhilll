@@ -37,8 +37,8 @@ $addThoughtPrivateSticky = false;
 $editSticky = false;
 /** @var array<int, true> */
 $editStickyGroupIds = [];
-/** @var array<int, true> */
-$editStickyDeleteMediaIds = [];
+/** @var array<int, true> Media IDs still included when re-showing the edit form after an error */
+$editStickyKeepMediaIds = [];
 
 $shareGroups = groups_for_user_with_counts($pdo, $userId);
 
@@ -103,21 +103,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        $rawDeletes = $_POST['delete_media_ids'] ?? [];
-        if (!is_array($rawDeletes)) {
-            $rawDeletes = [];
+        $rawKeeps = $_POST['keep_media_ids'] ?? [];
+        if (!is_array($rawKeeps)) {
+            $rawKeeps = [];
         }
-        $requestedDeletes = [];
-        foreach ($rawDeletes as $r) {
+        $requestedKeeps = [];
+        foreach ($rawKeeps as $r) {
             if (is_numeric($r)) {
-                $requestedDeletes[] = (int) $r;
+                $requestedKeeps[] = (int) $r;
             }
         }
-        $requestedDeletes = array_values(array_unique(array_filter($requestedDeletes, static fn (int $id): bool => $id > 0)));
+        $requestedKeeps = array_values(array_unique(array_filter($requestedKeeps, static fn (int $id): bool => $id > 0)));
+
+        $keepSet = [];
+        foreach ($requestedKeeps as $mid) {
+            if (isset($existingIdSet[$mid])) {
+                $keepSet[$mid] = true;
+            }
+        }
 
         $validDeletes = [];
-        foreach ($requestedDeletes as $mid) {
-            if (isset($existingIdSet[$mid])) {
+        foreach ($existingIds as $mid) {
+            if (!isset($keepSet[$mid])) {
                 $validDeletes[] = $mid;
             }
         }
@@ -149,10 +156,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($selectedGroupIds as $gid) {
                 $editStickyGroupIds[$gid] = true;
             }
-            foreach ($requestedDeletes as $mid) {
-                if (isset($existingIdSet[$mid])) {
-                    $editStickyDeleteMediaIds[$mid] = true;
-                }
+            foreach (array_keys($keepSet) as $mid) {
+                $editStickyKeepMediaIds[$mid] = true;
             }
         }
 
@@ -205,10 +210,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 foreach ($selectedGroupIds as $gid) {
                     $editStickyGroupIds[$gid] = true;
                 }
-                foreach ($requestedDeletes as $mid) {
-                    if (isset($existingIdSet[$mid])) {
-                        $editStickyDeleteMediaIds[$mid] = true;
-                    }
+                foreach (array_keys($keepSet) as $mid) {
+                    $editStickyKeepMediaIds[$mid] = true;
                 }
             } else {
                 user_preferences_merge_save($pdo, $userId, [
@@ -635,10 +638,15 @@ foreach ($existingIdsForPrimary as $peid) {
     $existingSetForPrimary[(int) $peid] = true;
 }
 $delStickyCount = 0;
-foreach (array_keys($editStickyDeleteMediaIds) as $mid) {
-    if (isset($existingSetForPrimary[$mid])) {
-        $delStickyCount++;
+if ($editSticky) {
+    $keepStickyCount = 0;
+    foreach ($existingIdsForPrimary as $peid) {
+        $pid = (int) $peid;
+        if (isset($editStickyKeepMediaIds[$pid])) {
+            $keepStickyCount++;
+        }
     }
+    $delStickyCount = count($existingIdsForPrimary) - $keepStickyCount;
 }
 $editRemainPhotoSlots = count($existingIdsForPrimary) - $delStickyCount;
 if ($editRemainPhotoSlots < 0) {
@@ -968,7 +976,7 @@ require_once __DIR__ . '/header.php';
                                         <?php if (count($primaryPhotosList) > 0): ?>
                                             <fieldset class="share-fieldset today-edit-media-fieldset">
                                                 <legend class="share-fieldset__legend">Photos</legend>
-                                                <p class="share-fieldset__hint">Uncheck to remove a photo when you save.</p>
+                                                <p class="share-fieldset__hint">Uncheck photos you want to remove.</p>
                                                 <ul class="today-edit-existing-photos">
                                                     <?php foreach ($primaryPhotosList as $eph): ?>
                                                         <?php $mid = (int) $eph['id']; ?>
@@ -976,9 +984,9 @@ require_once __DIR__ . '/header.php';
                                                             <label class="today-edit-existing-photos__label">
                                                                 <input
                                                                     type="checkbox"
-                                                                    name="delete_media_ids[]"
+                                                                    name="keep_media_ids[]"
                                                                     value="<?= $mid ?>"
-                                                                    <?= isset($editStickyDeleteMediaIds[$mid]) ? 'checked' : '' ?>
+                                                                    <?= (!$editSticky || isset($editStickyKeepMediaIds[$mid])) ? 'checked' : '' ?>
                                                                 >
                                                                 <img
                                                                     src="/media/note_photo.php?id=<?= $mid ?>"
@@ -988,7 +996,7 @@ require_once __DIR__ . '/header.php';
                                                                     width="<?= (int) $eph['width'] ?>"
                                                                     height="<?= (int) $eph['height'] ?>"
                                                                 >
-                                                                <span class="today-edit-existing-photos__hint">Remove</span>
+                                                                <span class="today-edit-existing-photos__hint">Included</span>
                                                             </label>
                                                         </li>
                                                     <?php endforeach; ?>
@@ -1020,7 +1028,7 @@ require_once __DIR__ . '/header.php';
                                             <p id="today-edit-photo-status" class="today-photo-status" aria-live="polite"></p>
                                             <p id="today-edit-photo-error" class="flash flash--error today-photo-error" role="alert" hidden></p>
                                         <?php else: ?>
-                                            <p class="share-fieldset__hint today-edit-photo-cap-hint">Remove a photo above to add different ones (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
+                                            <p class="share-fieldset__hint today-edit-photo-cap-hint">Uncheck a photo above to remove it and make room (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
                                         <?php endif; ?>
 
                                         <div class="today-edit-actions">
