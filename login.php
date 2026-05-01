@@ -22,5 +22,8 @@ require_once __DIR__ . '/header.php';
             <p>
                 <a class="btn btn--primary" href="/auth/google/login.php">Sign in with Google</a>
             </p>
+            <p>
+                <a class="btn btn--primary" href="/auth/email/login.php">Sign in with email</a>
+            </p>
 
 <?php require_once __DIR__ . '/footer.php'; ?>
