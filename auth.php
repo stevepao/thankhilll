@@ -1,48 +1,51 @@
 <?php
 /**
- * auth.php — Shared session/auth helpers.
+ * auth.php — Shared session/auth helpers (provider-agnostic).
  *
- * Keeps authentication state minimal: only user_id is stored in session.
+ * Session wiring lives in includes/session.php; this file exposes user id + DB-backed profile helpers.
  */
 declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/includes/session.php';
 
 /**
- * Start PHP session once per request.
+ * Parse logged-in user id from session, enforce idle timeout + User-Agent binding, refresh activity.
+ * Returns null when unauthenticated or when the session fails validation (session is cleared).
  */
-function ensureSessionStarted(): void
+function current_user_id(): ?int
 {
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_start();
-    }
-}
+    bootstrap_session();
 
-/**
- * Returns the logged-in user id, or null.
- */
-function currentUserId(): ?int
-{
-    ensureSessionStarted();
     $value = $_SESSION['user_id'] ?? null;
 
+    $id = null;
     if (is_int($value) && $value > 0) {
-        return $value;
+        $id = $value;
+    } elseif (is_string($value) && ctype_digit($value)) {
+        $id = (int) $value;
     }
 
-    if (is_string($value) && ctype_digit($value)) {
-        return (int) $value;
+    if ($id === null) {
+        return null;
     }
 
-    return null;
+    if (!session_validate_authenticated()) {
+        session_destroy_completely();
+        return null;
+    }
+
+    session_touch_activity();
+
+    return $id;
 }
 
 /**
- * Redirects to login page when no session user exists.
+ * Require an authenticated user or redirect to login.
  */
-function requireLogin(): int
+function require_login(): int
 {
-    $userId = currentUserId();
+    $userId = current_user_id();
     if ($userId === null) {
         header('Location: /login.php');
         exit;
@@ -56,7 +59,7 @@ function requireLogin(): int
  */
 function currentUser(): ?array
 {
-    $userId = currentUserId();
+    $userId = current_user_id();
     if ($userId === null) {
         return null;
     }
@@ -66,4 +69,20 @@ function currentUser(): ?array
     $row = $stmt->fetch();
 
     return is_array($row) ? $row : null;
+}
+
+/** Compatibility alias; prefer bootstrap_session() in new code. */
+function ensureSessionStarted(): void
+{
+    bootstrap_session();
+}
+
+function currentUserId(): ?int
+{
+    return current_user_id();
+}
+
+function requireLogin(): int
+{
+    return require_login();
 }

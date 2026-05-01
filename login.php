@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 
-if (currentUserId() !== null) {
+if (current_user_id() !== null) {
     header('Location: /index.php');
     exit;
 }

@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 
-$userId = requireLogin();
+$userId = require_login();
 
 $stmt = db()->prepare(
     'SELECT id, content, created_at FROM notes WHERE user_id = ? ORDER BY created_at DESC, id DESC'

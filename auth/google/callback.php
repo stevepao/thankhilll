@@ -91,8 +91,7 @@ try {
         throw $e;
     }
 
-    ensureSessionStarted();
-    $_SESSION['user_id'] = $userId;
+    session_commit_login($userId);
 
     header('Location: /index.php');
     exit;

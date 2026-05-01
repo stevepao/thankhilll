@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 
-$userId = requireLogin();
+$userId = require_login();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $content = trim((string) ($_POST['content'] ?? ''));
