@@ -15,9 +15,11 @@ require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
 require_once __DIR__ . '/includes/thought_reactions.php';
 require_once __DIR__ . '/includes/thought_comments.php';
+require_once __DIR__ . '/includes/user_timezone.php';
 
 $userId = require_login();
 $pdo = db();
+$viewerTz = user_timezone_get($pdo, $userId);
 
 $dateExplicit = array_key_exists('date', $_GET);
 $groupExplicit = array_key_exists('group', $_GET);
@@ -50,26 +52,35 @@ if ($groupRaw === 'mine') {
 }
 
 $dateSql = '';
+/** @var list<string|int> $dateParams */
+$dateParams = [];
 switch ($dateFilter) {
     case 'today':
-        $dateSql = 'AND n.entry_date = CURDATE()';
+        $dateSql = 'AND n.entry_date = ?';
+        $dateParams[] = user_local_today_ymd($viewerTz);
         break;
     case 'week':
-        $dateSql = 'AND n.entry_date >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-            AND n.entry_date < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 7 DAY)';
+        [$wStart, $wEnd] = user_local_week_bounds_ymd($viewerTz);
+        $dateSql = 'AND n.entry_date >= ? AND n.entry_date <= ?';
+        $dateParams[] = $wStart;
+        $dateParams[] = $wEnd;
         break;
     case 'month':
-        $dateSql = 'AND YEAR(n.entry_date) = YEAR(CURDATE()) AND MONTH(n.entry_date) = MONTH(CURDATE())';
+        [$mStart, $mEnd] = user_local_calendar_month_bounds_ymd($viewerTz);
+        $dateSql = 'AND n.entry_date >= ? AND n.entry_date <= ?';
+        $dateParams[] = $mStart;
+        $dateParams[] = $mEnd;
         break;
     case 'older':
-        $dateSql = 'AND n.entry_date < DATE_FORMAT(CURDATE(), \'%Y-%m-01\')';
+        $dateSql = 'AND n.entry_date < ?';
+        $dateParams[] = user_local_month_start_ymd($viewerTz);
         break;
     default:
         break;
 }
 
 $groupSql = '';
-$params = [$userId, $userId, $userId];
+$params = array_merge([$userId, $userId, $userId], $dateParams);
 
 if ($groupScope === 'mine') {
     $groupSql = 'AND n.user_id = ?';
@@ -212,6 +223,7 @@ require_once __DIR__ . '/header.php';
                             $thoughtCommentsByThought,
                             $noteSharedMap[$nid] ?? false,
                             $commentsRedirectBase,
+                            $viewerTz,
                         );
                         ?>
                     <?php endforeach; ?>

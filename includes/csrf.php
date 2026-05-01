@@ -62,3 +62,29 @@ function csrf_verify_post_or_abort(): void
         exit;
     }
 }
+
+/**
+ * For JSON POST or custom headers (e.g. timezone probe): token in body.csrf_token or X-CSRF-Token.
+ */
+function csrf_verify_json_or_header_or_abort(): void
+{
+    $token = null;
+    $ct = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (is_string($ct) && stripos($ct, 'application/json') !== false) {
+        $rawBody = file_get_contents('php://input');
+        $decoded = json_decode(is_string($rawBody) ? $rawBody : '', true);
+        if (is_array($decoded) && isset($decoded['csrf_token']) && is_string($decoded['csrf_token'])) {
+            $token = $decoded['csrf_token'];
+        }
+    }
+    if ($token === null || $token === '') {
+        $h = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        $token = is_string($h) ? $h : '';
+    }
+    if ($token === '' || !csrf_validate($token)) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['ok' => false, 'error' => 'csrf']);
+        exit;
+    }
+}

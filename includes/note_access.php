@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/db.php';
+require_once __DIR__ . '/user_timezone.php';
 
 function user_can_view_note(PDO $pdo, int $userId, int $noteId): bool
 {
@@ -78,17 +79,19 @@ function user_can_edit_note_today(PDO $pdo, int $userId, int $noteId): bool
         return false;
     }
 
+    $todayLocal = user_local_today_ymd(user_timezone_get($pdo, $userId));
+
     $stmt = $pdo->prepare(
         <<<'SQL'
         SELECT 1
         FROM notes n
         WHERE n.id = ?
           AND n.user_id = ?
-          AND n.entry_date = CURDATE()
+          AND n.entry_date = ?
         LIMIT 1
         SQL
     );
-    $stmt->execute([$noteId, $userId]);
+    $stmt->execute([$noteId, $userId, $todayLocal]);
 
     return (bool) $stmt->fetchColumn();
 }
@@ -103,6 +106,8 @@ function user_can_edit_thought_today(PDO $pdo, int $userId, int $thoughtId): boo
         return false;
     }
 
+    $todayLocal = user_local_today_ymd(user_timezone_get($pdo, $userId));
+
     $stmt = $pdo->prepare(
         <<<'SQL'
         SELECT 1
@@ -110,11 +115,11 @@ function user_can_edit_thought_today(PDO $pdo, int $userId, int $thoughtId): boo
         INNER JOIN notes n ON n.id = t.note_id
         WHERE t.id = ?
           AND n.user_id = ?
-          AND n.entry_date = CURDATE()
+          AND n.entry_date = ?
         LIMIT 1
         SQL
     );
-    $stmt->execute([$thoughtId, $userId]);
+    $stmt->execute([$thoughtId, $userId, $todayLocal]);
 
     return (bool) $stmt->fetchColumn();
 }

@@ -8,6 +8,7 @@ require_once dirname(__DIR__) . '/auth.php';
 require_once dirname(__DIR__) . '/includes/csrf.php';
 require_once dirname(__DIR__) . '/includes/note_access.php';
 require_once dirname(__DIR__) . '/includes/thought_comments.php';
+require_once dirname(__DIR__) . '/includes/user_timezone.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: /notes.php');
@@ -18,6 +19,7 @@ $userId = require_login();
 csrf_verify_post_or_abort();
 
 $pdo = db();
+$viewerTz = user_timezone_get($pdo, $userId);
 
 $redirect = thought_comment_redirect_target($_POST['redirect'] ?? null);
 $thoughtId = (int) ($_POST['thought_id'] ?? 0);
@@ -40,7 +42,7 @@ if ($meta['is_private'] || !note_is_shared_with_any_group($pdo, $meta['note_id']
     $failRedirect();
 }
 
-if (!thought_comment_post_window_open($meta['thought_created_at'])) {
+if (!thought_comment_post_window_open($meta['thought_created_at'], $viewerTz)) {
     $failRedirect();
 }
 
@@ -60,7 +62,7 @@ try {
 
     $meta2 = thought_comment_row_meta($pdo, $thoughtId);
     if ($meta2 === null || $meta2['is_private'] || !note_is_shared_with_any_group($pdo, $meta2['note_id'])
-        || !thought_comment_post_window_open($meta2['thought_created_at'])) {
+        || !thought_comment_post_window_open($meta2['thought_created_at'], $viewerTz)) {
         $pdo->rollBack();
         $failRedirect();
     }

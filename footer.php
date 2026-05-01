@@ -7,6 +7,7 @@
  */
 declare(strict_types=1);
 
+require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/assets.php';
 
 $currentNav = $currentNav ?? 'today';
@@ -38,6 +39,38 @@ $showNav = $showNav ?? true;
             </div>
         </dialog>
         <script src="<?= e(asset_url('/image_lightbox.js')) ?>"></script>
+        <?php if (current_user_id() !== null): ?>
+            <?php require_once __DIR__ . '/includes/csrf.php'; ?>
+            <script>
+                (function () {
+                    var csrf = <?= json_encode(csrf_token(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+                    var html = document.documentElement;
+                    var saved = html.getAttribute('data-user-timezone') || '';
+                    var tz = '';
+                    try {
+                        tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+                    } catch (e) {}
+                    if (!tz || tz === saved) {
+                        return;
+                    }
+                    fetch('/timezone_save.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': csrf,
+                        },
+                        body: JSON.stringify({ timezone: tz }),
+                        credentials: 'same-origin',
+                    })
+                        .then(function (r) {
+                            if (r.ok) {
+                                html.setAttribute('data-user-timezone', tz);
+                            }
+                        })
+                        .catch(function () {});
+                })();
+            </script>
+        <?php endif; ?>
     </div>
 </body>
 </html>

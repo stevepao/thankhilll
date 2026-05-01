@@ -25,6 +25,7 @@ function note_library_card_render(
     array $thoughtCommentsMap,
     bool $noteSharedWithGroup,
     string $commentRedirectTarget,
+    string $viewerTz,
 ): void {
     $nid = (int) $noteRow['id'];
     $authorId = (int) $noteRow['user_id'];
@@ -83,6 +84,7 @@ function note_library_card_render(
                                     $noteSharedWithGroup,
                                     $isMine,
                                     $commentRedirectTarget,
+                                    $viewerTz,
                                     false,
                                 );
                                 ?>

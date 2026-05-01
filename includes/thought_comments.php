@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/user_timezone.php';
 require_once __DIR__ . '/validation.php';
 
 const THOUGHT_COMMENT_MAX_LENGTH = 280;
@@ -21,29 +22,44 @@ function note_is_shared_with_any_group(PDO $pdo, int $noteId): bool
     return (bool) $stmt->fetchColumn();
 }
 
-/** Same calendar day as now (server TZ), or within 24 hours after thought creation. */
-function thought_comment_post_window_open(string $thoughtCreatedAt): bool
+/** Same calendar day as now in viewer TZ, or within 24 hours after thought creation (UTC elapsed). */
+function thought_comment_post_window_open(string $thoughtCreatedAtUtc, string $viewerTz): bool
 {
-    $ts = strtotime($thoughtCreatedAt);
-    if ($ts === false) {
+    $thought = user_datetime_immutable_utc($thoughtCreatedAtUtc);
+    if ($thought === null) {
         return false;
     }
 
-    $sameCalendarDay = date('Y-m-d', $ts) === date('Y-m-d');
-    $within24h = time() <= $ts + 86400;
+    try {
+        $z = new DateTimeZone(user_timezone_normalize($viewerTz));
+    } catch (Throwable $e) {
+        return false;
+    }
+
+    $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+    $sameCalendarDay = $thought->setTimezone($z)->format('Y-m-d') === $nowUtc->setTimezone($z)->format('Y-m-d');
+    $within24h = $nowUtc->getTimestamp() <= $thought->getTimestamp() + 86400;
 
     return $sameCalendarDay || $within24h;
 }
 
-/** Delete allowed only on the calendar day the comment was created (server TZ). */
-function thought_comment_delete_window_open(string $commentCreatedAt): bool
+/** Delete allowed only on the viewer's current local calendar day when the comment was created. */
+function thought_comment_delete_window_open(string $commentCreatedAtUtc, string $viewerTz): bool
 {
-    $ts = strtotime($commentCreatedAt);
-    if ($ts === false) {
+    $comment = user_datetime_immutable_utc($commentCreatedAtUtc);
+    if ($comment === null) {
         return false;
     }
 
-    return date('Y-m-d', $ts) === date('Y-m-d');
+    try {
+        $z = new DateTimeZone(user_timezone_normalize($viewerTz));
+    } catch (Throwable $e) {
+        return false;
+    }
+
+    $nowUtc = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+
+    return $comment->setTimezone($z)->format('Y-m-d') === $nowUtc->setTimezone($z)->format('Y-m-d');
 }
 
 /** @return array{ok:true,value:string}|array{ok:false,error:string} */
@@ -86,18 +102,27 @@ function thought_comment_redirect_target(mixed $raw): string
     return '/notes.php';
 }
 
-function thought_comment_time_label(string $createdAt): string
+function thought_comment_time_label(string $createdAtUtc, string $viewerTz): string
 {
-    $ts = strtotime($createdAt);
-    if ($ts === false) {
+    $dt = user_datetime_immutable_utc($createdAtUtc);
+    if ($dt === null) {
         return '';
     }
 
-    if (date('Y-m-d', $ts) === date('Y-m-d')) {
-        return strtolower(date('g:ia', $ts));
+    try {
+        $z = new DateTimeZone(user_timezone_normalize($viewerTz));
+    } catch (Throwable $e) {
+        return '';
     }
 
-    return strtolower(date('M j, g:ia', $ts));
+    $local = $dt->setTimezone($z);
+    $nowLocal = (new DateTimeImmutable('now', $z));
+
+    if ($local->format('Y-m-d') === $nowLocal->format('Y-m-d')) {
+        return strtolower($local->format('g:ia'));
+    }
+
+    return strtolower($local->format('M j, g:ia'));
 }
 
 /**

@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/user_timezone.php';
 require_once __DIR__ . '/validation.php';
 
 /** Max UTF-8 characters for one thought body (matches legacy note body limit). */
@@ -71,10 +72,18 @@ function note_thought_count_for_note(PDO $pdo, int $noteId): int
     return (int) $stmt->fetchColumn();
 }
 
-/** Subtle clock label e.g. "9:42am". */
-function note_thought_time_label(string $createdAt): string
+/** Subtle clock label e.g. "9:42am" in the viewer's time zone (createdAt stored as UTC). */
+function note_thought_time_label(string $createdAtUtc, string $viewerTz): string
 {
-    $ts = strtotime($createdAt);
+    $dt = user_datetime_immutable_utc($createdAtUtc);
+    if ($dt === null) {
+        return '';
+    }
+    try {
+        $z = new DateTimeZone(user_timezone_normalize($viewerTz));
+    } catch (Throwable $e) {
+        return '';
+    }
 
-    return $ts !== false ? strtolower(date('g:ia', $ts)) : '';
+    return strtolower($dt->setTimezone($z)->format('g:ia'));
 }

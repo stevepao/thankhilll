@@ -64,7 +64,7 @@ function currentUser(): ?array
         return null;
     }
 
-    $stmt = db()->prepare('SELECT id, display_name FROM users WHERE id = ? LIMIT 1');
+    $stmt = db()->prepare('SELECT id, display_name, timezone FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([$userId]);
     $row = $stmt->fetch();
 

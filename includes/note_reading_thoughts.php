@@ -9,6 +9,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/escape.php';
 require_once __DIR__ . '/note_thoughts.php';
 require_once __DIR__ . '/thought_comments.php';
+require_once __DIR__ . '/user_timezone.php';
 
 /**
  * One thought: thought-block markup matching note detail behavior.
@@ -29,6 +30,7 @@ function note_reading_render_thought_block(
     string $redirectTarget,
     bool $thoughtCommentsIconOnlyComposer,
     bool $isMine,
+    string $viewerTz,
     ?array $todayExtras = null,
 ): void {
     $userId = $viewerUserId;
@@ -69,7 +71,7 @@ function note_reading_render_thought_block(
                                                                 aria-label="Add reaction"
                                                             >+</button>
                                                         </span>
-                                                        <time class="thought-block__time note-detail__thought-time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
+                                                        <time class="thought-block__time note-detail__thought-time" datetime="<?= e(datetime_attr_utc_mysql($th['created_at'])) ?>"><?= e(note_thought_time_label($th['created_at'], $viewerTz)) ?></time>
                                                         <?php if ($canEditTodayThought): ?>
                                                             <span class="thought-block__actions today-yours-thought-actions" aria-label="Thought actions">
                                                                 <button type="button" class="today-thought__icon-btn" data-thought-edit-open="<?= $tid ?>" title="Edit" aria-label="Edit moment">✏️</button>
@@ -109,6 +111,7 @@ function note_reading_render_thoughts_list(
     bool $noteSharedWithGroup,
     bool $isMine,
     string $commentRedirectTarget,
+    string $viewerTz,
     bool $thoughtCommentsIconOnlyComposer = false,
 ): void {
     ?>
@@ -119,7 +122,7 @@ function note_reading_render_thoughts_list(
                         $thoughtReactions = $thoughtReactionMap[$tid] ?? [];
                         $showThoughtComments = !$th['is_private'] && $noteSharedWithGroup;
                         $thoughtCommentsList = $thoughtCommentsMap[$tid] ?? [];
-                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at']);
+                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at'], $viewerTz);
                         ?>
                         <li class="note-detail__thought">
                             <?php
@@ -134,6 +137,7 @@ function note_reading_render_thoughts_list(
                                 $commentRedirectTarget,
                                 $thoughtCommentsIconOnlyComposer,
                                 $isMine,
+                                $viewerTz,
                                 null,
                             );
                             ?>

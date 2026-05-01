@@ -12,9 +12,11 @@ require_once __DIR__ . '/includes/note_thoughts.php';
 require_once __DIR__ . '/includes/thought_reactions.php';
 require_once __DIR__ . '/includes/thought_comments.php';
 require_once __DIR__ . '/includes/note_reading_thoughts.php';
+require_once __DIR__ . '/includes/user_timezone.php';
 
 $userId = require_login();
 $pdo = db();
+$viewerTz = user_timezone_get($pdo, $userId);
 
 $noteId = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 if ($noteId <= 0) {
@@ -112,6 +114,7 @@ require_once __DIR__ . '/header.php';
                     $noteSharedWithGroup,
                     $isMine,
                     '/note.php?id=' . $noteId,
+                    $viewerTz,
                     false,
                 );
                 ?>

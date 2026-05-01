@@ -20,6 +20,9 @@ require_once __DIR__ . '/thought_comments.php';
 /** When true (e.g. Today card), composer summary shows icon only; otherwise show 💬 + subtle cue when list empty. */
 $thoughtCommentsIconOnlyComposer = $thoughtCommentsIconOnlyComposer ?? false;
 
+/** @var string $viewerTz */
+$viewerTz = isset($viewerTz) && is_string($viewerTz) ? $viewerTz : 'UTC';
+
 $showSection = $canPostComment || $comments !== [];
 if (!$showSection) {
     return;
@@ -31,7 +34,7 @@ if (!$showSection) {
                                 <?php foreach ($comments as $c): ?>
                                     <?php
                                     $cid = (int) $c['id'];
-                                    $canDeleteThis = ((int) $c['user_id']) === $userId && thought_comment_delete_window_open($c['created_at']);
+                                    $canDeleteThis = ((int) $c['user_id']) === $userId && thought_comment_delete_window_open($c['created_at'], $viewerTz);
                                     ?>
                                     <li class="thought-comments__item" id="comment-<?= $cid ?>">
                                         <p class="thought-comments__body"><?= nl2br(e($c['body'])) ?></p>
@@ -39,7 +42,7 @@ if (!$showSection) {
                                             <p class="thought-comments__meta">
                                                 <span class="thought-comments__author"><?= e($c['display_name']) ?></span>
                                                 <span class="thought-comments__sep"> · </span>
-                                                <time class="thought-comments__time" datetime="<?= e($c['created_at']) ?>"><?= e(thought_comment_time_label($c['created_at'])) ?></time>
+                                                <time class="thought-comments__time" datetime="<?= e(datetime_attr_utc_mysql($c['created_at'])) ?>"><?= e(thought_comment_time_label($c['created_at'], $viewerTz)) ?></time>
                                             </p>
                                             <?php if ($canDeleteThis): ?>
                                                 <form class="thought-comments__delete-form" method="post" action="/comments/delete.php">

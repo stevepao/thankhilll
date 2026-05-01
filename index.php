@@ -17,9 +17,12 @@ require_once __DIR__ . '/includes/note_access.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
 require_once __DIR__ . '/includes/thought_reactions.php';
 require_once __DIR__ . '/includes/thought_comments.php';
+require_once __DIR__ . '/includes/user_timezone.php';
 
 $userId = require_login();
 $pdo = db();
+$userTimezone = user_timezone_get($pdo, $userId);
+$userLocalToday = user_local_today_ymd($userTimezone);
 
 $prefs = user_preferences_load($pdo, $userId);
 $validationError = null;
@@ -305,10 +308,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     SET t.body = ?, t.is_private = ?
                     WHERE t.id = ?
                       AND n.user_id = ?
-                      AND n.entry_date = CURDATE()
+                      AND n.entry_date = ?
                     SQL
                 );
-                $upd->execute([$validated['value'], $isPrivate, $thoughtId, $userId]);
+                $upd->execute([$validated['value'], $isPrivate, $thoughtId, $userId, $userLocalToday]);
 
                 $nidStmt = $pdo->prepare('SELECT note_id FROM note_thoughts WHERE id = ? LIMIT 1');
                 $nidStmt->execute([$thoughtId]);
@@ -375,10 +378,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     INNER JOIN notes n ON n.id = t.note_id
                     WHERE t.id = ?
                       AND n.user_id = ?
-                      AND n.entry_date = CURDATE()
+                      AND n.entry_date = ?
                     SQL
                 );
-                $del->execute([$thoughtId, $userId]);
+                $del->execute([$thoughtId, $userId, $userLocalToday]);
                 $pdo->prepare(
                     'UPDATE notes SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?'
                 )->execute([$parentNoteId, $userId]);
@@ -430,9 +433,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($validationError === null) {
             $dup = $pdo->prepare(
-                'SELECT id FROM notes WHERE user_id = ? AND entry_date = CURDATE() LIMIT 1'
+                'SELECT id FROM notes WHERE user_id = ? AND entry_date = ? LIMIT 1'
             );
-            $dup->execute([$userId]);
+            $dup->execute([$userId, $userLocalToday]);
             if ($dup->fetchColumn()) {
                 $validationError = 'Today\'s entry already exists. Refresh the page.';
                 $errorContext = 'create_first';
@@ -445,10 +448,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare(
                     <<<'SQL'
                     INSERT INTO notes (user_id, entry_date, visibility, created_at, updated_at)
-                    VALUES (?, CURDATE(), 'private', NOW(), NOW())
+                    VALUES (?, ?, 'private', NOW(), NOW())
                     SQL
                 );
-                $stmt->execute([$userId]);
+                $stmt->execute([$userId, $userLocalToday]);
                 $noteId = (int) $pdo->lastInsertId();
 
                 if ($noteId <= 0) {
@@ -511,11 +514,11 @@ $yoursStmt = $pdo->prepare(
     SELECT n.id, n.entry_date, n.created_at
     FROM notes n
     WHERE n.user_id = ?
-      AND n.entry_date = CURDATE()
+      AND n.entry_date = ?
     LIMIT 1
     SQL
 );
-$yoursStmt->execute([$userId]);
+$yoursStmt->execute([$userId, $userLocalToday]);
 $yoursRow = $yoursStmt->fetch(PDO::FETCH_ASSOC);
 $yoursToday = is_array($yoursRow) ? [$yoursRow] : [];
 
@@ -576,7 +579,7 @@ if ($showSharedOnToday) {
         LEFT JOIN group_members gm ON gm.group_id = ng.group_id AND gm.user_id = ?
         LEFT JOIN `groups` g ON g.id = ng.group_id AND gm.user_id IS NOT NULL
         WHERE n.user_id <> ?
-          AND n.entry_date = CURDATE()
+          AND n.entry_date = ?
           AND EXISTS (
               SELECT 1
               FROM note_groups ngx
@@ -587,7 +590,7 @@ if ($showSharedOnToday) {
         ORDER BY n.entry_date DESC, n.id DESC
         SQL
     );
-    $sharedStmt->execute([$userId, $userId, $userId]);
+    $sharedStmt->execute([$userId, $userId, $userId, $userLocalToday]);
     $sharedToday = $sharedStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -820,7 +823,7 @@ require_once __DIR__ . '/header.php';
                                         $thoughtReactions = $todayThoughtReactionMap[$tid] ?? [];
                                         $showThoughtComments = !$th['is_private'] && $todayNoteSharedWithGroup;
                                         $thoughtCommentsList = $thoughtCommentsMap[$tid] ?? [];
-                                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at']);
+                                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at'], $userTimezone);
                                         ?>
                                         <li class="today-thought" data-thought-id="<?= $tid ?>">
                                             <div class="today-thought-readonly" <?= $showThisThoughtEdit ? 'hidden' : '' ?>>
@@ -836,6 +839,7 @@ require_once __DIR__ . '/header.php';
                                                     '/index.php',
                                                     true,
                                                     true,
+                                                    $userTimezone,
                                                     ['can_edit' => $canEditThought],
                                                 );
                                                 ?>
@@ -1073,6 +1077,7 @@ require_once __DIR__ . '/header.php';
                                     $sharedTodayThoughtCommentsMap,
                                     $sharedNoteSharedMap[$snId] ?? false,
                                     '/index.php',
+                                    $userTimezone,
                                 );
                                 ?>
                             <?php endforeach; ?>

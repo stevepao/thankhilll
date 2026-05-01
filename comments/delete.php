@@ -8,6 +8,7 @@ require_once dirname(__DIR__) . '/auth.php';
 require_once dirname(__DIR__) . '/includes/csrf.php';
 require_once dirname(__DIR__) . '/includes/note_access.php';
 require_once dirname(__DIR__) . '/includes/thought_comments.php';
+require_once dirname(__DIR__) . '/includes/user_timezone.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: /notes.php');
@@ -18,6 +19,7 @@ $userId = require_login();
 csrf_verify_post_or_abort();
 
 $pdo = db();
+$viewerTz = user_timezone_get($pdo, $userId);
 
 $redirect = thought_comment_redirect_target($_POST['redirect'] ?? null);
 $commentId = (int) ($_POST['comment_id'] ?? 0);
@@ -49,7 +51,7 @@ if ((int) $row['user_id'] !== $userId) {
     $failRedirect();
 }
 
-if (!thought_comment_delete_window_open((string) $row['created_at'])) {
+if (!thought_comment_delete_window_open((string) $row['created_at'], $viewerTz)) {
     $failRedirect();
 }
 
