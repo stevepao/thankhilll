@@ -9,9 +9,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/group_helpers.php';
 require_once __DIR__ . '/includes/note_preview.php';
+require_once __DIR__ . '/includes/user_preferences.php';
 
 $userId = require_login();
 $pdo = db();
+
+$dateExplicit = array_key_exists('date', $_GET);
+$groupExplicit = array_key_exists('group', $_GET);
 
 $dateRaw = $_GET['date'] ?? '';
 $dateFilter = '';
@@ -22,6 +26,14 @@ if (is_string($dateRaw) && in_array($dateRaw, ['today', 'week', 'month', 'older'
 $groupRaw = $_GET['group'] ?? '';
 $groupScope = 'all';
 $groupScopeId = 0;
+
+if (!$groupExplicit) {
+    $prefs = user_preferences_load($pdo, $userId);
+    if (($prefs['notes_default_scope'] ?? 'all') === 'mine') {
+        $groupScope = 'mine';
+    }
+}
+
 if ($groupRaw === 'mine') {
     $groupScope = 'mine';
 } elseif (is_string($groupRaw) && ctype_digit($groupRaw)) {
@@ -101,7 +113,13 @@ $stmt->execute($params);
 $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $groupsForFilter = groups_for_user_with_counts($pdo, $userId);
-$hasActiveFilters = ($dateFilter !== '' || $groupScope !== 'all');
+
+$hasActiveFilters = ($dateExplicit && $dateFilter !== '')
+    || ($groupExplicit && (
+        ($groupRaw !== '' && $groupRaw !== '0')
+        || $groupRaw === 'mine'
+        || ($groupScope === 'group' && $groupScopeId > 0)
+    ));
 
 $pageTitle = 'Notes';
 $currentNav = 'notes';

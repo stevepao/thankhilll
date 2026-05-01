@@ -536,6 +536,103 @@ body {
     font-size: 1.1rem;
 }
 
+/* Me tab — calm sections */
+.me-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.me-section:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.me-section__heading {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 0.85rem;
+    color: var(--text);
+}
+
+.me-section__subheading {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 1.25rem 0 0.65rem;
+    color: var(--text);
+}
+
+.me-dl {
+    margin: 0 0 1.25rem;
+}
+
+.me-dl__row {
+    display: grid;
+    grid-template-columns: minmax(5rem, 7rem) 1fr;
+    gap: 0.35rem 0.75rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.92rem;
+}
+
+.me-dl__row:last-child {
+    border-bottom: none;
+}
+
+.me-dl__dt {
+    margin: 0;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.me-dl__dd {
+    margin: 0;
+    word-break: break-word;
+}
+
+.me-form .note-form__label {
+    margin-top: 0.75rem;
+}
+
+.me-form .note-form__label:first-child,
+.me-form .me-section__subheading + .note-form__label {
+    margin-top: 0;
+}
+
+.me-form__select {
+    margin-bottom: 0.35rem;
+}
+
+.me-check {
+    display: flex;
+    gap: 0.55rem;
+    align-items: flex-start;
+    margin: 0.85rem 0 0;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.me-check input {
+    margin-top: 0.2rem;
+}
+
+.me-form__submit {
+    margin-top: 1rem;
+}
+
+.me-muted {
+    margin: 0 0 0.85rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.45;
+}
+
+.me-muted em {
+    font-style: italic;
+}
+
 /* Bottom navigation */
 .bottom-nav {
     position: fixed;

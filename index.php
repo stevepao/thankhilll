@@ -11,13 +11,25 @@ require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/validation.php';
 require_once __DIR__ . '/includes/group_helpers.php';
 require_once __DIR__ . '/includes/note_preview.php';
+require_once __DIR__ . '/includes/user_preferences.php';
 
 $userId = require_login();
 $pdo = db();
 
+$prefs = user_preferences_load($pdo, $userId);
 $validationError = null;
 $formContentValue = '';
 $shareGroups = groups_for_user_with_counts($pdo, $userId);
+
+$preselectedGroupIds = [];
+if (($prefs['default_note_visibility'] ?? '') === 'last_used_groups') {
+    foreach ($prefs['last_used_group_ids'] ?? [] as $gid) {
+        $gid = (int) $gid;
+        if ($gid > 0 && user_is_group_member($pdo, $userId, $gid)) {
+            $preselectedGroupIds[$gid] = true;
+        }
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify_post_or_abort();
@@ -76,11 +88,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($validationError === null) {
+            user_preferences_merge_save($pdo, $userId, [
+                'last_used_group_ids' => $selectedGroupIds,
+            ]);
             header('Location: /index.php?saved=1');
             exit;
         }
     }
 }
+
+$showSharedOnToday = !empty($prefs['today_show_shared']);
 
 $yoursStmt = $pdo->prepare(
     <<<'SQL'
@@ -94,7 +111,9 @@ $yoursStmt = $pdo->prepare(
 $yoursStmt->execute([$userId]);
 $yoursToday = $yoursStmt->fetchAll(PDO::FETCH_ASSOC);
 
-$sharedStmt = $pdo->prepare(
+$sharedToday = [];
+if ($showSharedOnToday) {
+    $sharedStmt = $pdo->prepare(
     <<<'SQL'
     SELECT n.id,
            n.content,
@@ -118,9 +137,10 @@ $sharedStmt = $pdo->prepare(
       )
     ORDER BY n.created_at DESC, n.id DESC
     SQL
-);
-$sharedStmt->execute([$userId, $userId, $userId]);
-$sharedToday = $sharedStmt->fetchAll(PDO::FETCH_ASSOC);
+    );
+    $sharedStmt->execute([$userId, $userId, $userId]);
+    $sharedToday = $sharedStmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 $pageTitle = 'Today';
 $currentNav = 'today';
@@ -158,6 +178,7 @@ require_once __DIR__ . '/header.php';
                                     type="checkbox"
                                     name="group_ids[]"
                                     value="<?= (int) $g['id'] ?>"
+                                    <?= isset($preselectedGroupIds[(int) $g['id']]) ? 'checked' : '' ?>
                                 >
                                 <span><?= e($g['name']) ?></span>
                             </label>
@@ -183,34 +204,36 @@ require_once __DIR__ . '/header.php';
                 <?php endif; ?>
             </section>
 
-            <section class="today-section" aria-labelledby="today-shared-heading">
-                <h2 id="today-shared-heading" class="today-section__heading">Shared with you today</h2>
-                <?php if (count($sharedToday) === 0): ?>
-                    <p class="today-quiet">Nothing shared yet today.</p>
-                <?php else: ?>
-                    <ul class="today-shared-list">
-                        <?php foreach ($sharedToday as $sn): ?>
-                            <?php
-                            $authorLabel = trim((string) ($sn['author_name'] ?? ''));
-                            if ($authorLabel === '') {
-                                $authorLabel = 'Someone';
-                            }
-                            $groupLabel = trim((string) ($sn['shared_via_group_name'] ?? ''));
-                            if ($groupLabel === '') {
-                                $groupLabel = 'your group';
-                            }
-                            $preview = note_plain_preview((string) $sn['content'], 160);
-                            ?>
-                            <li class="today-shared-card">
-                                <p class="today-shared-card__meta">
-                                    <span class="today-shared-card__author"><?= e($authorLabel) ?></span>
-                                    <span class="today-shared-card__context"> · Shared in <?= e($groupLabel) ?></span>
-                                </p>
-                                <p class="today-shared-card__preview"><?= e($preview) ?></p>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
-            </section>
+            <?php if ($showSharedOnToday): ?>
+                <section class="today-section" aria-labelledby="today-shared-heading">
+                    <h2 id="today-shared-heading" class="today-section__heading">Shared with you today</h2>
+                    <?php if (count($sharedToday) === 0): ?>
+                        <p class="today-quiet">Nothing shared yet today.</p>
+                    <?php else: ?>
+                        <ul class="today-shared-list">
+                            <?php foreach ($sharedToday as $sn): ?>
+                                <?php
+                                $authorLabel = trim((string) ($sn['author_name'] ?? ''));
+                                if ($authorLabel === '') {
+                                    $authorLabel = 'Someone';
+                                }
+                                $groupLabel = trim((string) ($sn['shared_via_group_name'] ?? ''));
+                                if ($groupLabel === '') {
+                                    $groupLabel = 'your group';
+                                }
+                                $preview = note_plain_preview((string) $sn['content'], 160);
+                                ?>
+                                <li class="today-shared-card">
+                                    <p class="today-shared-card__meta">
+                                        <span class="today-shared-card__author"><?= e($authorLabel) ?></span>
+                                        <span class="today-shared-card__context"> · Shared in <?= e($groupLabel) ?></span>
+                                    </p>
+                                    <p class="today-shared-card__preview"><?= e($preview) ?></p>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </section>
+            <?php endif; ?>
 
 <?php require_once __DIR__ . '/footer.php'; ?>
