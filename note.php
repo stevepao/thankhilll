@@ -121,32 +121,36 @@ require_once __DIR__ . '/header.php';
                                 <?= nl2br(e($th['body'])) ?>
                             </p>
                             <div class="note-detail__thought-meta">
-                                <p class="note-detail__thought-time"><?= e(note_thought_time_label($th['created_at'])) ?></p>
-                                <span
-                                    class="thought-reactions"
-                                    data-thought-reactions
-                                    data-thought-id="<?= $tid ?>"
-                                >
-                                    <span class="thought-reactions__list" data-reaction-list>
-                                        <?php foreach ($thoughtReactions as $rx): ?>
+                                <div class="note-detail__thought-meta-row">
+                                    <div class="note-detail__thought-meta-cluster">
+                                        <span
+                                            class="thought-reactions"
+                                            data-thought-reactions
+                                            data-thought-id="<?= $tid ?>"
+                                        >
+                                            <span class="thought-reactions__list" data-reaction-list>
+                                                <?php foreach ($thoughtReactions as $rx): ?>
+                                                    <button
+                                                        type="button"
+                                                        class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
+                                                        data-reaction-toggle="1"
+                                                        data-thought-id="<?= $tid ?>"
+                                                        data-emoji="<?= e($rx['emoji']) ?>"
+                                                        aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
+                                                    ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
+                                                <?php endforeach; ?>
+                                            </span>
                                             <button
                                                 type="button"
-                                                class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
-                                                data-reaction-toggle="1"
+                                                class="thought-reaction-add"
+                                                data-reaction-add="1"
                                                 data-thought-id="<?= $tid ?>"
-                                                data-emoji="<?= e($rx['emoji']) ?>"
-                                                aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
-                                            ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
-                                        <?php endforeach; ?>
-                                    </span>
-                                    <button
-                                        type="button"
-                                        class="thought-reaction-add"
-                                        data-reaction-add="1"
-                                        data-thought-id="<?= $tid ?>"
-                                        aria-label="Add reaction"
-                                    >+</button>
-                                </span>
+                                                aria-label="Add reaction"
+                                            >+</button>
+                                        </span>
+                                        <time class="note-detail__thought-time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
+                                    </div>
+                                </div>
                             </div>
                             <?php if ($showThoughtComments): ?>
                                 <?php
