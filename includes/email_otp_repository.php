@@ -53,12 +53,12 @@ function email_otp_repo_invalidate_unconsumed(PDO $pdo, string $email): void
 
 function email_otp_repo_insert_challenge(PDO $pdo, string $email, string $otpHash): void
 {
-    $expiresAt = date('Y-m-d H:i:s', time() + EMAIL_OTP_VALID_SECONDS);
+    // Use MySQL NOW() so expiry matches verification checks (avoids PHP vs DB clock skew).
     $stmt = $pdo->prepare(
         'INSERT INTO email_login_otps (email, otp_hash, expires_at, consumed_at, attempts, last_sent_at)
-         VALUES (?, ?, ?, NULL, 0, NOW())'
+         VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? SECOND), NULL, 0, NOW())'
     );
-    $stmt->execute([$email, $otpHash, $expiresAt]);
+    $stmt->execute([$email, $otpHash, EMAIL_OTP_VALID_SECONDS]);
 }
 
 /**

@@ -44,7 +44,9 @@ $body = "Your sign-in code is: {$otpString}\n\n"
     . 'This code expires in 10 minutes. '
     . "If you didn't request this, you can ignore this email.\n";
 
-send_email($email, 'Your sign-in code', $body);
+if (!send_email($email, 'Your sign-in code', $body)) {
+    error_log('Email OTP: send_email failed after challenge insert; user should request a new code.');
+}
 
 header('Location: /auth/email/login.php?sent=1');
 exit;

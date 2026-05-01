@@ -51,8 +51,6 @@ if (!password_verify($code, $storedHash)) {
     exit;
 }
 
-email_otp_repo_mark_consumed($pdo, $challengeId);
-
 $find = $pdo->prepare(
     'SELECT user_id FROM auth_identities WHERE provider = ? AND identifier = ? LIMIT 1'
 );
@@ -94,6 +92,8 @@ if (is_array($identityRow) && isset($identityRow['user_id'])) {
         exit;
     }
 }
+
+email_otp_repo_mark_consumed($pdo, $challengeId);
 
 session_commit_login($userId);
 
