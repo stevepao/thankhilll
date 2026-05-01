@@ -44,7 +44,7 @@ function csrf_validate(string $submitted): bool
  */
 function csrf_hidden_field(): void
 {
-    $value = htmlspecialchars(csrf_token(), ENT_QUOTES, 'UTF-8');
+    $value = htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     echo '<input type="hidden" name="csrf_token" value="' . $value . '">';
 }
 
