@@ -37,12 +37,60 @@ function session_request_is_https(): bool
     if (!empty($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443') {
         return true;
     }
-    $forwarded = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
-    if (is_string($forwarded) && strtolower($forwarded) === 'https') {
+
+    $forwardedProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
+    if (is_string($forwardedProto) && $forwardedProto !== '') {
+        $first = strtolower(trim(explode(',', $forwardedProto)[0]));
+        if ($first === 'https') {
+            return true;
+        }
+    }
+
+    $forwardedSsl = $_SERVER['HTTP_X_FORWARDED_SSL'] ?? '';
+    if (is_string($forwardedSsl) && strtolower($forwardedSsl) === 'on') {
+        return true;
+    }
+
+    $frontHttps = $_SERVER['HTTP_FRONT_END_HTTPS'] ?? '';
+    if (is_string($frontHttps) && strtolower($frontHttps) === 'on') {
         return true;
     }
 
     return false;
+}
+
+/**
+ * Expire the session cookie. Browsers only drop a cookie when the deletion Set-Cookie
+ * matches attributes (including Secure) of the active cookie—so we emit both variants.
+ */
+function session_expire_session_cookie_both_secure_flags(): void
+{
+    if (!ini_get('session.use_cookies')) {
+        return;
+    }
+
+    $params = session_get_cookie_params();
+    $name = session_name();
+    $expire = time() - 42000;
+    $path = $params['path'];
+    $domain = $params['domain'] ?: '';
+    $httponly = (bool) $params['httponly'];
+    $samesite = $params['samesite'] ?? 'Lax';
+
+    foreach ([true, false] as $secure) {
+        if (PHP_VERSION_ID >= 70300) {
+            setcookie($name, '', [
+                'expires' => $expire,
+                'path' => $path,
+                'domain' => $domain,
+                'secure' => $secure,
+                'httponly' => $httponly,
+                'samesite' => $samesite,
+            ]);
+        } else {
+            setcookie($name, '', $expire, $path, $domain, $secure, $httponly);
+        }
+    }
 }
 
 /**
@@ -145,30 +193,7 @@ function session_destroy_completely(): void
 
     $_SESSION = [];
 
-    if (ini_get('session.use_cookies')) {
-        $params = session_get_cookie_params();
-        $name = session_name();
-        if (PHP_VERSION_ID >= 70300) {
-            setcookie($name, '', [
-                'expires' => time() - 42000,
-                'path' => $params['path'],
-                'domain' => $params['domain'] ?: '',
-                'secure' => (bool) $params['secure'],
-                'httponly' => (bool) $params['httponly'],
-                'samesite' => $params['samesite'] ?? 'Lax',
-            ]);
-        } else {
-            setcookie(
-                $name,
-                '',
-                time() - 42000,
-                $params['path'],
-                $params['domain'],
-                (bool) $params['secure'],
-                (bool) $params['httponly']
-            );
-        }
-    }
+    session_expire_session_cookie_both_secure_flags();
 
     session_destroy();
 }
