@@ -9,6 +9,9 @@
  * - Aspect ratio preserved within independent-per-axis Math.floor rounding.
  * - Never upscales: scale factor is always ≤ 1.
  * - Each file is processed independently (no shared canvas or mutable cross-file state).
+ *
+ * Failure handling: any problem preparing a resized blob rejects the promise.
+ * Callers must abort upload — never fall back to uploading the original file.
  */
 (function () {
     'use strict';
@@ -17,6 +20,21 @@
     var MAX_LANDSCAPE_H = 1080;
     var MAX_PORTRAIT_W = 1080;
     var MAX_PORTRAIT_H = 1920;
+
+    /** Shown when decoding, resizing, or encoding fails (see task copy). */
+    var USER_VISIBLE_FAILURE_MESSAGE =
+        "We couldn't process this photo. Please try a different image.";
+
+    /** Separate guardrail before resize runs (not a Canvas failure). */
+    function maxFilesExceededMessage(maxCount) {
+        return 'You can add at most ' + maxCount + ' photos per note.';
+    }
+
+    /**
+     * Hard stop if canvas.toBlob never invokes its callback (browser/resource bugs).
+     * Keeps one settle path via finished flag (exactly one outcome per invocation).
+     */
+    var TO_BLOB_TIMEOUT_MS = 45000;
 
     /**
      * Orientation follows intrinsic pixels (naturalWidth × naturalHeight).
@@ -44,13 +62,14 @@
      * - Extreme aspect ratios → floors keep at least 1×1 via Math.max(1, …).
      */
     function computeTargetSize(srcWidth, srcHeight) {
+        // Guards NaN, Infinity, undefined coerced, zero — invalid intrinsic geometry.
         if (
             !Number.isFinite(srcWidth) ||
             !Number.isFinite(srcHeight) ||
             srcWidth <= 0 ||
             srcHeight <= 0
         ) {
-            throw new Error('Invalid image dimensions.');
+            throw new Error('INVALID_DIMENSIONS');
         }
 
         var box = boundsForOrientation(srcWidth, srcHeight);
@@ -58,8 +77,9 @@
         var maxH = box.maxHeight;
 
         var scaleUncapped = Math.min(maxW / srcWidth, maxH / srcHeight);
+        // Protects division-by-edge-case quirks (Infinity/NaN) before scaling canvas.
         if (!Number.isFinite(scaleUncapped) || scaleUncapped <= 0) {
-            throw new Error('Could not compute resize scale.');
+            throw new Error('INVALID_SCALE');
         }
 
         var scaleFactor = Math.min(scaleUncapped, 1);
@@ -78,11 +98,58 @@
     }
 
     /**
-     * Decode image fully before drawing to canvas (object URL revoked after success).
+     * Encode canvas pixels to Blob with timeout + null/empty blob detection.
+     * finished prevents double resolve/reject if timeout races toBlob callback.
+     */
+    function canvasToBlobReliable(canvas, mimeType, quality) {
+        return new Promise(function (resolve, reject) {
+            var finished = false;
+
+            function settle(ok, value) {
+                if (finished) {
+                    return;
+                }
+                finished = true;
+                window.clearTimeout(timeoutId);
+                if (ok) {
+                    resolve(value);
+                } else {
+                    reject(value);
+                }
+            }
+
+            var timeoutId = window.setTimeout(function () {
+                settle(false, new Error('TO_BLOB_TIMEOUT'));
+            }, TO_BLOB_TIMEOUT_MS);
+
+            try {
+                canvas.toBlob(
+                    function (blob) {
+                        // toBlob contract: failure → null; we also reject empty blobs.
+                        if (!blob || blob.size === 0) {
+                            settle(false, new Error('TO_BLOB_NULL_OR_EMPTY'));
+                            return;
+                        }
+                        settle(true, blob);
+                    },
+                    mimeType,
+                    quality
+                );
+            } catch (syncErr) {
+                // Rare: canvas unusable or implementation threw before callback scheduled.
+                settle(false, syncErr);
+            }
+        });
+    }
+
+    /**
+     * Decode image fully after load; revokes object URL exactly once on success or failure.
+     * Ensures resize runs only after Image.onload (dimensions live after decode path too).
      */
     function loadImageFile(file) {
         return new Promise(function (resolve, reject) {
             var objectUrl = URL.createObjectURL(file);
+            var settled = false;
             var img = new Image();
 
             function cleanupUrl() {
@@ -93,34 +160,47 @@
                 }
             }
 
-            function fail(message) {
+            function fail(reason) {
+                if (settled) {
+                    return;
+                }
+                settled = true;
                 cleanupUrl();
-                reject(new Error(message));
+                reject(reason);
+            }
+
+            function succeed(decodedImg) {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                cleanupUrl();
+                resolve(decodedImg);
             }
 
             img.onload = function () {
                 var nw = img.naturalWidth;
                 var nh = img.naturalHeight;
 
+                // Decode succeeded but bitmap missing dimensions (broken/corrupt assets).
                 if (
                     !Number.isFinite(nw) ||
                     !Number.isFinite(nh) ||
                     nw <= 0 ||
                     nh <= 0
                 ) {
-                    fail('Image has no usable pixel dimensions.');
+                    fail(new Error('BAD_NATURAL_SIZE'));
                     return;
                 }
 
                 function proceed() {
-                    cleanupUrl();
-                    resolve(img);
+                    succeed(img);
                 }
 
                 // Prefer decode() so raster work finishes before canvas draw where supported.
                 if (typeof img.decode === 'function') {
                     img.decode().then(proceed).catch(function () {
-                        fail('Could not decode this image.');
+                        fail(new Error('DECODE_FAILED'));
                     });
                 } else {
                     proceed();
@@ -128,31 +208,75 @@
             };
 
             img.onerror = function () {
-                fail('Could not read this image.');
+                // Network/format decode stopped before dimensions exist (Image.onerror).
+                fail(new Error('IMAGE_ONERROR'));
             };
 
             img.src = objectUrl;
         });
     }
 
-    function canvasToBlob(canvas, mimeType, quality) {
-        return new Promise(function (resolve, reject) {
-            canvas.toBlob(
-                function (blob) {
-                    if (!blob || blob.size === 0) {
-                        reject(new Error('Could not encode this image.'));
-                        return;
-                    }
-                    resolve(blob);
-                },
-                mimeType,
-                quality
-            );
-        });
+    /**
+     * Resize after Image has fired onload (caller passes loaded img).
+     * Single draw path; wraps drawImage for synchronous canvas exceptions.
+     */
+    function resizeDecodedImage(img, mime) {
+        var srcW = img.naturalWidth;
+        var srcH = img.naturalHeight;
+
+        // Defensive: async gap between decode promise and draw — re-read naturals.
+        if (
+            !Number.isFinite(srcW) ||
+            !Number.isFinite(srcH) ||
+            srcW <= 0 ||
+            srcH <= 0
+        ) {
+            return Promise.reject(new Error('NATURALS_STALE'));
+        }
+
+        var sized;
+        try {
+            sized = computeTargetSize(srcW, srcH);
+        } catch (e) {
+            return Promise.reject(e);
+        }
+
+        // Canvas pixel buffers must be finite integers ≥ 1 (guarded by computeTargetSize).
+        if (
+            !Number.isFinite(sized.targetWidth) ||
+            !Number.isFinite(sized.targetHeight) ||
+            sized.targetWidth < 1 ||
+            sized.targetHeight < 1
+        ) {
+            return Promise.reject(new Error('BAD_TARGET_SIZE'));
+        }
+
+        var canvas = document.createElement('canvas');
+        canvas.width = sized.targetWidth;
+        canvas.height = sized.targetHeight;
+
+        var ctx = canvas.getContext('2d');
+        // Canvas may refuse a context (memory/policy); cannot paint without it.
+        if (!ctx) {
+            return Promise.reject(new Error('NO_CONTEXT'));
+        }
+
+        try {
+            ctx.drawImage(img, 0, 0, sized.targetWidth, sized.targetHeight);
+        } catch (drawErr) {
+            // Security errors / broken GPU paths surface here synchronously.
+            return Promise.reject(drawErr);
+        }
+
+        var outMime = mime === 'image/png' ? 'image/png' : 'image/jpeg';
+        var quality = outMime === 'image/jpeg' ? 0.88 : undefined;
+
+        return canvasToBlobReliable(canvas, outMime, quality);
     }
 
     /**
-     * Resize a single file once; returns a Blob. Stateless aside from local variables.
+     * Resize a single file once; returns a Blob.
+     * Maps any failure to USER_VISIBLE_FAILURE_MESSAGE for stable UX (single outcome).
      *
      * @param {File} file
      * @returns {Promise<Blob>}
@@ -160,32 +284,17 @@
     function resizeImageFile(file) {
         var mime = file.type || '';
         if (mime !== 'image/jpeg' && mime !== 'image/png') {
-            return Promise.reject(new Error('Please choose JPEG or PNG photos only.'));
+            return Promise.reject(new Error(USER_VISIBLE_FAILURE_MESSAGE));
         }
 
-        return loadImageFile(file).then(function (img) {
-            var srcW = img.naturalWidth;
-            var srcH = img.naturalHeight;
-
-            var sized = computeTargetSize(srcW, srcH);
-
-            var canvas = document.createElement('canvas');
-            canvas.width = sized.targetWidth;
-            canvas.height = sized.targetHeight;
-
-            var ctx = canvas.getContext('2d');
-            if (!ctx) {
-                throw new Error('Could not prepare image.');
-            }
-
-            // Single draw: intrinsic image → target bitmap (one resize pass per file).
-            ctx.drawImage(img, 0, 0, sized.targetWidth, sized.targetHeight);
-
-            var outMime = mime === 'image/png' ? 'image/png' : 'image/jpeg';
-            var quality = outMime === 'image/jpeg' ? 0.88 : undefined;
-
-            return canvasToBlob(canvas, outMime, quality);
-        });
+        return loadImageFile(file)
+            .then(function (img) {
+                return resizeDecodedImage(img, mime);
+            })
+            .catch(function () {
+                // One visible outcome per file — never swallow failures silently.
+                return Promise.reject(new Error(USER_VISIBLE_FAILURE_MESSAGE));
+            });
     }
 
     /**
@@ -202,9 +311,7 @@
         }
 
         if (files.length > maxCount) {
-            return Promise.reject(
-                new Error('You can add at most ' + maxCount + ' photos per note.')
-            );
+            return Promise.reject(new Error(maxFilesExceededMessage(maxCount)));
         }
 
         var tasks = [];
@@ -218,5 +325,6 @@
     window.NotePhotoResize = {
         resizeAll: resizeAll,
         maxFiles: 10,
+        USER_VISIBLE_FAILURE_MESSAGE: USER_VISIBLE_FAILURE_MESSAGE,
     };
 })();

@@ -407,6 +407,14 @@ body {
     min-height: 1.25rem;
 }
 
+.today-photo-error {
+    margin-top: 0.5rem;
+}
+
+.today-photo-error[hidden] {
+    display: none !important;
+}
+
 /* Note detail + helpers */
 .visually-hidden {
     position: absolute;

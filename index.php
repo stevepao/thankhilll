@@ -236,6 +236,7 @@ require_once __DIR__ . '/header.php';
                     aria-hidden="true"
                 >
                 <p id="today-photo-status" class="today-photo-status" aria-live="polite"></p>
+                <p id="today-photo-error" class="flash flash--error today-photo-error" role="alert" hidden></p>
 
                 <button type="submit" class="btn btn--primary">Save</button>
             </form>
@@ -332,10 +333,30 @@ require_once __DIR__ . '/header.php';
                     var picker = document.getElementById('today-photo-picker');
                     var staged = document.getElementById('today-photos-staged');
                     var statusEl = document.getElementById('today-photo-status');
-                    if (!form || !picker || !staged || !window.NotePhotoResize) {
+                    var errorEl = document.getElementById('today-photo-error');
+                    if (!form || !picker || !staged || !window.NotePhotoResize || !statusEl || !errorEl) {
                         return;
                     }
+
+                    function clearPhotoError() {
+                        errorEl.textContent = '';
+                        errorEl.hidden = true;
+                    }
+
+                    function resetStagedPhotos() {
+                        staged.files = new DataTransfer().files;
+                    }
+
+                    function showPhotoError(message) {
+                        var fallback =
+                            window.NotePhotoResize.USER_VISIBLE_FAILURE_MESSAGE ||
+                            "We couldn't process this photo. Please try a different image.";
+                        errorEl.textContent = message && message !== '' ? message : fallback;
+                        errorEl.hidden = false;
+                    }
+
                     picker.addEventListener('change', function () {
+                        clearPhotoError();
                         if (!picker.files.length) {
                             statusEl.textContent = '';
                             return;
@@ -351,6 +372,8 @@ require_once __DIR__ . '/header.php';
                             return;
                         }
                         ev.preventDefault();
+                        clearPhotoError();
+                        resetStagedPhotos();
                         statusEl.textContent = 'Preparing photos…';
                         window.NotePhotoResize.resizeAll(picker.files, window.NotePhotoResize.maxFiles)
                             .then(function (blobs) {
@@ -364,11 +387,13 @@ require_once __DIR__ . '/header.php';
                                 staged.files = dt.files;
                                 picker.value = '';
                                 statusEl.textContent = '';
+                                clearPhotoError();
                                 form.submit();
                             })
                             .catch(function (err) {
                                 statusEl.textContent = '';
-                                window.alert(err && err.message ? err.message : 'Could not process photos.');
+                                resetStagedPhotos();
+                                showPhotoError(err && err.message ? err.message : '');
                             });
                     });
                 })();
