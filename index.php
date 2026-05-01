@@ -7,10 +7,13 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 
 $userId = require_login();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    csrf_verify_post_or_abort();
+
     $content = trim((string) ($_POST['content'] ?? ''));
     if ($content !== '') {
         $stmt = db()->prepare('INSERT INTO notes (user_id, content, visibility) VALUES (?, ?, ?)');
@@ -31,7 +34,8 @@ require_once __DIR__ . '/header.php';
                 <p class="flash" role="status">Saved.</p>
             <?php endif; ?>
 
-            <form class="note-form" method="post" action="index.php">
+            <form class="note-form" method="post" action="/index.php">
+                <?php csrf_hidden_field(); ?>
                 <label class="note-form__label" for="content">What are you grateful for today?</label>
                 <textarea
                     id="content"
