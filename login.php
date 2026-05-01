@@ -7,6 +7,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 
 if (current_user_id() !== null) {
+    if (!empty($_SESSION['invite_pending_token'])) {
+        header('Location: /invite/accept.php');
+        exit;
+    }
     header('Location: /index.php');
     exit;
 }

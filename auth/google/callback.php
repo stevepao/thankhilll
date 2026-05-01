@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../auth.php';
+require_once __DIR__ . '/../../includes/group_helpers.php';
 
 use Jumbojett\OpenIDConnectClient;
 
@@ -93,7 +94,7 @@ try {
 
     session_commit_login($userId);
 
-    header('Location: /index.php');
+    header('Location: ' . invite_login_redirect_path());
     exit;
 } catch (Throwable $e) {
     http_response_code(500);

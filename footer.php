@@ -3,7 +3,7 @@
  * footer.php — Closes main content and renders the reusable bottom navigation.
  *
  * Expects:
- *   $currentNav (string) — 'today' | 'notes'
+ *   $currentNav (string) — 'today' | 'notes' | 'groups' | 'me'
  */
 declare(strict_types=1);
 
@@ -19,6 +19,12 @@ $showNav = $showNav ?? true;
                 </a>
                 <a href="/notes.php" class="bottom-nav__link <?= $currentNav === 'notes' ? 'is-active' : '' ?>">
                     <span class="bottom-nav__label">Notes</span>
+                </a>
+                <a href="/groups.php" class="bottom-nav__link <?= $currentNav === 'groups' ? 'is-active' : '' ?>">
+                    <span class="bottom-nav__label">Groups</span>
+                </a>
+                <a href="/me.php" class="bottom-nav__link <?= $currentNav === 'me' ? 'is-active' : '' ?>">
+                    <span class="bottom-nav__label">Me</span>
                 </a>
             </nav>
         <?php endif; ?>

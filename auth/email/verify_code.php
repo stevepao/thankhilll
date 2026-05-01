@@ -8,6 +8,7 @@ require_once dirname(__DIR__, 2) . '/auth.php';
 require_once dirname(__DIR__, 2) . '/includes/csrf.php';
 require_once dirname(__DIR__, 2) . '/includes/email_auth.php';
 require_once dirname(__DIR__, 2) . '/includes/email_otp_repository.php';
+require_once dirname(__DIR__, 2) . '/includes/group_helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: /auth/email/login.php');
@@ -97,5 +98,5 @@ email_otp_repo_mark_consumed($pdo, $challengeId);
 
 session_commit_login($userId);
 
-header('Location: /index.php');
+header('Location: ' . invite_login_redirect_path());
 exit;

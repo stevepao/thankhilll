@@ -4,7 +4,7 @@
  *
  * Expects before include:
  *   $pageTitle (string) — used in <title>
- *   $currentNav (string) — 'today' | 'notes' for bottom nav active state (set in footer)
+ *   $currentNav (string) — 'today' | 'notes' | 'groups' | 'me' for bottom nav active state (set in footer)
  */
 declare(strict_types=1);
 
