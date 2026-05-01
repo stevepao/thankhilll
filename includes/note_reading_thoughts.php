@@ -71,7 +71,7 @@ function note_reading_render_thought_block(
                                                         </span>
                                                         <time class="thought-block__time note-detail__thought-time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
                                                         <?php if ($canEditTodayThought): ?>
-                                                            <span class="thought-block__actions" aria-label="Thought actions">
+                                                            <span class="thought-block__actions today-yours-thought-actions" aria-label="Thought actions">
                                                                 <button type="button" class="today-thought__icon-btn" data-thought-edit-open="<?= $tid ?>" title="Edit" aria-label="Edit moment">✏️</button>
                                                                 <form class="today-thought-delete-form" method="post" action="/index.php">
                                                                     <?php csrf_hidden_field(); ?>

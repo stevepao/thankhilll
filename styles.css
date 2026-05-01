@@ -227,6 +227,31 @@ body {
     list-style: none;
 }
 
+/* Reading vs editing: never show note-edit chrome while reading */
+.today-yours-entry--reading .today-yours-thought-actions {
+    display: none !important;
+}
+
+.today-yours-entry--reading .today-thought-edit {
+    display: none !important;
+}
+
+.today-yours-entry--editing .today-daily-card__gallery {
+    display: none !important;
+}
+
+.today-yours-editor {
+    margin-top: 0.85rem;
+}
+
+.today-yours-editor-status {
+    margin: 0 0 0.65rem;
+}
+
+.today-yours-editor .today-note-meta-edit-panel {
+    margin-top: 0;
+}
+
 .today-daily-card {
     margin: 0;
     padding: 1.25rem 1.25rem 1.35rem;

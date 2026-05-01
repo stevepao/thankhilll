@@ -682,7 +682,9 @@ $thoughtDeletedFlash = isset($_GET['thought_deleted']);
 $commentAddedFlash = isset($_GET['comment_added']);
 $commentDeletedFlash = isset($_GET['comment_deleted']);
 $commentErrFlash = isset($_GET['comment_err']);
-$showEditInitially = $editSticky;
+$todayYoursEditingModeInitial = $editSticky
+    || $errorContext === 'thought_edit'
+    || $errorContext === 'add_thought';
 
 $showTopErrorBanner = $validationError !== null
     && ($errorContext === null || $errorContext === 'create_first');
@@ -798,7 +800,10 @@ require_once __DIR__ . '/header.php';
                     <p class="today-quiet">No entry saved yet today.</p>
                 <?php else: ?>
                     <ul class="today-yours-list">
-                        <li class="today-yours-entry">
+                        <li
+                            class="today-yours-entry <?= $todayYoursEditingModeInitial ? 'today-yours-entry--editing' : 'today-yours-entry--reading' ?>"
+                            id="today-yours-own-entry"
+                        >
                             <?php if ($canEditTodayNoteMeta): ?>
                             <article class="today-daily-card" aria-labelledby="today-daily-card-label">
                                 <p id="today-daily-card-label" class="today-daily-card__label">Today’s reflection</p>
@@ -900,7 +905,7 @@ require_once __DIR__ . '/header.php';
                                     <?php endif; ?>
                                 </div>
 
-                                <div id="today-note-meta-readonly" class="today-daily-card__context today-note-meta-readonly" <?= $showEditInitially ? 'hidden' : '' ?>>
+                                <div id="today-note-meta-readonly" class="today-daily-card__context today-note-meta-readonly" <?= $todayYoursEditingModeInitial ? 'hidden' : '' ?>>
                                     <?php if (count($todayPrimarySharedNames) > 0): ?>
                                         <p class="today-daily-card__sharing today-yours-meta">
                                             Shared with <?= e(implode(', ', $todayPrimarySharedNames)) ?>
@@ -910,43 +915,15 @@ require_once __DIR__ . '/header.php';
                                     <?php endif; ?>
 
                                     <div class="today-daily-card__primary-actions">
-                                        <button type="button" class="btn btn--primary" id="today-yours-edit-btn">Edit sharing &amp; photos</button>
+                                        <button type="button" class="btn btn--primary" id="today-yours-edit-btn">Edit</button>
                                     </div>
-                                </div>
-
-                                <div class="today-daily-card__secondary today-add-thought">
-                                    <?php if ($errorContext === 'add_thought' && $validationError !== null): ?>
-                                        <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
-                                    <?php endif; ?>
-                                    <form class="note-form note-form--compact today-add-thought__form" method="post" action="/index.php">
-                                        <?php csrf_hidden_field(); ?>
-                                        <input type="hidden" name="today_action" value="add_thought">
-                                        <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
-                                        <label class="today-add-thought__caption" for="add-thought-body">Add another moment</label>
-                                        <textarea
-                                            id="add-thought-body"
-                                            name="thought_body"
-                                            class="note-form__textarea"
-                                            rows="3"
-                                            placeholder="A few more words…"
-                                            ><?= e($addThoughtBodyValue) ?></textarea>
-                                        <label class="share-check today-thought-private-check">
-                                            <input
-                                                type="checkbox"
-                                                name="thought_is_private"
-                                                value="1"
-                                                <?= $addThoughtPrivateSticky ? 'checked' : '' ?>
-                                            >
-                                            <span>Just for me</span>
-                                        </label>
-                                        <p class="share-fieldset__hint today-thought-private-hint">Private moments are never shown to people you share this day with.</p>
-                                        <button type="submit" class="btn btn--ghost today-add-thought__submit">Add moment</button>
-                                    </form>
                                 </div>
                             </article>
 
-                                <div id="today-note-meta-edit" class="today-note-meta-edit-panel today-yours-panel today-yours-panel--edit" <?= $showEditInitially ? '' : 'hidden' ?>>
-                                    <form id="today-edit-form" class="note-form note-form--compact" method="post" action="/index.php" enctype="multipart/form-data">
+                                <div id="today-yours-editor" class="today-yours-editor" <?= $todayYoursEditingModeInitial ? '' : 'hidden' ?>>
+                                    <p class="today-yours-editor-status share-fieldset__hint" role="status">You are editing.</p>
+                                    <div id="today-note-meta-edit" class="today-note-meta-edit-panel today-yours-panel today-yours-panel--edit">
+                                        <form id="today-edit-form" class="note-form note-form--compact" method="post" action="/index.php" enctype="multipart/form-data">
                                         <?php csrf_hidden_field(); ?>
                                         <input type="hidden" name="today_action" value="update_note">
                                         <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
@@ -1035,7 +1012,38 @@ require_once __DIR__ . '/header.php';
                                             <button type="submit" class="btn btn--primary">Save</button>
                                             <button type="button" class="btn btn--ghost" id="today-yours-cancel-edit">Cancel</button>
                                         </div>
-                                    </form>
+                                        </form>
+                                    </div>
+
+                                    <div class="today-daily-card__secondary today-add-thought">
+                                        <?php if ($errorContext === 'add_thought' && $validationError !== null): ?>
+                                            <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
+                                        <?php endif; ?>
+                                        <form class="note-form note-form--compact today-add-thought__form" method="post" action="/index.php">
+                                            <?php csrf_hidden_field(); ?>
+                                            <input type="hidden" name="today_action" value="add_thought">
+                                            <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
+                                            <label class="today-add-thought__caption" for="add-thought-body">Add another moment</label>
+                                            <textarea
+                                                id="add-thought-body"
+                                                name="thought_body"
+                                                class="note-form__textarea"
+                                                rows="3"
+                                                placeholder="A few more words…"
+                                                ><?= e($addThoughtBodyValue) ?></textarea>
+                                            <label class="share-check today-thought-private-check">
+                                                <input
+                                                    type="checkbox"
+                                                    name="thought_is_private"
+                                                    value="1"
+                                                    <?= $addThoughtPrivateSticky ? 'checked' : '' ?>
+                                                >
+                                                <span>Just for me</span>
+                                            </label>
+                                            <p class="share-fieldset__hint today-thought-private-hint">Private moments are never shown to people you share this day with.</p>
+                                            <button type="submit" class="btn btn--ghost today-add-thought__submit">Add moment</button>
+                                        </form>
+                                    </div>
                                 </div>
                             <?php else: ?>
                                 <?php /* Should not happen for own today note */ ?>
@@ -1180,16 +1188,19 @@ require_once __DIR__ . '/header.php';
                         });
                     }
 
+                    var ownEntry = document.getElementById('today-yours-own-entry');
                     var readonlyPanel = document.getElementById('today-note-meta-readonly');
-                    var editPanel = document.getElementById('today-note-meta-edit');
+                    var editorShell = document.getElementById('today-yours-editor');
                     var editBtn = document.getElementById('today-yours-edit-btn');
                     var cancelBtn = document.getElementById('today-yours-cancel-edit');
 
-                    if (editBtn && readonlyPanel && editPanel) {
+                    if (editBtn && readonlyPanel && editorShell && ownEntry) {
                         editBtn.addEventListener('click', function () {
                             closeAllThoughtEdits();
+                            ownEntry.classList.remove('today-yours-entry--reading');
+                            ownEntry.classList.add('today-yours-entry--editing');
                             readonlyPanel.hidden = true;
-                            editPanel.hidden = false;
+                            editorShell.hidden = false;
                         });
                     }
 
@@ -1203,12 +1214,6 @@ require_once __DIR__ . '/header.php';
                         var openBtn = e.target.closest('[data-thought-edit-open]');
                         if (openBtn) {
                             e.preventDefault();
-                            var metaEdit = document.getElementById('today-note-meta-edit');
-                            var metaRo = document.getElementById('today-note-meta-readonly');
-                            if (metaEdit && metaRo && metaEdit.hidden === false) {
-                                metaEdit.hidden = true;
-                                metaRo.hidden = false;
-                            }
                             closeAllThoughtEdits();
                             var id = openBtn.getAttribute('data-thought-edit-open');
                             var li = openBtn.closest('.today-thought');
