@@ -10,6 +10,7 @@ require_once __DIR__ . '/includes/note_access.php';
 require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
 require_once __DIR__ . '/includes/thought_reactions.php';
+require_once __DIR__ . '/includes/thought_comments.php';
 
 $userId = require_login();
 $pdo = db();
@@ -50,6 +51,17 @@ $thoughtMap = note_thoughts_grouped_by_note($pdo, [$noteId], $userId);
 $thoughts = $thoughtMap[$noteId] ?? [];
 $thoughtReactionMap = thought_reactions_grouped_by_thought($pdo, array_column($thoughts, 'id'), $userId);
 
+$noteSharedWithGroup = note_is_shared_with_any_group($pdo, $noteId);
+$thoughtIdsForCommentFetch = [];
+if ($noteSharedWithGroup) {
+    foreach ($thoughts as $thCommentElig) {
+        if (empty($thCommentElig['is_private'])) {
+            $thoughtIdsForCommentFetch[] = (int) $thCommentElig['id'];
+        }
+    }
+}
+$thoughtCommentsMap = thought_comments_grouped_by_thought($pdo, $thoughtIdsForCommentFetch);
+
 $media = note_media_for_note($pdo, $noteId);
 $isMine = ((int) $note['user_id']) === $userId;
 $authorLabel = trim((string) ($note['author_name'] ?? ''));
@@ -63,12 +75,26 @@ $dateLabel = $ts ? date('M j, Y', $ts) : '';
 $pageTitle = 'Note';
 $currentNav = 'notes';
 
+$commentAddedFlash = isset($_GET['comment_added']);
+$commentDeletedFlash = isset($_GET['comment_deleted']);
+$commentErrFlash = isset($_GET['comment_err']);
+
 require_once __DIR__ . '/header.php';
 ?>
 
             <p class="sub-nav">
                 <a href="/notes.php">← Notes</a>
             </p>
+
+            <?php if ($commentAddedFlash): ?>
+                <p class="flash" role="status">Comment posted.</p>
+            <?php endif; ?>
+            <?php if ($commentDeletedFlash): ?>
+                <p class="flash" role="status">Comment removed.</p>
+            <?php endif; ?>
+            <?php if ($commentErrFlash): ?>
+                <p class="flash flash--error" role="alert">Couldn’t save that comment. Please try again.</p>
+            <?php endif; ?>
 
             <article class="note-detail">
                 <time class="note-detail__date" datetime="<?= e((string) $note['entry_date']) ?>"><?= e($dateLabel) ?></time>
@@ -81,6 +107,9 @@ require_once __DIR__ . '/header.php';
                         <?php
                         $tid = (int) $th['id'];
                         $thoughtReactions = $thoughtReactionMap[$tid] ?? [];
+                        $showThoughtComments = !$th['is_private'] && $noteSharedWithGroup;
+                        $thoughtCommentsList = $thoughtCommentsMap[$tid] ?? [];
+                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at']);
                         ?>
                         <li class="note-detail__thought">
                             <p class="note-detail__thought-body">
@@ -119,6 +148,15 @@ require_once __DIR__ . '/header.php';
                                     >+</button>
                                 </span>
                             </div>
+                            <?php if ($showThoughtComments): ?>
+                                <?php
+                                $thoughtId = $tid;
+                                $comments = $thoughtCommentsList;
+                                $canPostComment = $canPostThoughtComment;
+                                $redirectTarget = '/note.php?id=' . $noteId;
+                                require __DIR__ . '/includes/thought_comments_section.php';
+                                ?>
+                            <?php endif; ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>

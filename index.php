@@ -16,6 +16,7 @@ require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_access.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
 require_once __DIR__ . '/includes/thought_reactions.php';
+require_once __DIR__ . '/includes/thought_comments.php';
 
 $userId = require_login();
 $pdo = db();
@@ -530,6 +531,17 @@ $todayThoughtReactionMap = thought_reactions_grouped_by_thought(
     $userId
 );
 
+$todayNoteSharedWithGroup = $todayPrimaryId > 0 && note_is_shared_with_any_group($pdo, $todayPrimaryId);
+$thoughtIdsForCommentFetch = [];
+if ($todayNoteSharedWithGroup) {
+    foreach ($todayThoughts as $thForComments) {
+        if (empty($thForComments['is_private'])) {
+            $thoughtIdsForCommentFetch[] = (int) $thForComments['id'];
+        }
+    }
+}
+$thoughtCommentsMap = thought_comments_grouped_by_thought($pdo, $thoughtIdsForCommentFetch);
+
 $todayPrimarySharedRows = [];
 if ($todayPrimaryId > 0) {
     $sgStmt = $pdo->prepare(
@@ -630,6 +642,9 @@ $noteUpdatedFlash = isset($_GET['note_updated']);
 $thoughtAddedFlash = isset($_GET['thought_added']);
 $thoughtUpdatedFlash = isset($_GET['thought_updated']);
 $thoughtDeletedFlash = isset($_GET['thought_deleted']);
+$commentAddedFlash = isset($_GET['comment_added']);
+$commentDeletedFlash = isset($_GET['comment_deleted']);
+$commentErrFlash = isset($_GET['comment_err']);
 $showEditInitially = $editSticky;
 
 $showTopErrorBanner = $validationError !== null
@@ -652,6 +667,15 @@ require_once __DIR__ . '/header.php';
             <?php endif; ?>
             <?php if ($thoughtDeletedFlash): ?>
                 <p class="flash" role="status">Thought removed.</p>
+            <?php endif; ?>
+            <?php if ($commentAddedFlash): ?>
+                <p class="flash" role="status">Comment posted.</p>
+            <?php endif; ?>
+            <?php if ($commentDeletedFlash): ?>
+                <p class="flash" role="status">Comment removed.</p>
+            <?php endif; ?>
+            <?php if ($commentErrFlash): ?>
+                <p class="flash flash--error" role="alert">Couldn’t save that comment. Please try again.</p>
             <?php endif; ?>
 
             <?php if ($showTopErrorBanner): ?>
@@ -752,6 +776,9 @@ require_once __DIR__ . '/header.php';
                                         $editBodyVal = $showThisThoughtEdit ? $stickyThoughtBodyValue : $th['body'];
                                         $editIsPrivate = $showThisThoughtEdit ? $stickyThoughtIsPrivate : !empty($th['is_private']);
                                         $thoughtReactions = $todayThoughtReactionMap[$tid] ?? [];
+                                        $showThoughtComments = !$th['is_private'] && $todayNoteSharedWithGroup;
+                                        $thoughtCommentsList = $thoughtCommentsMap[$tid] ?? [];
+                                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at']);
                                         ?>
                                         <li class="today-thought" data-thought-id="<?= $tid ?>">
                                             <div class="today-thought-readonly" <?= $showThisThoughtEdit ? 'hidden' : '' ?>>
@@ -798,6 +825,15 @@ require_once __DIR__ . '/header.php';
                                                         </span>
                                                     <?php endif; ?>
                                                 </div>
+                                                <?php if ($showThoughtComments): ?>
+                                                    <?php
+                                                    $thoughtId = $tid;
+                                                    $comments = $thoughtCommentsList;
+                                                    $canPostComment = $canPostThoughtComment;
+                                                    $redirectTarget = '/index.php';
+                                                    require __DIR__ . '/includes/thought_comments_section.php';
+                                                    ?>
+                                                <?php endif; ?>
                                             </div>
                                             <?php if ($canEditThought): ?>
                                                 <div class="today-thought-edit" <?= $showThisThoughtEdit ? '' : 'hidden' ?>>
