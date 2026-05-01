@@ -17,6 +17,7 @@ $pageTitle = 'Groups';
 $currentNav = 'groups';
 $inviteDeclinedFlash = isset($_GET['invite_declined']);
 $inviteErrFlash = isset($_GET['invite_err']);
+$showYourGroupsHeading = count($pendingInvites) > 0 && count($groups) > 0;
 
 require_once __DIR__ . '/header.php';
 ?>
@@ -74,16 +75,23 @@ require_once __DIR__ . '/header.php';
             <?php if (count($groups) === 0): ?>
                 <p class="empty-state">You are not in any groups yet. Create one to share gratitude privately with people you trust.</p>
             <?php else: ?>
-                <ul class="group-list">
-                    <?php foreach ($groups as $g): ?>
-                        <li class="group-card">
-                            <a href="/group.php?id=<?= (int) $g['id'] ?>" class="group-card__link">
-                                <span class="group-card__name"><?= e($g['name']) ?></span>
-                                <span class="group-card__meta"><?= (int) $g['member_count'] ?> members</span>
-                            </a>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
+                <?php if ($showYourGroupsHeading): ?>
+                    <section class="detail-section" aria-labelledby="your-groups-heading">
+                        <h2 id="your-groups-heading" class="detail-section__title">Your groups</h2>
+                <?php endif; ?>
+                        <ul class="group-list">
+                            <?php foreach ($groups as $g): ?>
+                                <li class="group-card">
+                                    <a href="/group.php?id=<?= (int) $g['id'] ?>" class="group-card__link">
+                                        <span class="group-card__name"><?= e($g['name']) ?></span>
+                                        <span class="group-card__meta"><?= (int) $g['member_count'] ?> members</span>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                <?php if ($showYourGroupsHeading): ?>
+                    </section>
+                <?php endif; ?>
             <?php endif; ?>
 
 <?php require_once __DIR__ . '/footer.php'; ?>
