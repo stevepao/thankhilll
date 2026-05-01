@@ -63,6 +63,33 @@ function user_is_group_owner(PDO $pdo, int $userId, int $groupId): bool
 }
 
 /**
+ * Remove the user from a group. Owners cannot leave (single-admin model).
+ *
+ * @return 'ok'|'not_member'|'owner_blocked'|'failed'
+ */
+function group_member_leave(PDO $pdo, int $userId, int $groupId): string
+{
+    if ($groupId <= 0 || $userId <= 0) {
+        return 'not_member';
+    }
+
+    if (!user_is_group_member($pdo, $userId, $groupId)) {
+        return 'not_member';
+    }
+
+    if (user_is_group_owner($pdo, $userId, $groupId)) {
+        return 'owner_blocked';
+    }
+
+    $del = $pdo->prepare(
+        'DELETE FROM group_members WHERE user_id = ? AND group_id = ? LIMIT 1'
+    );
+    $del->execute([$userId, $groupId]);
+
+    return $del->rowCount() === 1 ? 'ok' : 'failed';
+}
+
+/**
  * Groups the user belongs to, with member counts.
  *
  * @return list<array{id:int,name:string,member_count:int}>

@@ -18,6 +18,7 @@ $pageTitle = 'Groups';
 $currentNav = 'groups';
 $inviteDeclinedFlash = isset($_GET['invite_declined']);
 $inviteErrFlash = isset($_GET['invite_err']);
+$leftGroupFlash = isset($_GET['left_group']);
 $showYourGroupsHeading = count($pendingInvites) > 0 && count($groups) > 0;
 
 require_once __DIR__ . '/header.php';
@@ -32,6 +33,9 @@ require_once __DIR__ . '/header.php';
             <?php endif; ?>
             <?php if ($inviteErrFlash): ?>
                 <p class="flash flash--error" role="alert">That invitation is no longer available.</p>
+            <?php endif; ?>
+            <?php if ($leftGroupFlash): ?>
+                <p class="flash" role="status">You’ve left the group.</p>
             <?php endif; ?>
 
             <?php if (count($pendingInvites) > 0): ?>

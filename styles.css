@@ -181,6 +181,45 @@ body {
     opacity: 0.92;
 }
 
+.btn--danger-secondary {
+    background: var(--surface);
+    color: #9a2842;
+    border: 2px solid #c45c6f;
+}
+
+.btn--danger-secondary:active {
+    opacity: 0.92;
+}
+
+.leave-group-section {
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
+.leave-group-form__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@media (min-width: 480px) {
+    .leave-group-form__actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .leave-group-form__actions .btn {
+        width: auto;
+        min-width: 9rem;
+    }
+
+    .leave-group-form__cancel {
+        flex: 0 0 auto;
+    }
+}
+
 /* Today — composer first, calm sections below (not a feed) */
 .today-section {
     margin-top: 2rem;

@@ -81,6 +81,7 @@ $inviteRequestDeclined = isset($_GET['invite_request_declined']);
 $inviteRequestApproved = isset($_GET['invite_request_approved']);
 $inviteRequestErr = isset($_GET['invite_request_err']) ? (string) $_GET['invite_request_err'] : '';
 $highlightInviteRequests = isset($_GET['invite_requests']);
+$leaveErrOwner = isset($_GET['leave_err']) && $_GET['leave_err'] === 'owner';
 
 $pageTitle = (string) $groupRow['name'];
 $currentNav = 'groups';
@@ -134,6 +135,10 @@ require_once __DIR__ . '/header.php';
                 <?php elseif ($inviteRequestApproved === 'already_member'): ?>
                     <p class="flash" role="status">That person is already a member — request cleared.</p>
                 <?php endif; ?>
+            <?php endif; ?>
+
+            <?php if ($leaveErrOwner && $isOwner): ?>
+                <p class="flash flash--error" role="alert">You can’t leave while you’re the group admin.</p>
             <?php endif; ?>
 
             <section class="detail-section">
@@ -256,5 +261,31 @@ require_once __DIR__ . '/header.php';
                     </form>
                 </section>
             <?php endif; ?>
+
+            <section class="detail-section leave-group-section" aria-labelledby="leave-group-heading">
+                <h2 id="leave-group-heading" class="detail-section__title">Membership</h2>
+                <?php if ($isOwner): ?>
+                    <p class="muted-note leave-group-section__admin-note">
+                        You manage invites and membership for this group. Leaving isn’t available while you’re the only admin—ownership transfer isn’t supported yet.
+                    </p>
+                <?php else: ?>
+                    <p class="muted-note">
+                        Membership is voluntary. If you leave, you lose access to this group until someone invites you again.
+                    </p>
+                    <form
+                        class="leave-group-form stack-top"
+                        method="post"
+                        action="/group_leave.php"
+                        onsubmit="return confirm('Leave this group?');"
+                    >
+                        <?php csrf_hidden_field(); ?>
+                        <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                        <div class="leave-group-form__actions">
+                            <button type="submit" class="btn btn--danger-secondary">Leave group</button>
+                            <a href="/groups.php" class="btn btn--ghost leave-group-form__cancel">Cancel</a>
+                        </div>
+                    </form>
+                <?php endif; ?>
+            </section>
 
 <?php require_once __DIR__ . '/footer.php'; ?>
