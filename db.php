@@ -8,7 +8,15 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/vendor/autoload.php';
+$thankhillAutoload = __DIR__ . '/vendor/autoload.php';
+if (!is_readable($thankhillAutoload)) {
+    http_response_code(503);
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo "Application dependencies are missing. From the project root on this server, run:\n\n  composer install --no-dev --optimize-autoloader\n\nThen reload the page.\n";
+    exit;
+}
+
+require_once $thankhillAutoload;
 
 use Dotenv\Dotenv;
 

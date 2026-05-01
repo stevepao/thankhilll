@@ -64,14 +64,19 @@ function bootstrap_session(): void
         ? true
         : session_request_is_https();
 
-    session_set_cookie_params([
-        'lifetime' => 0,
-        'path' => '/',
-        'domain' => '',
-        'secure' => $secure,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
+    // SameSite + array options require PHP 7.3+; older runtimes need the legacy signature.
+    if (PHP_VERSION_ID >= 70300) {
+        session_set_cookie_params([
+            'lifetime' => 0,
+            'path' => '/',
+            'domain' => '',
+            'secure' => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+    } else {
+        session_set_cookie_params(0, '/', '', $secure, true);
+    }
 
     session_start();
 
@@ -134,14 +139,26 @@ function session_destroy_completely(): void
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
         $name = session_name();
-        setcookie($name, '', [
-            'expires' => time() - 42000,
-            'path' => $params['path'],
-            'domain' => $params['domain'] ?: '',
-            'secure' => (bool) $params['secure'],
-            'httponly' => (bool) $params['httponly'],
-            'samesite' => $params['samesite'] ?? 'Lax',
-        ]);
+        if (PHP_VERSION_ID >= 70300) {
+            setcookie($name, '', [
+                'expires' => time() - 42000,
+                'path' => $params['path'],
+                'domain' => $params['domain'] ?: '',
+                'secure' => (bool) $params['secure'],
+                'httponly' => (bool) $params['httponly'],
+                'samesite' => $params['samesite'] ?? 'Lax',
+            ]);
+        } else {
+            setcookie(
+                $name,
+                '',
+                time() - 42000,
+                $params['path'],
+                $params['domain'],
+                (bool) $params['secure'],
+                (bool) $params['httponly']
+            );
+        }
     }
 
     session_destroy();
