@@ -24,7 +24,10 @@ require_once __DIR__ . '/header.php';
 ?>
 
             <?php if ($accountDeleted): ?>
-                <p class="flash" role="status">Your account has been permanently deleted.</p>
+                <p class="flash" role="status">
+                    Your account has been permanently deleted.
+                    If you had signed in with Google, this app’s access was revoked when we could use your stored token—you can still manage third-party connections under your Google Account.
+                </p>
             <?php endif; ?>
 
             <p class="empty-state">Sign in to access your journal.</p>

@@ -5,6 +5,42 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/note_media.php';
+require_once __DIR__ . '/google_oauth_revoke.php';
+
+/**
+ * Google OAuth refresh tokens stored on auth_identities.secret_hash (provider google).
+ *
+ * @return list<string>
+ */
+function account_delete_collect_google_refresh_tokens(PDO $pdo, int $userId): array
+{
+    if ($userId <= 0) {
+        return [];
+    }
+
+    $stmt = $pdo->prepare(
+        <<<'SQL'
+        SELECT secret_hash FROM auth_identities
+        WHERE user_id = ?
+          AND provider = 'google'
+          AND secret_hash IS NOT NULL
+          AND TRIM(secret_hash) <> ''
+        SQL
+    );
+    $stmt->execute([$userId]);
+    $seen = [];
+    while ($col = $stmt->fetchColumn()) {
+        if (!is_string($col)) {
+            continue;
+        }
+        $t = trim($col);
+        if ($t !== '' && !isset($seen[$t])) {
+            $seen[$t] = true;
+        }
+    }
+
+    return array_keys($seen);
+}
 
 /**
  * Emails to clear from email_login_otps after the user row is gone.
@@ -62,6 +98,21 @@ function account_delete_user_completely(PDO $pdo, int $userId): bool
     }
 
     $otpEmails = account_delete_collect_otp_emails($pdo, $userId);
+    $googleTokens = account_delete_collect_google_refresh_tokens($pdo, $userId);
+    foreach ($googleTokens as $gTok) {
+        google_oauth_revoke_token_logged($gTok);
+    }
+    if ($googleTokens === []) {
+        $gStmt = $pdo->prepare(
+            'SELECT 1 FROM auth_identities WHERE user_id = ? AND provider = \'google\' LIMIT 1'
+        );
+        $gStmt->execute([$userId]);
+        if ($gStmt->fetchColumn()) {
+            error_log(
+                'account_delete_user_completely: Google identity present but no refresh token stored; revocation skipped'
+            );
+        }
+    }
 
     $pathsStmt = $pdo->prepare(
         <<<'SQL'

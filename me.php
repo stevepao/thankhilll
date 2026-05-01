@@ -244,7 +244,7 @@ require_once __DIR__ . '/header.php';
                 <p class="me-muted">
                     Permanently removes your profile, sign-in methods, notes, thoughts, photos, reactions, and comments you wrote.
                     Groups you joined stay for other members. Groups you administered stay in the list without an assigned admin.
-                    Other people’s content is not deleted.
+                    Other people’s content is not deleted. If you used Google Sign-In, this app revokes its access to your Google account when possible; you can also review connected apps in your Google Account settings.
                 </p>
                 <form
                     class="me-form"

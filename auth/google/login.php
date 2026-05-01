@@ -23,5 +23,7 @@ if ($clientId === '' || $clientSecret === '' || $redirectUri === '') {
 $oidc = new OpenIDConnectClient('https://accounts.google.com', $clientId, $clientSecret);
 $oidc->setRedirectURL($redirectUri);
 $oidc->addScope(['openid', 'email', 'profile']);
+// Request refresh tokens so we can revoke Google access when the user deletes their account.
+$oidc->addAuthParam(['access_type' => 'offline']);
 
 $oidc->authenticate();

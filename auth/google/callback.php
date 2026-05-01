@@ -26,7 +26,11 @@ try {
     $oidc = new OpenIDConnectClient('https://accounts.google.com', $clientId, $clientSecret);
     $oidc->setRedirectURL($redirectUri);
     $oidc->addScope(['openid', 'email', 'profile']);
+    $oidc->addAuthParam(['access_type' => 'offline']);
     $oidc->authenticate();
+
+    $refreshToken = $oidc->getRefreshToken();
+    $refreshStore = is_string($refreshToken) && $refreshToken !== '' ? $refreshToken : null;
 
     $userInfo = $oidc->requestUserInfo();
     $sub = isset($userInfo->sub) ? trim((string) $userInfo->sub) : '';
@@ -87,13 +91,14 @@ try {
 
             $createIdentity = $pdo->prepare(
                 'INSERT INTO auth_identities (user_id, provider, identifier, oauth_contact_email_normalized, secret_hash, last_used_at)
-                 VALUES (:user_id, :provider, :identifier, :oauth_contact_email_normalized, NULL, CURRENT_TIMESTAMP)'
+                 VALUES (:user_id, :provider, :identifier, :oauth_contact_email_normalized, :secret_hash, CURRENT_TIMESTAMP)'
             );
             $createIdentity->execute([
                 'user_id' => $userId,
                 'provider' => 'google',
                 'identifier' => $sub,
                 'oauth_contact_email_normalized' => $loginEmailNorm,
+                'secret_hash' => $refreshStore,
             ]);
         }
 
