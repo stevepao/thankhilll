@@ -114,14 +114,12 @@ require_once __DIR__ . '/header.php';
                         <li class="note-detail__thought">
                             <div class="thought-block">
                                 <div class="thought-block__text">
-                                    <p class="thought-block__body note-detail__thought-body">
-                                        <?php if ($isMine && !empty($th['is_private'])): ?>
-                                            <span class="note-detail__thought-private-wrap" role="img" aria-label="Private — only visible to you">
-                                                <span class="note-detail__thought-private" aria-hidden="true">🔒</span>
-                                            </span>
-                                        <?php endif; ?>
-                                        <?= nl2br(e(trim((string) $th['body']))) ?>
-                                    </p>
+                                    <p class="thought-block__body note-detail__thought-body"><?php
+                                        if ($isMine && !empty($th['is_private'])) {
+                                            echo '<span class="note-detail__thought-private-wrap" role="img" aria-label="Private — only visible to you"><span class="note-detail__thought-private" aria-hidden="true">🔒</span></span>';
+                                        }
+                                        echo nl2br(e(trim((string) $th['body'])));
+                                    ?></p>
                                 </div>
                                 <div class="thought-block__meta">
                                     <span
