@@ -45,3 +45,29 @@ function email_auth_display_name_from_email(string $email): string
 
     return substr($local, 0, 120);
 }
+
+/** Session-only UX for OTP step 2 prefill; verification never depends on this key. */
+const EMAIL_OTP_PENDING_EMAIL_SESSION_KEY = 'email_otp_pending_email';
+
+function email_otp_session_set_pending_email(string $normalizedEmail): void
+{
+    require_once __DIR__ . '/session.php';
+    bootstrap_session();
+    $_SESSION[EMAIL_OTP_PENDING_EMAIL_SESSION_KEY] = $normalizedEmail;
+}
+
+function email_otp_session_get_pending_email(): ?string
+{
+    require_once __DIR__ . '/session.php';
+    bootstrap_session();
+    $raw = $_SESSION[EMAIL_OTP_PENDING_EMAIL_SESSION_KEY] ?? null;
+
+    return is_string($raw) ? email_auth_normalize($raw) : null;
+}
+
+function email_otp_session_clear_pending_email(): void
+{
+    require_once __DIR__ . '/session.php';
+    bootstrap_session();
+    unset($_SESSION[EMAIL_OTP_PENDING_EMAIL_SESSION_KEY]);
+}

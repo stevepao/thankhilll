@@ -25,6 +25,8 @@ if ($email === null) {
     exit;
 }
 
+email_otp_session_set_pending_email($email);
+
 $pdo = db();
 $latest = email_otp_repo_latest_row($pdo, $email);
 

@@ -124,6 +124,44 @@ body {
     font-size: 0.95rem;
 }
 
+.email-auth-flow--prioritize-verify {
+    display: flex;
+    flex-direction: column;
+}
+
+.email-auth-flow--prioritize-verify .email-auth__step--verify {
+    order: -1;
+}
+
+.email-auth__step--secondary .email-auth__step-title {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.email-auth__step--primary .email-auth__step-title {
+    margin-top: 0;
+}
+
+.email-auth__email-readonly {
+    margin: 0 0 1rem;
+    padding: 0.65rem 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+    word-break: break-all;
+}
+
+.email-auth__code-flash {
+    margin-bottom: 0.75rem;
+}
+
+.email-auth__footnote {
+    margin: 0.75rem 0 0;
+    font-size: 0.9rem;
+}
+
 .note-form__label {
     display: block;
     font-weight: 500;

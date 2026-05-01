@@ -19,19 +19,21 @@ csrf_verify_post_or_abort();
 
 $email = email_auth_normalize($_POST['email'] ?? null);
 if ($email === null) {
-    header('Location: /auth/email/login.php?err=1');
+    header('Location: /auth/email/login.php?code_err=1');
     exit;
 }
 
 $codeRaw = $_POST['code'] ?? null;
 if (!is_string($codeRaw)) {
-    header('Location: /auth/email/login.php?err=1');
+    email_otp_session_set_pending_email($email);
+    header('Location: /auth/email/login.php?code_err=1');
     exit;
 }
 
 $code = trim($codeRaw);
 if (!email_auth_otp_format_ok($code)) {
-    header('Location: /auth/email/login.php?err=1');
+    email_otp_session_set_pending_email($email);
+    header('Location: /auth/email/login.php?code_err=1');
     exit;
 }
 
@@ -39,7 +41,8 @@ $pdo = db();
 $row = email_otp_repo_find_active_challenge($pdo, $email);
 
 if ($row === null || empty($row['otp_hash']) || !is_string($row['otp_hash'])) {
-    header('Location: /auth/email/login.php?err=1');
+    email_otp_session_set_pending_email($email);
+    header('Location: /auth/email/login.php?code_err=1');
     exit;
 }
 
@@ -48,7 +51,8 @@ $storedHash = $row['otp_hash'];
 
 if (!password_verify($code, $storedHash)) {
     email_otp_repo_increment_attempts($pdo, $challengeId);
-    header('Location: /auth/email/login.php?err=1');
+    email_otp_session_set_pending_email($email);
+    header('Location: /auth/email/login.php?code_err=1');
     exit;
 }
 
@@ -90,12 +94,15 @@ if (is_array($identityRow) && isset($identityRow['user_id'])) {
             $pdo->rollBack();
         }
         error_log('Email OTP verify signup failed: ' . $e->getMessage());
-        header('Location: /auth/email/login.php?err=1');
+        email_otp_session_set_pending_email($email);
+        header('Location: /auth/email/login.php?code_err=1');
         exit;
     }
 }
 
 email_otp_repo_mark_consumed($pdo, $challengeId);
+
+email_otp_session_clear_pending_email();
 
 session_commit_login($userId);
 
