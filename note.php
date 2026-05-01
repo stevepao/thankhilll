@@ -120,7 +120,7 @@ require_once __DIR__ . '/header.php';
                                                 <span class="note-detail__thought-private" aria-hidden="true">🔒</span>
                                             </span>
                                         <?php endif; ?>
-                                        <?= nl2br(e($th['body'])) ?>
+                                        <?= nl2br(e(trim((string) $th['body']))) ?>
                                     </p>
                                 </div>
                                 <div class="thought-block__meta">

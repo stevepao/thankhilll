@@ -794,7 +794,7 @@ require_once __DIR__ . '/header.php';
                                             <div class="today-thought-readonly" <?= $showThisThoughtEdit ? 'hidden' : '' ?>>
                                                 <div class="thought-block">
                                                     <div class="thought-block__text">
-                                                        <p class="thought-block__body today-thought__body"><?= nl2br(e($th['body'])) ?></p>
+                                                        <p class="thought-block__body today-thought__body"><?= nl2br(e(trim((string) $th['body']))) ?></p>
                                                     </div>
                                                     <div class="thought-block__meta">
                                                         <span
