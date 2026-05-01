@@ -54,6 +54,24 @@ foreach (['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASS'] as $key) {
     echo $key . ': ' . $status . "\n";
 }
 
+echo "\n--- Session (login pages need this) ---\n";
+$savePathIni = ini_get('session.save_path') ?: '';
+echo 'session.save_path (ini): ' . ($savePathIni !== '' ? $savePathIni : '(empty — PHP default temp)') . "\n";
+$effective = session_save_path();
+if ($effective === '') {
+    $effective = sys_get_temp_dir();
+}
+echo 'effective path checked for writable: ' . $effective . "\n";
+echo 'writable: ' . (is_writable($effective) ? 'yes' : 'NO — can cause HTTP 500 on login') . "\n";
+
+require_once $root . '/includes/session.php';
+try {
+    bootstrap_session();
+    echo "bootstrap_session(): OK\n";
+} catch (Throwable $e) {
+    echo 'bootstrap_session(): FAILED — ' . $e->getMessage() . "\n";
+}
+
 $diagSecret = isset($_ENV['DIAG_SECRET']) && is_string($_ENV['DIAG_SECRET']) ? $_ENV['DIAG_SECRET'] : '';
 $token = $_GET['token'] ?? null;
 $tokenOk = is_string($token) && $diagSecret !== '' && hash_equals($diagSecret, $token);
