@@ -5,10 +5,7 @@
  * Usage:
  *   1. Deploy this file with your app (same folder as index.php).
  *   2. Visit https://your-domain/diag.php in the browser.
- *   3. Copy the entire output and share it (secrets are never printed).
- *
- * Optional DB test: add DIAG_SECRET=a-long-random-string to .env, then open:
- *   /diag.php?token=a-long-random-string
+ *   3. Copy the entire output and share it (passwords are never printed; PDO errors may mention DB user/host).
  *
  * Remove or rename this file when you are finished troubleshooting.
  *
@@ -77,25 +74,13 @@ try {
     echo 'bootstrap_session(): FAILED — ' . $e->getMessage() . "\n";
 }
 
-$diagSecret = isset($_ENV['DIAG_SECRET']) && is_string($_ENV['DIAG_SECRET']) ? $_ENV['DIAG_SECRET'] : '';
-$token = $_GET['token'] ?? null;
-$tokenOk = is_string($token) && $diagSecret !== '' && hash_equals($diagSecret, $token);
-
 echo "\n--- Database ping ---\n";
-if (!$tokenOk) {
-    echo "Skipped (no token).\n";
-    echo "To run a live DB connection test (shows driver error messages):\n";
-    echo "  1. Add to .env: DIAG_SECRET=generate-a-long-random-string\n";
-    echo "  2. Visit: /diag.php?token=that-same-string\n";
-    echo "Remove DIAG_SECRET when finished.\n";
-    exit;
-}
-
+echo "(login.php does not open a DB connection for guests; Today/index.php does — failures here match that 500.)\n";
 try {
     db()->query('SELECT 1');
-    echo "OK — PDO connected and SELECT 1 succeeded.\n";
+    echo "PDO: OK — connected and SELECT 1 succeeded.\n";
 } catch (Throwable $e) {
-    echo "FAILED — " . $e->getMessage() . "\n";
+    echo 'PDO: FAILED — ' . $e->getMessage() . "\n";
 }
 
-echo "\nDone. Delete diag.php or remove DIAG_SECRET when finished.\n";
+echo "\nDone. Delete diag.php when finished troubleshooting.\n";
