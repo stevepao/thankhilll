@@ -19,6 +19,10 @@
     --border: #e5e0d8;
     --nav-h: 3.5rem;
     --safe-bottom: env(safe-area-inset-bottom, 0);
+    /* Shared note photo previews (Today tiles + Notes strip) */
+    --note-photo-preview-max-h: 11rem;
+    --note-photo-preview-fit: contain;
+    --note-photo-preview-radius: 0.4rem;
 }
 
 html {
@@ -353,10 +357,10 @@ body {
 
 .notes-library__thumb-wrap {
     margin: 0.35rem 0 0.5rem;
-    border-radius: 0.45rem;
+    border-radius: var(--note-photo-preview-radius);
     overflow: hidden;
     border: 1px solid var(--border);
-    max-height: 7rem;
+    max-height: var(--note-photo-preview-max-h);
     background: var(--bg);
 }
 
@@ -364,8 +368,8 @@ body {
     display: block;
     width: 100%;
     height: auto;
-    max-height: 7rem;
-    object-fit: cover;
+    max-height: var(--note-photo-preview-max-h);
+    object-fit: var(--note-photo-preview-fit);
 }
 
 /* Today inline photos */
@@ -389,9 +393,9 @@ body {
     display: block;
     width: 100%;
     height: auto;
-    max-height: 11rem;
-    object-fit: contain;
-    border-radius: 0.4rem;
+    max-height: var(--note-photo-preview-max-h);
+    object-fit: var(--note-photo-preview-fit);
+    border-radius: var(--note-photo-preview-radius);
     border: 1px solid var(--border);
     background: var(--bg);
 }
