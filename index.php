@@ -719,8 +719,8 @@ require_once __DIR__ . '/header.php';
                 <button type="submit" class="btn btn--primary">Save</button>
             </form>
             <?php else: ?>
-                <p class="today-quiet today-quiet--below-composer">
-                    Today’s reflection is below. Add another moment, or edit sharing and photos for the whole day.
+                <p class="today-quiet today-quiet--below-composer today-page-lede">
+                    Your entry for today is below — thoughts and photos first, then sharing and actions.
                 </p>
             <?php endif; ?>
 
@@ -730,9 +730,13 @@ require_once __DIR__ . '/header.php';
                     <p class="today-quiet">No entry saved yet today.</p>
                 <?php else: ?>
                     <ul class="today-yours-list">
-                        <li class="today-yours-card today-yours-card--editable">
+                        <li class="today-yours-entry">
                             <?php if ($canEditTodayNoteMeta): ?>
-                                <ul class="today-thought-stream" aria-label="Today’s gratitude moments">
+                            <article class="today-daily-card" aria-labelledby="today-daily-card-label">
+                                <p id="today-daily-card-label" class="today-daily-card__label">Today’s reflection</p>
+
+                                <div class="today-daily-card__content">
+                                    <ul class="today-thought-stream" aria-label="Today’s gratitude moments">
                                     <?php foreach ($todayThoughts as $th): ?>
                                         <?php
                                         $tid = (int) $th['id'];
@@ -750,13 +754,13 @@ require_once __DIR__ . '/header.php';
                                                     <?php endif; ?>
                                                     <time class="today-thought__time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
                                                     <?php if ($canEditThought): ?>
-                                                        <span class="today-thought__actions">
-                                                            <button type="button" class="btn btn--ghost btn--inline" data-thought-edit-open="<?= $tid ?>">Edit</button>
+                                                        <span class="today-thought__actions" aria-label="Thought actions">
+                                                            <button type="button" class="btn btn--ghost btn--inline today-thought__action-btn" data-thought-edit-open="<?= $tid ?>">Edit</button>
                                                             <form class="today-thought-delete-form" method="post" action="/index.php">
                                                                 <?php csrf_hidden_field(); ?>
                                                                 <input type="hidden" name="today_action" value="delete_thought">
                                                                 <input type="hidden" name="thought_id" value="<?= $tid ?>">
-                                                                <button type="submit" class="btn btn--ghost btn--inline" onclick="return confirm('Remove this moment?');">Delete</button>
+                                                                <button type="submit" class="btn btn--ghost btn--inline today-thought__action-btn" onclick="return confirm('Remove this moment?');">Delete</button>
                                                             </form>
                                                         </span>
                                                     <?php endif; ?>
@@ -798,54 +802,56 @@ require_once __DIR__ . '/header.php';
                                             <?php endif; ?>
                                         </li>
                                     <?php endforeach; ?>
-                                </ul>
+                                    </ul>
 
-                                <div id="today-note-meta-readonly" class="today-yours-panel today-note-meta-readonly" <?= $showEditInitially ? 'hidden' : '' ?>>
+                                    <?php if (!empty($todayPhotos[$todayPrimaryId])): ?>
+                                        <div class="today-daily-card__gallery" role="group" aria-label="Photos for today">
+                                            <ul class="today-note-photos today-note-photos--daily">
+                                                <?php foreach ($todayPhotos[$todayPrimaryId] as $ph): ?>
+                                                    <li class="today-note-photos__item">
+                                                        <img
+                                                            src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
+                                                            alt=""
+                                                            class="today-note-photos__img"
+                                                            loading="lazy"
+                                                            width="<?= (int) $ph['width'] ?>"
+                                                            height="<?= (int) $ph['height'] ?>"
+                                                        >
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <div id="today-note-meta-readonly" class="today-daily-card__context today-note-meta-readonly" <?= $showEditInitially ? 'hidden' : '' ?>>
                                     <?php if (count($todayPrimarySharedNames) > 0): ?>
-                                        <p class="today-yours-meta">
+                                        <p class="today-daily-card__sharing today-yours-meta">
                                             Shared with <?= e(implode(', ', $todayPrimarySharedNames)) ?>
                                         </p>
                                     <?php else: ?>
-                                        <p class="today-yours-meta today-yours-meta--private">Private</p>
+                                        <p class="today-daily-card__sharing today-yours-meta today-yours-meta--private">Private — not shared with groups</p>
                                     <?php endif; ?>
 
-                                    <?php if (!empty($todayPhotos[$todayPrimaryId])): ?>
-                                        <ul class="today-note-photos">
-                                            <?php foreach ($todayPhotos[$todayPrimaryId] as $ph): ?>
-                                                <li class="today-note-photos__item">
-                                                    <img
-                                                        src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
-                                                        alt=""
-                                                        class="today-note-photos__img"
-                                                        loading="lazy"
-                                                        width="<?= (int) $ph['width'] ?>"
-                                                        height="<?= (int) $ph['height'] ?>"
-                                                    >
-                                                </li>
-                                            <?php endforeach; ?>
-                                        </ul>
-                                    <?php endif; ?>
-
-                                    <div class="today-yours-actions">
-                                        <button type="button" class="btn btn--ghost" id="today-yours-edit-btn">Edit note</button>
+                                    <div class="today-daily-card__primary-actions">
+                                        <button type="button" class="btn btn--primary" id="today-yours-edit-btn">Edit sharing &amp; photos</button>
                                     </div>
                                 </div>
 
-                                <div class="today-add-thought">
-                                    <h3 class="today-add-thought__heading">Add another thought</h3>
+                                <div class="today-daily-card__secondary today-add-thought">
                                     <?php if ($errorContext === 'add_thought' && $validationError !== null): ?>
                                         <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
                                     <?php endif; ?>
-                                    <form class="note-form note-form--compact" method="post" action="/index.php">
+                                    <form class="note-form note-form--compact today-add-thought__form" method="post" action="/index.php">
                                         <?php csrf_hidden_field(); ?>
                                         <input type="hidden" name="today_action" value="add_thought">
                                         <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
-                                        <label class="note-form__label" for="add-thought-body">Another moment you’re grateful for</label>
+                                        <label class="today-add-thought__caption" for="add-thought-body">Add another moment</label>
                                         <textarea
                                             id="add-thought-body"
                                             name="thought_body"
                                             class="note-form__textarea"
-                                            rows="4"
+                                            rows="3"
                                             placeholder="A few more words…"
                                             ><?= e($addThoughtBodyValue) ?></textarea>
                                         <label class="share-check today-thought-private-check">
@@ -858,11 +864,12 @@ require_once __DIR__ . '/header.php';
                                             <span>Just for me</span>
                                         </label>
                                         <p class="share-fieldset__hint today-thought-private-hint">Private moments are never shown to people you share this day with.</p>
-                                        <button type="submit" class="btn btn--primary">Add</button>
+                                        <button type="submit" class="btn btn--ghost today-add-thought__submit">Add moment</button>
                                     </form>
                                 </div>
+                            </article>
 
-                                <div id="today-note-meta-edit" class="today-yours-panel today-yours-panel--edit" <?= $showEditInitially ? '' : 'hidden' ?>>
+                                <div id="today-note-meta-edit" class="today-note-meta-edit-panel today-yours-panel today-yours-panel--edit" <?= $showEditInitially ? '' : 'hidden' ?>>
                                     <form id="today-edit-form" class="note-form note-form--compact" method="post" action="/index.php" enctype="multipart/form-data">
                                         <?php csrf_hidden_field(); ?>
                                         <input type="hidden" name="today_action" value="update_note">
