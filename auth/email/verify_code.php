@@ -66,15 +66,16 @@ if (is_array($identityRow) && isset($identityRow['user_id'])) {
         'UPDATE auth_identities SET secret_hash = NULL, last_used_at = CURRENT_TIMESTAMP WHERE provider = ? AND identifier = ?'
     );
     $touch->execute(['email', $email]);
+    user_sync_login_email_normalized($pdo, $userId, $email);
 } else {
     $pdo->beginTransaction();
 
     try {
         $displayName = email_auth_display_name_from_email($email);
         $insUser = $pdo->prepare(
-            'INSERT INTO users (display_name, preferences_json) VALUES (?, NULL)'
+            'INSERT INTO users (display_name, preferences_json, login_email_normalized) VALUES (?, NULL, ?)'
         );
-        $insUser->execute([$displayName]);
+        $insUser->execute([$displayName, $email]);
         $userId = (int) $pdo->lastInsertId();
 
         $insId = $pdo->prepare(

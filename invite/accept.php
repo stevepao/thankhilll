@@ -79,35 +79,9 @@ if ($invite === null) {
 $groupId = $invite['group_id'];
 $inviteId = $invite['id'];
 
-$pdo->beginTransaction();
-
 try {
-    $mem = $pdo->prepare(
-        'INSERT INTO group_members (user_id, group_id, role, joined_at)
-         VALUES (?, ?, \'member\', NOW())'
-    );
-    try {
-        $mem->execute([$userId, $groupId]);
-    } catch (PDOException $e) {
-        $sqlState = $e->errorInfo[0] ?? '';
-        if ($sqlState !== '23000') {
-            throw $e;
-        }
-    }
-
-    $upd = $pdo->prepare(
-        'UPDATE group_invitations SET accepted_at = NOW() WHERE id = ? AND accepted_at IS NULL'
-    );
-    $upd->execute([$inviteId]);
-    if ($upd->rowCount() !== 1) {
-        throw new RuntimeException('Invitation already accepted.');
-    }
-
-    $pdo->commit();
+    group_invitation_accept_transaction($pdo, $userId, $inviteId);
 } catch (Throwable $e) {
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
     error_log('invite accept: ' . $e->getMessage());
     unset($_SESSION['invite_pending_token']);
     invite_accept_render_message(

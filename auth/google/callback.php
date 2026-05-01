@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../../auth.php';
+require_once __DIR__ . '/../../includes/email_auth.php';
 require_once __DIR__ . '/../../includes/group_helpers.php';
 
 use Jumbojett\OpenIDConnectClient;
@@ -53,6 +54,8 @@ try {
         ]);
         $identity = $findIdentity->fetch();
 
+        $loginEmailNorm = email_auth_normalize($email !== '' ? $email : null);
+
         if (is_array($identity) && isset($identity['user_id'])) {
             $userId = (int) $identity['user_id'];
 
@@ -63,13 +66,15 @@ try {
                 'provider' => 'google',
                 'identifier' => $sub,
             ]);
+            user_sync_login_email_normalized($pdo, $userId, $loginEmailNorm);
         } else {
             $createUser = $pdo->prepare(
-                'INSERT INTO users (display_name, preferences_json) VALUES (:display_name, :preferences_json)'
+                'INSERT INTO users (display_name, preferences_json, login_email_normalized) VALUES (:display_name, :preferences_json, :login_email_normalized)'
             );
             $createUser->execute([
                 'display_name' => $name,
                 'preferences_json' => null,
+                'login_email_normalized' => $loginEmailNorm,
             ]);
             $userId = (int) $pdo->lastInsertId();
 

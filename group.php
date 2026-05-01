@@ -59,6 +59,7 @@ if ($isOwner) {
         FROM group_invitations
         WHERE group_id = ?
           AND accepted_at IS NULL
+          AND declined_at IS NULL
           AND expires_at > NOW()
         ORDER BY created_at DESC
         SQL
