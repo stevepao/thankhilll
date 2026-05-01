@@ -12,6 +12,7 @@ $userId = require_login();
 $pdo = db();
 $pendingInvites = group_invitations_pending_for_user($pdo, $userId);
 $groups = groups_for_user_with_counts($pdo, $userId);
+$ownerInviteRequestCounts = group_invite_requests_pending_counts_for_owner_groups($pdo, $userId);
 
 $pageTitle = 'Groups';
 $currentNav = 'groups';
@@ -81,9 +82,23 @@ require_once __DIR__ . '/header.php';
                 <?php endif; ?>
                         <ul class="group-list">
                             <?php foreach ($groups as $g): ?>
+                                <?php
+                                $gid = (int) $g['id'];
+                                $inviteReqPending = (int) ($ownerInviteRequestCounts[$gid] ?? 0);
+                                ?>
                                 <li class="group-card">
-                                    <a href="/group.php?id=<?= (int) $g['id'] ?>" class="group-card__link">
-                                        <span class="group-card__name"><?= e($g['name']) ?></span>
+                                    <a href="/group.php?id=<?= $gid ?><?= $inviteReqPending > 0 ? '&invite_requests=1#pending-invite-requests' : '' ?>" class="group-card__link">
+                                        <span class="group-card__title-row">
+                                            <span class="group-card__name"><?= e($g['name']) ?></span>
+                                            <?php if ($inviteReqPending > 0): ?>
+                                                <?php
+                                                $badgeLabel = $inviteReqPending === 1
+                                                    ? '1 invite request pending'
+                                                    : $inviteReqPending . ' invite requests pending';
+                                                ?>
+                                                <span class="group-card__badge" title="<?= e($badgeLabel) ?>" aria-label="<?= e($badgeLabel) ?>"><?= $inviteReqPending > 9 ? '9+' : (string) $inviteReqPending ?></span>
+                                            <?php endif; ?>
+                                        </span>
                                         <span class="group-card__meta"><?= (int) $g['member_count'] ?> members</span>
                                     </a>
                                 </li>

@@ -1,6 +1,6 @@
 <?php
 /**
- * group.php — Group detail: members; owner sees pending invites + invite form.
+ * group.php — Group detail: members; owner sees pending invites + invite form + invite requests.
  */
 declare(strict_types=1);
 
@@ -31,7 +31,7 @@ if (!user_is_group_member($pdo, $userId, $groupId)) {
 
 $isOwner = user_is_group_owner($pdo, $userId, $groupId);
 
-$gStmt = $pdo->prepare('SELECT id, name FROM `groups` WHERE id = ? LIMIT 1');
+$gStmt = $pdo->prepare('SELECT id, name, owner_user_id FROM `groups` WHERE id = ? LIMIT 1');
 $gStmt->execute([$groupId]);
 $groupRow = $gStmt->fetch(PDO::FETCH_ASSOC);
 if (!is_array($groupRow)) {
@@ -39,9 +39,11 @@ if (!is_array($groupRow)) {
     exit;
 }
 
+$ownerUserId = (int) $groupRow['owner_user_id'];
+
 $mStmt = $pdo->prepare(
     <<<'SQL'
-    SELECT u.display_name, gm.joined_at
+    SELECT gm.user_id, u.display_name, gm.joined_at
     FROM group_members gm
     INNER JOIN users u ON u.id = gm.user_id
     WHERE gm.group_id = ?
@@ -52,6 +54,7 @@ $mStmt->execute([$groupId]);
 $members = $mStmt->fetchAll(PDO::FETCH_ASSOC);
 
 $pendingInvites = [];
+$pendingInviteRequests = [];
 if ($isOwner) {
     $pStmt = $pdo->prepare(
         <<<'SQL'
@@ -66,11 +69,18 @@ if ($isOwner) {
     );
     $pStmt->execute([$groupId]);
     $pendingInvites = $pStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $pendingInviteRequests = group_invite_requests_pending_for_group($pdo, $groupId);
 }
 
 $created = isset($_GET['created']);
 $inviteSent = isset($_GET['invite_sent']);
 $joined = isset($_GET['joined']);
+$inviteRequestSent = isset($_GET['invite_request_sent']);
+$inviteRequestDeclined = isset($_GET['invite_request_declined']);
+$inviteRequestApproved = isset($_GET['invite_request_approved']);
+$inviteRequestErr = isset($_GET['invite_request_err']) ? (string) $_GET['invite_request_err'] : '';
+$highlightInviteRequests = isset($_GET['invite_requests']);
 
 $pageTitle = (string) $groupRow['name'];
 $currentNav = 'groups';
@@ -94,6 +104,38 @@ require_once __DIR__ . '/header.php';
                 <p class="flash" role="status">You’ve joined this group.</p>
             <?php endif; ?>
 
+            <?php if ($inviteRequestSent): ?>
+                <p class="flash" role="status">Your request has been sent to the group admin.</p>
+            <?php endif; ?>
+
+            <?php if ($inviteRequestErr !== ''): ?>
+                <?php if ($inviteRequestErr === 'invalid'): ?>
+                    <p class="flash flash--error" role="alert">Enter a valid email address.</p>
+                <?php elseif ($inviteRequestErr === 'self'): ?>
+                    <p class="flash flash--error" role="alert">You can’t request an invite for your own address.</p>
+                <?php elseif ($inviteRequestErr === 'already_member'): ?>
+                    <p class="flash flash--error" role="alert">That person is already in this group.</p>
+                <?php elseif ($inviteRequestErr === 'duplicate'): ?>
+                    <p class="flash flash--error" role="alert">There is already a pending request for that address.</p>
+                <?php elseif ($inviteRequestErr === 'pending_invite'): ?>
+                    <p class="flash flash--error" role="alert">That address already has a pending invitation.</p>
+                <?php elseif ($inviteRequestErr === 'approve_failed' && $isOwner): ?>
+                    <p class="flash flash--error" role="alert">Could not send the invitation. Try again or invite by email directly.</p>
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <?php if ($isOwner && $inviteRequestDeclined): ?>
+                <p class="flash" role="status">Invite request dismissed.</p>
+            <?php endif; ?>
+
+            <?php if ($isOwner && $inviteRequestApproved !== ''): ?>
+                <?php if ($inviteRequestApproved === '1'): ?>
+                    <p class="flash" role="status">Invitation sent for that request.</p>
+                <?php elseif ($inviteRequestApproved === 'already_member'): ?>
+                    <p class="flash" role="status">That person is already a member — request cleared.</p>
+                <?php endif; ?>
+            <?php endif; ?>
+
             <section class="detail-section">
                 <h2 class="detail-section__title">Members</h2>
                 <?php if (count($members) === 0): ?>
@@ -101,15 +143,90 @@ require_once __DIR__ . '/header.php';
                 <?php else: ?>
                     <ul class="member-list">
                         <?php foreach ($members as $m): ?>
-                            <li class="member-list__item">
-                                <span class="member-list__name"><?= e((string) $m['display_name']) ?></span>
+                            <?php
+                            $mid = (int) $m['user_id'];
+                            $isGroupAdmin = $mid === $ownerUserId;
+                            ?>
+                            <li class="member-list__item<?= $isGroupAdmin ? ' member-list__item--admin' : '' ?>">
+                                <div class="member-list__primary">
+                                    <span class="member-list__name"><?= e((string) $m['display_name']) ?></span>
+                                    <?php if ($isGroupAdmin): ?>
+                                        <span class="member-list__badge">Group admin</span>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if ($isGroupAdmin): ?>
+                                    <p class="member-list__meta">Responsible for approving invites and adding members.</p>
+                                <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
                     </ul>
                 <?php endif; ?>
             </section>
 
+            <?php if (!$isOwner): ?>
+                <section class="detail-section">
+                    <h2 class="detail-section__title">Request invite</h2>
+                    <p class="muted-note">Ask the group admin to send an invitation. You won’t see the admin’s email address.</p>
+                    <form class="note-form stack-top" method="post" action="/group_invite_request_submit.php">
+                        <?php csrf_hidden_field(); ?>
+                        <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                        <label class="note-form__label" for="request_invite_email">Their email address</label>
+                        <input
+                            id="request_invite_email"
+                            name="email"
+                            type="email"
+                            class="note-form__input"
+                            maxlength="255"
+                            autocomplete="email"
+                            placeholder="friend@example.com"
+                            required
+                        >
+                        <button type="submit" class="btn btn--primary">Request invite</button>
+                    </form>
+                </section>
+            <?php endif; ?>
+
             <?php if ($isOwner): ?>
+                <section
+                    id="pending-invite-requests"
+                    class="detail-section<?= $highlightInviteRequests ? ' detail-section--highlight' : '' ?>"
+                >
+                    <h2 class="detail-section__title">Pending invite requests</h2>
+                    <?php if (count($pendingInviteRequests) === 0): ?>
+                        <p class="empty-state">No pending requests from members.</p>
+                    <?php else: ?>
+                        <ul class="invite-request-list">
+                            <?php foreach ($pendingInviteRequests as $pr): ?>
+                                <li class="invite-request-list__item">
+                                    <div class="invite-request-list__body">
+                                        <p class="invite-request-list__email"><?= e($pr['requested_email']) ?></p>
+                                        <p class="invite-request-list__meta">
+                                            Requested by <?= e($pr['requester_display_name']) ?>
+                                            · <?= e($pr['created_at']) ?>
+                                        </p>
+                                    </div>
+                                    <div class="invite-request-list__actions">
+                                        <form method="post" action="/group_invite_request_respond.php" class="inline-form-row">
+                                            <?php csrf_hidden_field(); ?>
+                                            <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                                            <input type="hidden" name="request_id" value="<?= (int) $pr['id'] ?>">
+                                            <input type="hidden" name="action" value="approve">
+                                            <button type="submit" class="btn btn--primary btn--small">Approve</button>
+                                        </form>
+                                        <form method="post" action="/group_invite_request_respond.php" class="inline-form-row">
+                                            <?php csrf_hidden_field(); ?>
+                                            <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                                            <input type="hidden" name="request_id" value="<?= (int) $pr['id'] ?>">
+                                            <input type="hidden" name="action" value="decline">
+                                            <button type="submit" class="btn btn--ghost btn--small">Ignore</button>
+                                        </form>
+                                    </div>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                </section>
+
                 <section class="detail-section">
                     <h2 class="detail-section__title">Pending invitations</h2>
                     <?php if (count($pendingInvites) === 0): ?>

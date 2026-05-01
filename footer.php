@@ -18,7 +18,9 @@ if ($showNav) {
     $footerNavUserId = current_user_id();
     if ($footerNavUserId !== null) {
         require_once __DIR__ . '/includes/group_helpers.php';
-        $pendingGroupInviteCount = count(group_invitations_pending_for_user(db(), $footerNavUserId));
+        $footerGroupPdo = db();
+        $pendingGroupInviteCount = count(group_invitations_pending_for_user($footerGroupPdo, $footerNavUserId))
+            + group_invite_requests_pending_count_for_owner($footerGroupPdo, $footerNavUserId);
     }
 }
 ?>
@@ -39,7 +41,7 @@ if ($showNav) {
                 >
                     <span class="bottom-nav__labelWrap">
                         <?php if ($pendingGroupInviteCount > 0): ?>
-                            <span id="nav-groups-pending-desc" class="visually-hidden"><?= (int) $pendingGroupInviteCount ?> pending group invitation<?= $pendingGroupInviteCount === 1 ? '' : 's' ?></span>
+                            <span id="nav-groups-pending-desc" class="visually-hidden"><?= (int) $pendingGroupInviteCount ?> pending <?= $pendingGroupInviteCount === 1 ? 'item' : 'items' ?> on Groups—invitations for you or invite requests to approve</span>
                         <?php endif; ?>
                         <span class="bottom-nav__label">Groups</span>
                         <?php if ($pendingGroupInviteCount > 0): ?>

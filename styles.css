@@ -1332,9 +1332,32 @@ body {
     background: var(--bg);
 }
 
+.group-card__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
 .group-card__name {
+    flex: 1;
+    min-width: 0;
     font-weight: 600;
     font-size: 1rem;
+}
+
+.group-card__badge {
+    flex-shrink: 0;
+    min-width: 1.05rem;
+    padding: 0.12rem 0.35rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--surface);
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+    opacity: 0.88;
 }
 
 .group-card__meta {
@@ -1420,6 +1443,96 @@ body {
 .member-list__item:last-child,
 .invite-list__item:last-child {
     border-bottom: none;
+}
+
+.member-list__primary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.member-list__badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.35rem;
+}
+
+.member-list__meta {
+    margin: 0.25rem 0 0;
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.35;
+}
+
+.member-list__item--admin {
+    padding-bottom: 0.5rem;
+}
+
+.detail-section--highlight {
+    scroll-margin-top: 4rem;
+}
+
+.muted-note {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.invite-request-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.invite-request-list__item {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+}
+
+.invite-request-list__item:last-child {
+    border-bottom: none;
+}
+
+.invite-request-list__email {
+    margin: 0;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.invite-request-list__meta {
+    margin: 0.2rem 0 0;
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.invite-request-list__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.inline-form-row {
+    display: inline;
+    margin: 0;
+}
+
+.btn--small {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.65rem;
 }
 
 .profile-block {

@@ -67,6 +67,13 @@ try {
                 'identifier' => $sub,
             ]);
             user_sync_login_email_normalized($pdo, $userId, $loginEmailNorm);
+            if ($loginEmailNorm !== null) {
+                $oauthMail = $pdo->prepare(
+                    'UPDATE auth_identities SET oauth_contact_email_normalized = ?
+                     WHERE user_id = ? AND provider = \'google\' AND identifier = ?'
+                );
+                $oauthMail->execute([$loginEmailNorm, $userId, $sub]);
+            }
         } else {
             $createUser = $pdo->prepare(
                 'INSERT INTO users (display_name, preferences_json, login_email_normalized) VALUES (:display_name, :preferences_json, :login_email_normalized)'
@@ -79,13 +86,14 @@ try {
             $userId = (int) $pdo->lastInsertId();
 
             $createIdentity = $pdo->prepare(
-                'INSERT INTO auth_identities (user_id, provider, identifier, secret_hash, last_used_at)
-                 VALUES (:user_id, :provider, :identifier, NULL, CURRENT_TIMESTAMP)'
+                'INSERT INTO auth_identities (user_id, provider, identifier, oauth_contact_email_normalized, secret_hash, last_used_at)
+                 VALUES (:user_id, :provider, :identifier, :oauth_contact_email_normalized, NULL, CURRENT_TIMESTAMP)'
             );
             $createIdentity->execute([
                 'user_id' => $userId,
                 'provider' => 'google',
                 'identifier' => $sub,
+                'oauth_contact_email_normalized' => $loginEmailNorm,
             ]);
         }
 
