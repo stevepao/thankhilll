@@ -168,14 +168,21 @@ require_once __DIR__ . '/header.php';
                     <ul class="note-detail__photos">
                         <?php foreach ($media as $m): ?>
                             <li class="note-detail__photo-item">
-                                <img
-                                    src="/media/note_photo.php?id=<?= (int) $m['id'] ?>"
-                                    alt=""
-                                    class="note-detail__photo"
-                                    loading="lazy"
-                                    width="<?= (int) $m['width'] ?>"
-                                    height="<?= (int) $m['height'] ?>"
+                                <button
+                                    type="button"
+                                    class="photo-lightbox-trigger note-detail__photo-trigger"
+                                    aria-haspopup="dialog"
+                                    aria-label="View photo larger"
                                 >
+                                    <img
+                                        src="/media/note_photo.php?id=<?= (int) $m['id'] ?>"
+                                        alt=""
+                                        class="note-detail__photo"
+                                        loading="lazy"
+                                        width="<?= (int) $m['width'] ?>"
+                                        height="<?= (int) $m['height'] ?>"
+                                    >
+                                </button>
                             </li>
                         <?php endforeach; ?>
                     </ul>

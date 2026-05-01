@@ -893,14 +893,21 @@ require_once __DIR__ . '/header.php';
                                             <ul class="today-note-photos today-note-photos--daily">
                                                 <?php foreach ($todayPhotos[$todayPrimaryId] as $ph): ?>
                                                     <li class="today-note-photos__item">
-                                                        <img
-                                                            src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
-                                                            alt=""
-                                                            class="today-note-photos__img"
-                                                            loading="lazy"
-                                                            width="<?= (int) $ph['width'] ?>"
-                                                            height="<?= (int) $ph['height'] ?>"
+                                                        <button
+                                                            type="button"
+                                                            class="photo-lightbox-trigger"
+                                                            aria-haspopup="dialog"
+                                                            aria-label="View photo larger"
                                                         >
+                                                            <img
+                                                                src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
+                                                                alt=""
+                                                                class="today-note-photos__img"
+                                                                loading="lazy"
+                                                                width="<?= (int) $ph['width'] ?>"
+                                                                height="<?= (int) $ph['height'] ?>"
+                                                            >
+                                                        </button>
                                                     </li>
                                                 <?php endforeach; ?>
                                             </ul>

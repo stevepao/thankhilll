@@ -7,6 +7,8 @@
  */
 declare(strict_types=1);
 
+require_once __DIR__ . '/includes/assets.php';
+
 $currentNav = $currentNav ?? 'today';
 $showNav = $showNav ?? true;
 ?>
@@ -28,6 +30,14 @@ $showNav = $showNav ?? true;
                 </a>
             </nav>
         <?php endif; ?>
+
+        <dialog id="site-photo-lightbox" class="photo-lightbox" aria-label="Enlarged photo">
+            <div class="photo-lightbox__panel">
+                <button type="button" class="photo-lightbox__close" aria-label="Close">×</button>
+                <img class="photo-lightbox__img" src="" alt="">
+            </div>
+        </dialog>
+        <script src="<?= e(asset_url('/image_lightbox.js')) ?>"></script>
     </div>
 </body>
 </html>

@@ -73,6 +73,29 @@ function note_library_card_render(
     $noteReactions = note_library_card_aggregate_reactions($thoughtRows, $reactionByThoughtMap);
     ?>
                         <li class="notes-library__card">
+                            <?php if (count($thumbs) > 0): ?>
+                                <ul class="today-note-photos today-note-photos--notes notes-library__card-photos" aria-label="Note photos — tap a thumbnail to enlarge">
+                                    <?php foreach ($thumbs as $thumb): ?>
+                                        <li class="today-note-photos__item">
+                                            <button
+                                                type="button"
+                                                class="photo-lightbox-trigger"
+                                                aria-haspopup="dialog"
+                                                aria-label="View photo larger"
+                                            >
+                                                <img
+                                                    src="/media/note_photo.php?id=<?= (int) $thumb['id'] ?>"
+                                                    alt=""
+                                                    class="today-note-photos__img"
+                                                    loading="lazy"
+                                                    width="<?= (int) $thumb['width'] ?>"
+                                                    height="<?= (int) $thumb['height'] ?>"
+                                                >
+                                            </button>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
                             <a class="notes-library__card-main" href="/note.php?id=<?= $nid ?>">
                                 <time
                                     class="notes-library__date"
@@ -83,22 +106,6 @@ function note_library_card_render(
                                 <?php endif; ?>
                                 <?php if ($groupsLabel !== ''): ?>
                                     <p class="notes-library__groups">Shared in <?= e($groupsLabel) ?></p>
-                                <?php endif; ?>
-                                <?php if (count($thumbs) > 0): ?>
-                                    <ul class="today-note-photos today-note-photos--notes">
-                                        <?php foreach ($thumbs as $thumb): ?>
-                                            <li class="today-note-photos__item">
-                                                <img
-                                                    src="/media/note_photo.php?id=<?= (int) $thumb['id'] ?>"
-                                                    alt=""
-                                                    class="today-note-photos__img"
-                                                    loading="lazy"
-                                                    width="<?= (int) $thumb['width'] ?>"
-                                                    height="<?= (int) $thumb['height'] ?>"
-                                                >
-                                            </li>
-                                        <?php endforeach; ?>
-                                    </ul>
                                 <?php endif; ?>
                                 <?php if (count($noteReactions) > 0): ?>
                                     <p class="notes-library__reactions" aria-label="Thought reactions">

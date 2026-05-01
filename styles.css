@@ -990,6 +990,111 @@ body {
     background: var(--bg);
 }
 
+/* Thumbnails: tap opens lightbox only (not navigation). Inner img ignores pointer so the button receives taps. */
+.photo-lightbox-trigger {
+    display: block;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    font: inherit;
+    cursor: zoom-in;
+    border-radius: var(--note-photo-preview-radius);
+    text-align: inherit;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.photo-lightbox-trigger:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.photo-lightbox-trigger .today-note-photos__img,
+.photo-lightbox-trigger .note-detail__photo {
+    pointer-events: none;
+}
+
+.notes-library__card-photos {
+    margin: 0 0 0.55rem;
+}
+
+.notes-library__card > .notes-library__card-photos {
+    margin-top: 0;
+}
+
+.note-detail__photo-trigger {
+    max-width: 36rem;
+}
+
+/* Full-screen image viewer (dialog); text stays on the page underneath. */
+.photo-lightbox {
+    padding: 0;
+    border: none;
+    margin: 0;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    background: transparent;
+    box-sizing: border-box;
+}
+
+.photo-lightbox::backdrop {
+    background: rgba(18, 16, 14, 0.92);
+    cursor: zoom-out;
+}
+
+.photo-lightbox__panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100dvh;
+    padding: 3.25rem 0.75rem 1.25rem;
+    box-sizing: border-box;
+}
+
+.photo-lightbox__img {
+    display: block;
+    max-width: 100%;
+    max-height: calc(100dvh - 4.75rem);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 0.35rem;
+    box-shadow: 0 0.25rem 2rem rgba(0, 0, 0, 0.35);
+}
+
+.photo-lightbox__close {
+    position: fixed;
+    top: max(0.65rem, env(safe-area-inset-top, 0px));
+    right: max(0.65rem, env(safe-area-inset-right, 0px));
+    z-index: 1;
+    margin: 0;
+    padding: 0.35rem 0.65rem;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 0.4rem;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+    font: inherit;
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.photo-lightbox__close:hover {
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.photo-lightbox__close:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
 .today-photo-status {
     margin: 0.35rem 0 0;
     font-size: 0.85rem;
@@ -1060,6 +1165,10 @@ body {
     border-radius: 0.5rem;
     border: 1px solid var(--border);
     background: var(--bg);
+}
+
+.note-detail__photo-item .photo-lightbox-trigger {
+    border-radius: 0.5rem;
 }
 
 /* Notes list */
