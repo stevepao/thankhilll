@@ -154,6 +154,7 @@ require_once __DIR__ . '/header.php';
                                 $comments = $thoughtCommentsList;
                                 $canPostComment = $canPostThoughtComment;
                                 $redirectTarget = '/note.php?id=' . $noteId;
+                                $thoughtCommentsIconOnlyComposer = false;
                                 require __DIR__ . '/includes/thought_comments_section.php';
                                 ?>
                             <?php endif; ?>

@@ -420,7 +420,7 @@ body {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 1.35rem;
+    gap: 1.85rem;
 }
 
 .today-thought {
@@ -438,11 +438,63 @@ body {
 }
 
 .today-thought__meta {
-    margin: 0.45rem 0 0;
+    margin: 0.55rem 0 0;
+}
+
+.today-thought__meta-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.35rem 0.65rem;
+    gap: 0.35rem 0.5rem;
+    width: 100%;
+}
+
+.today-thought__meta-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.28rem 0.42rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.today-thought__meta-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.08rem;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+.today-thought__icon-btn {
+    margin: 0;
+    padding: 0.12rem 0.22rem;
+    border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 0.92rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.48;
+    border-radius: 0.35rem;
+}
+
+.today-thought__icon-btn:hover {
+    opacity: 0.82;
+}
+
+.today-thought__icon-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    opacity: 1;
+}
+
+.today-thought__icon-btn--danger {
+    opacity: 0.42;
+}
+
+.today-thought__icon-btn--danger:hover {
+    opacity: 0.78;
 }
 
 .today-thought__time {
@@ -454,14 +506,14 @@ body {
 .thought-reactions {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.22rem;
 }
 
 .thought-reactions__list {
     display: inline-flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.25rem;
+    gap: 0.18rem;
 }
 
 .thought-reaction-pill {
@@ -509,8 +561,9 @@ body {
 }
 
 .today-thought__private-badge {
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     line-height: 1;
+    opacity: 0.75;
 }
 
 .today-thought-private-check {
@@ -530,32 +583,26 @@ body {
     font-size: 0.9rem;
 }
 
-.today-thought__actions {
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem;
-    margin-left: auto;
-}
-
-.today-thought__action-btn {
-    font-size: 0.78rem;
-}
-
 @media (hover: hover) and (pointer: fine) {
-    .today-thought__actions {
-        opacity: 0.35;
+    .today-thought__meta-actions .today-thought__icon-btn {
+        opacity: 0.32;
     }
 
-    .today-thought:hover .today-thought__actions,
-    .today-thought:focus-within .today-thought__actions {
-        opacity: 1;
+    .today-thought:hover .today-thought__meta-actions .today-thought__icon-btn,
+    .today-thought:focus-within .today-thought__meta-actions .today-thought__icon-btn {
+        opacity: 0.52;
+    }
+
+    .today-thought:hover .today-thought__meta-actions .today-thought__icon-btn:hover,
+    .today-thought:focus-within .today-thought__meta-actions .today-thought__icon-btn:hover {
+        opacity: 0.92;
     }
 }
 
 .today-thought-delete-form {
-    display: inline;
+    display: inline-flex;
     margin: 0;
+    vertical-align: middle;
 }
 
 .today-thought-edit-error {
@@ -623,17 +670,24 @@ body {
 
 /* Quiet affirmations under shared, non-private thoughts */
 .thought-comments {
-    margin-top: 0.65rem;
-    padding-top: 0.5rem;
+    margin-top: 0.55rem;
+    padding-top: 0.3rem;
+}
+
+.today-thought-readonly .thought-comments {
+    margin-top: 0.42rem;
+    margin-left: 0.35rem;
+    padding-left: 0.55rem;
+    padding-top: 0.2rem;
 }
 
 .thought-comments__list {
     list-style: none;
-    margin: 0 0 0.4rem;
+    margin: 0 0 0.28rem;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.55rem;
+    gap: 0.38rem;
 }
 
 .thought-comments__item {
@@ -642,54 +696,105 @@ body {
 
 .thought-comments__body {
     margin: 0;
-    font-size: 0.84rem;
-    line-height: 1.42;
-    color: var(--text);
-    opacity: 0.9;
+    font-size: 0.8rem;
+    line-height: 1.38;
+    color: var(--muted);
     word-break: break-word;
 }
 
+.thought-comments__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    margin-top: 0.14rem;
+}
+
 .thought-comments__meta {
-    margin: 0.22rem 0 0;
-    font-size: 0.74rem;
+    margin: 0;
+    font-size: 0.72rem;
     color: var(--muted);
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.12rem;
+    gap: 0.1rem;
+    flex: 1;
+    min-width: 0;
+    opacity: 0.92;
 }
 
 .thought-comments__delete-form {
-    display: inline;
+    display: inline-flex;
     margin: 0;
+    flex-shrink: 0;
+    align-items: center;
 }
 
-.thought-comments__delete-btn {
+.thought-comments__icon-btn {
     margin: 0;
-    padding: 0;
-    font: inherit;
-    font-size: inherit;
-    color: var(--muted);
-    background: none;
+    padding: 0 0.22rem;
+    min-width: 1.65rem;
+    min-height: 1.45rem;
     border: none;
+    background: transparent;
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--muted);
     cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    opacity: 0.4;
+    border-radius: 0.35rem;
 }
 
-.thought-comments__delete-btn:hover {
-    color: var(--accent);
+.thought-comments__icon-btn:hover {
+    opacity: 0.85;
+    color: var(--text);
+}
+
+.thought-comments__icon-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    opacity: 1;
+}
+
+.thought-comments__icon-btn--remove {
+    font-size: 1.2rem;
+    font-weight: 400;
+    line-height: 1;
 }
 
 .thought-comments__composer-wrap {
-    margin-top: 0.25rem;
+    margin-top: 0.18rem;
 }
 
 .thought-comments__composer-summary {
-    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28rem;
+    min-height: 1.85rem;
+    padding: 0.08rem 0.38rem;
+    font-size: 0.76rem;
     color: var(--muted);
     cursor: pointer;
     list-style: none;
+    border-radius: 0.4rem;
+    opacity: 0.72;
+}
+
+.thought-comments__composer-summary:hover {
+    opacity: 1;
+}
+
+.thought-comments__composer-icon {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.thought-comments__composer-label {
+    font-size: 0.74rem;
+    font-weight: 400;
 }
 
 .thought-comments__composer-summary::-webkit-details-marker {
@@ -697,19 +802,20 @@ body {
 }
 
 .thought-comments__composer-wrap[open] .thought-comments__composer-summary {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.32rem;
+    opacity: 1;
 }
 
 .thought-comments__textarea {
-    font-size: 0.88rem;
+    font-size: 0.86rem;
 }
 
 .thought-comments__hint {
-    margin: 0.2rem 0 0.35rem;
+    margin: 0.12rem 0 0.25rem;
 }
 
 .thought-comments__submit {
-    margin-top: 0.15rem;
+    margin-top: 0.12rem;
 }
 
 .btn--ghost {

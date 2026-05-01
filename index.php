@@ -794,46 +794,50 @@ require_once __DIR__ . '/header.php';
                                             <div class="today-thought-readonly" <?= $showThisThoughtEdit ? 'hidden' : '' ?>>
                                                 <p class="today-thought__body"><?= nl2br(e($th['body'])) ?></p>
                                                 <div class="today-thought__meta">
-                                                    <?php if (!empty($th['is_private'])): ?>
-                                                        <span class="today-thought__private-badge" role="img" aria-label="Private — only visible to you" title="Private — only visible to you">🔒</span>
-                                                    <?php endif; ?>
-                                                    <time class="today-thought__time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
-                                                    <span
-                                                        class="thought-reactions"
-                                                        data-thought-reactions
-                                                        data-thought-id="<?= $tid ?>"
-                                                    >
-                                                        <span class="thought-reactions__list" data-reaction-list>
-                                                            <?php foreach ($thoughtReactions as $rx): ?>
+                                                    <div class="today-thought__meta-row">
+                                                        <div class="today-thought__meta-cluster">
+                                                            <span
+                                                                class="thought-reactions"
+                                                                data-thought-reactions
+                                                                data-thought-id="<?= $tid ?>"
+                                                            >
+                                                                <span class="thought-reactions__list" data-reaction-list>
+                                                                    <?php foreach ($thoughtReactions as $rx): ?>
+                                                                        <button
+                                                                            type="button"
+                                                                            class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
+                                                                            data-reaction-toggle="1"
+                                                                            data-thought-id="<?= $tid ?>"
+                                                                            data-emoji="<?= e($rx['emoji']) ?>"
+                                                                            aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
+                                                                        ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
+                                                                    <?php endforeach; ?>
+                                                                </span>
                                                                 <button
                                                                     type="button"
-                                                                    class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
-                                                                    data-reaction-toggle="1"
+                                                                    class="thought-reaction-add"
+                                                                    data-reaction-add="1"
                                                                     data-thought-id="<?= $tid ?>"
-                                                                    data-emoji="<?= e($rx['emoji']) ?>"
-                                                                    aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
-                                                                ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
-                                                            <?php endforeach; ?>
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            class="thought-reaction-add"
-                                                            data-reaction-add="1"
-                                                            data-thought-id="<?= $tid ?>"
-                                                            aria-label="Add reaction"
-                                                        >+</button>
-                                                    </span>
-                                                    <?php if ($canEditThought): ?>
-                                                        <span class="today-thought__actions" aria-label="Thought actions">
-                                                            <button type="button" class="btn btn--ghost btn--inline today-thought__action-btn" data-thought-edit-open="<?= $tid ?>">Edit</button>
-                                                            <form class="today-thought-delete-form" method="post" action="/index.php">
-                                                                <?php csrf_hidden_field(); ?>
-                                                                <input type="hidden" name="today_action" value="delete_thought">
-                                                                <input type="hidden" name="thought_id" value="<?= $tid ?>">
-                                                                <button type="submit" class="btn btn--ghost btn--inline today-thought__action-btn" onclick="return confirm('Remove this moment?');">Delete</button>
-                                                            </form>
-                                                        </span>
-                                                    <?php endif; ?>
+                                                                    aria-label="Add reaction"
+                                                                >+</button>
+                                                            </span>
+                                                            <?php if (!empty($th['is_private'])): ?>
+                                                                <span class="today-thought__private-badge" role="img" aria-label="Private — only visible to you" title="Private — only visible to you">🔒</span>
+                                                            <?php endif; ?>
+                                                            <time class="today-thought__time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
+                                                        </div>
+                                                        <?php if ($canEditThought): ?>
+                                                            <div class="today-thought__meta-actions" aria-label="Thought actions">
+                                                                <button type="button" class="today-thought__icon-btn" data-thought-edit-open="<?= $tid ?>" title="Edit" aria-label="Edit moment">✏️</button>
+                                                                <form class="today-thought-delete-form" method="post" action="/index.php">
+                                                                    <?php csrf_hidden_field(); ?>
+                                                                    <input type="hidden" name="today_action" value="delete_thought">
+                                                                    <input type="hidden" name="thought_id" value="<?= $tid ?>">
+                                                                    <button type="submit" class="today-thought__icon-btn today-thought__icon-btn--danger" title="Delete" aria-label="Delete moment" onclick="return confirm('Remove this moment?');">🗑</button>
+                                                                </form>
+                                                            </div>
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
                                                 <?php if ($showThoughtComments): ?>
                                                     <?php
@@ -841,6 +845,7 @@ require_once __DIR__ . '/header.php';
                                                     $comments = $thoughtCommentsList;
                                                     $canPostComment = $canPostThoughtComment;
                                                     $redirectTarget = '/index.php';
+                                                    $thoughtCommentsIconOnlyComposer = true;
                                                     require __DIR__ . '/includes/thought_comments_section.php';
                                                     ?>
                                                 <?php endif; ?>
