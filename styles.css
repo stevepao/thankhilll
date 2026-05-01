@@ -436,6 +436,49 @@ body {
     padding: 0;
 }
 
+/* One vertical stack per thought: body → meta row → comments */
+.thought-block {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.thought-block__text {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.thought-block__body {
+    margin: 0;
+}
+
+.thought-block__meta {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.35rem 0.45rem;
+    width: 100%;
+    max-width: 100%;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.thought-block__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.08rem;
+    flex-shrink: 0;
+}
+
 .today-thought__body {
     margin: 0;
     font-size: 1.02rem;
@@ -443,40 +486,6 @@ body {
     white-space: pre-wrap;
     word-break: break-word;
     color: var(--text);
-}
-
-.today-thought__meta {
-    margin: 0.55rem 0 0;
-    padding: 0;
-}
-
-.today-thought__meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem 0.5rem;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-.today-thought__meta-cluster {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.28rem 0.42rem;
-    flex: 1 1 auto;
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-}
-
-.today-thought__meta-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.08rem;
-    flex-shrink: 0;
-    margin-left: auto;
 }
 
 .today-thought__icon-btn {
@@ -597,17 +606,17 @@ body {
 }
 
 @media (hover: hover) and (pointer: fine) {
-    .today-thought__meta-actions .today-thought__icon-btn {
+    .thought-block__actions .today-thought__icon-btn {
         opacity: 0.32;
     }
 
-    .today-thought:hover .today-thought__meta-actions .today-thought__icon-btn,
-    .today-thought:focus-within .today-thought__meta-actions .today-thought__icon-btn {
+    .today-thought:hover .thought-block__actions .today-thought__icon-btn,
+    .today-thought:focus-within .thought-block__actions .today-thought__icon-btn {
         opacity: 0.52;
     }
 
-    .today-thought:hover .today-thought__meta-actions .today-thought__icon-btn:hover,
-    .today-thought:focus-within .today-thought__meta-actions .today-thought__icon-btn:hover {
+    .today-thought:hover .thought-block__actions .today-thought__icon-btn:hover,
+    .today-thought:focus-within .thought-block__actions .today-thought__icon-btn:hover {
         opacity: 0.92;
     }
 }
@@ -678,40 +687,13 @@ body {
     color: var(--muted);
 }
 
-.note-detail__thought-meta {
-    margin: 0.35rem 0 0;
-    padding: 0;
-}
-
-.note-detail__thought-meta-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem 0.5rem;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-.note-detail__thought-meta-cluster {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.28rem 0.42rem;
-    flex: 1 1 auto;
-    min-width: 0;
-    margin: 0;
-    padding: 0;
-}
-
-/* Quiet affirmations: indented once under the thought only (thought + meta stay flush). */
+/* Quiet affirmations: indented once under the thought block only */
 .thought-comments {
     margin: 0.45rem 0 0;
     padding: 0.15rem 0 0;
 }
 
-.today-thought .thought-comments,
-.note-detail__thought .thought-comments {
+.thought-block .thought-comments {
     margin-left: 0;
     padding-left: 0.75rem;
 }

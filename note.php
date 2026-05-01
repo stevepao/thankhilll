@@ -112,46 +112,45 @@ require_once __DIR__ . '/header.php';
                         $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at']);
                         ?>
                         <li class="note-detail__thought">
-                            <p class="note-detail__thought-body">
-                                <?php if ($isMine && !empty($th['is_private'])): ?>
-                                    <span class="note-detail__thought-private-wrap" role="img" aria-label="Private — only visible to you">
-                                        <span class="note-detail__thought-private" aria-hidden="true">🔒</span>
-                                    </span>
-                                <?php endif; ?>
-                                <?= nl2br(e($th['body'])) ?>
-                            </p>
-                            <div class="note-detail__thought-meta">
-                                <div class="note-detail__thought-meta-row">
-                                    <div class="note-detail__thought-meta-cluster">
-                                        <span
-                                            class="thought-reactions"
-                                            data-thought-reactions
-                                            data-thought-id="<?= $tid ?>"
-                                        >
-                                            <span class="thought-reactions__list" data-reaction-list>
-                                                <?php foreach ($thoughtReactions as $rx): ?>
-                                                    <button
-                                                        type="button"
-                                                        class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
-                                                        data-reaction-toggle="1"
-                                                        data-thought-id="<?= $tid ?>"
-                                                        data-emoji="<?= e($rx['emoji']) ?>"
-                                                        aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
-                                                    ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
-                                                <?php endforeach; ?>
+                            <div class="thought-block">
+                                <div class="thought-block__text">
+                                    <p class="thought-block__body note-detail__thought-body">
+                                        <?php if ($isMine && !empty($th['is_private'])): ?>
+                                            <span class="note-detail__thought-private-wrap" role="img" aria-label="Private — only visible to you">
+                                                <span class="note-detail__thought-private" aria-hidden="true">🔒</span>
                                             </span>
-                                            <button
-                                                type="button"
-                                                class="thought-reaction-add"
-                                                data-reaction-add="1"
-                                                data-thought-id="<?= $tid ?>"
-                                                aria-label="Add reaction"
-                                            >+</button>
-                                        </span>
-                                        <time class="note-detail__thought-time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
-                                    </div>
+                                        <?php endif; ?>
+                                        <?= nl2br(e($th['body'])) ?>
+                                    </p>
                                 </div>
-                            </div>
+                                <div class="thought-block__meta">
+                                    <span
+                                        class="thought-reactions"
+                                        data-thought-reactions
+                                        data-thought-id="<?= $tid ?>"
+                                    >
+                                        <span class="thought-reactions__list" data-reaction-list>
+                                            <?php foreach ($thoughtReactions as $rx): ?>
+                                                <button
+                                                    type="button"
+                                                    class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
+                                                    data-reaction-toggle="1"
+                                                    data-thought-id="<?= $tid ?>"
+                                                    data-emoji="<?= e($rx['emoji']) ?>"
+                                                    aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
+                                                ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
+                                            <?php endforeach; ?>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            class="thought-reaction-add"
+                                            data-reaction-add="1"
+                                            data-thought-id="<?= $tid ?>"
+                                            aria-label="Add reaction"
+                                        >+</button>
+                                    </span>
+                                    <time class="thought-block__time note-detail__thought-time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
+                                </div>
                             <?php if ($showThoughtComments): ?>
                                 <?php
                                 $thoughtId = $tid;
@@ -162,6 +161,7 @@ require_once __DIR__ . '/header.php';
                                 require __DIR__ . '/includes/thought_comments_section.php';
                                 ?>
                             <?php endif; ?>
+                            </div>
                         </li>
                     <?php endforeach; ?>
                 </ul>
