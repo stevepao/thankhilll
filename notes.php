@@ -10,6 +10,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/group_helpers.php';
 require_once __DIR__ . '/includes/note_preview.php';
 require_once __DIR__ . '/includes/user_preferences.php';
+require_once __DIR__ . '/includes/note_media.php';
 
 $userId = require_login();
 $pdo = db();
@@ -112,6 +113,8 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+$photosByNote = note_media_grouped_by_note($pdo, array_column($notes, 'id'));
+
 $groupsForFilter = groups_for_user_with_counts($pdo, $userId);
 
 $hasActiveFilters = ($dateExplicit && $dateFilter !== '')
@@ -173,19 +176,35 @@ require_once __DIR__ . '/header.php';
                         $ts = strtotime((string) $note['created_at']);
                         $dateLabel = $ts ? date('M j, Y', $ts) : '';
                         $preview = note_plain_preview((string) $note['content'], 220);
+                        $nid = (int) $note['id'];
+                        $thumb = $photosByNote[$nid][0] ?? null;
                         ?>
                         <li class="notes-library__card">
-                            <time
-                                class="notes-library__date"
-                                datetime="<?= e((string) $note['created_at']) ?>"
-                            ><?= e($dateLabel) ?></time>
-                            <?php if (!$isMine): ?>
-                                <p class="notes-library__author"><?= e($authorLabel) ?></p>
-                            <?php endif; ?>
-                            <?php if ($groupsLabel !== ''): ?>
-                                <p class="notes-library__groups">Shared in <?= e($groupsLabel) ?></p>
-                            <?php endif; ?>
-                            <p class="notes-library__preview"><?= e($preview) ?></p>
+                            <a class="notes-library__card-main" href="/note.php?id=<?= $nid ?>">
+                                <time
+                                    class="notes-library__date"
+                                    datetime="<?= e((string) $note['created_at']) ?>"
+                                ><?= e($dateLabel) ?></time>
+                                <?php if (!$isMine): ?>
+                                    <p class="notes-library__author"><?= e($authorLabel) ?></p>
+                                <?php endif; ?>
+                                <?php if ($groupsLabel !== ''): ?>
+                                    <p class="notes-library__groups">Shared in <?= e($groupsLabel) ?></p>
+                                <?php endif; ?>
+                                <?php if ($thumb !== null): ?>
+                                    <div class="notes-library__thumb-wrap">
+                                        <img
+                                            src="/media/note_photo.php?id=<?= (int) $thumb['id'] ?>"
+                                            alt=""
+                                            class="notes-library__thumb"
+                                            loading="lazy"
+                                            width="<?= (int) $thumb['width'] ?>"
+                                            height="<?= (int) $thumb['height'] ?>"
+                                        >
+                                    </div>
+                                <?php endif; ?>
+                                <p class="notes-library__preview"><?= e($preview) ?></p>
+                            </a>
                         </li>
                     <?php endforeach; ?>
                 </ul>

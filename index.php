@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/validation.php';
 require_once __DIR__ . '/includes/group_helpers.php';
 require_once __DIR__ . '/includes/note_preview.php';
 require_once __DIR__ . '/includes/user_preferences.php';
+require_once __DIR__ . '/includes/note_media.php';
 
 $userId = require_login();
 $pdo = db();
@@ -60,6 +61,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    $uploadNorm = note_media_normalize_uploads_from_request();
+    if ($validationError === null && !$uploadNorm['ok']) {
+        $validationError = $uploadNorm['error'];
+    }
+
+    /** @var list<array{tmp:string,size:int}> $photoItems */
+    $photoItems = ($uploadNorm['ok'] ?? false) ? $uploadNorm['items'] : [];
+
     if ($validationError === null) {
         $pdo->beginTransaction();
         try {
@@ -78,7 +87,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            if ($noteId > 0 && count($photoItems) > 0) {
+                $mediaResult = note_media_attach_to_note($pdo, $noteId, $photoItems);
+                if (!$mediaResult['ok']) {
+                    throw new RuntimeException($mediaResult['error']);
+                }
+            }
+
             $pdo->commit();
+        } catch (RuntimeException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $validationError = $e->getMessage() !== ''
+                ? $e->getMessage()
+                : 'Could not save your note. Please try again.';
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -142,6 +165,12 @@ if ($showSharedOnToday) {
     $sharedToday = $sharedStmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+$todayNoteIds = array_merge(
+    array_column($yoursToday, 'id'),
+    array_column($sharedToday, 'id')
+);
+$todayPhotos = note_media_grouped_by_note($pdo, $todayNoteIds);
+
 $pageTitle = 'Today';
 $currentNav = 'today';
 $saved = isset($_GET['saved']);
@@ -157,7 +186,7 @@ require_once __DIR__ . '/header.php';
                 <p class="flash flash--error" role="alert"><?= e($validationError) ?></p>
             <?php endif; ?>
 
-            <form class="note-form" method="post" action="/index.php">
+            <form id="today-note-form" class="note-form" method="post" action="/index.php" enctype="multipart/form-data">
                 <?php csrf_hidden_field(); ?>
                 <label class="note-form__label" for="content">What are you grateful for today?</label>
                 <textarea
@@ -186,6 +215,28 @@ require_once __DIR__ . '/header.php';
                     </fieldset>
                 <?php endif; ?>
 
+                <label class="note-form__label" for="today-photo-picker">Photos (optional)</label>
+                <p class="share-fieldset__hint">JPEG or PNG. Images are resized on your device before upload.</p>
+                <input
+                    type="file"
+                    id="today-photo-picker"
+                    class="note-form__input"
+                    multiple
+                    accept="image/jpeg,image/png"
+                    aria-describedby="today-photo-status"
+                >
+                <input
+                    type="file"
+                    name="photos[]"
+                    id="today-photos-staged"
+                    class="visually-hidden"
+                    multiple
+                    accept="image/jpeg,image/png"
+                    tabindex="-1"
+                    aria-hidden="true"
+                >
+                <p id="today-photo-status" class="today-photo-status" aria-live="polite"></p>
+
                 <button type="submit" class="btn btn--primary">Save</button>
             </form>
 
@@ -198,6 +249,25 @@ require_once __DIR__ . '/header.php';
                         <?php foreach ($yoursToday as $yn): ?>
                             <li class="today-yours-card">
                                 <div class="today-yours-card__body"><?= nl2br(e((string) $yn['content'])) ?></div>
+                                <?php
+                                $ynId = (int) $yn['id'];
+                                if (!empty($todayPhotos[$ynId])):
+                                    ?>
+                                    <ul class="today-note-photos">
+                                        <?php foreach ($todayPhotos[$ynId] as $ph): ?>
+                                            <li class="today-note-photos__item">
+                                                <img
+                                                    src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
+                                                    alt=""
+                                                    class="today-note-photos__img"
+                                                    loading="lazy"
+                                                    width="<?= (int) $ph['width'] ?>"
+                                                    height="<?= (int) $ph['height'] ?>"
+                                                >
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
                             </li>
                         <?php endforeach; ?>
                     </ul>
@@ -229,11 +299,79 @@ require_once __DIR__ . '/header.php';
                                         <span class="today-shared-card__context"> · Shared in <?= e($groupLabel) ?></span>
                                     </p>
                                     <p class="today-shared-card__preview"><?= e($preview) ?></p>
+                                    <?php
+                                    $snId = (int) $sn['id'];
+                                    if (!empty($todayPhotos[$snId])):
+                                        ?>
+                                        <ul class="today-note-photos today-note-photos--shared">
+                                            <?php foreach ($todayPhotos[$snId] as $ph): ?>
+                                                <li class="today-note-photos__item">
+                                                    <img
+                                                        src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
+                                                        alt=""
+                                                        class="today-note-photos__img"
+                                                        loading="lazy"
+                                                        width="<?= (int) $ph['width'] ?>"
+                                                        height="<?= (int) $ph['height'] ?>"
+                                                    >
+                                                </li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php endif; ?>
                                 </li>
                             <?php endforeach; ?>
                         </ul>
                     <?php endif; ?>
                 </section>
             <?php endif; ?>
+
+            <script src="/note_resize.js"></script>
+            <script>
+                (function () {
+                    var form = document.getElementById('today-note-form');
+                    var picker = document.getElementById('today-photo-picker');
+                    var staged = document.getElementById('today-photos-staged');
+                    var statusEl = document.getElementById('today-photo-status');
+                    if (!form || !picker || !staged || !window.NotePhotoResize) {
+                        return;
+                    }
+                    picker.addEventListener('change', function () {
+                        if (!picker.files.length) {
+                            statusEl.textContent = '';
+                            return;
+                        }
+                        statusEl.textContent =
+                            picker.files.length +
+                            ' photo' +
+                            (picker.files.length === 1 ? '' : 's') +
+                            ' selected (will be resized before upload).';
+                    });
+                    form.addEventListener('submit', function (ev) {
+                        if (!picker.files.length) {
+                            return;
+                        }
+                        ev.preventDefault();
+                        statusEl.textContent = 'Preparing photos…';
+                        window.NotePhotoResize.resizeAll(picker.files, window.NotePhotoResize.maxFiles)
+                            .then(function (blobs) {
+                                var dt = new DataTransfer();
+                                blobs.forEach(function (blob, i) {
+                                    var ext = blob.type === 'image/png' ? 'png' : 'jpg';
+                                    dt.items.add(
+                                        new File([blob], 'photo-' + i + '.' + ext, { type: blob.type })
+                                    );
+                                });
+                                staged.files = dt.files;
+                                picker.value = '';
+                                statusEl.textContent = '';
+                                form.submit();
+                            })
+                            .catch(function (err) {
+                                statusEl.textContent = '';
+                                window.alert(err && err.message ? err.message : 'Could not process photos.');
+                            });
+                    });
+                })();
+            </script>
 
 <?php require_once __DIR__ . '/footer.php'; ?>
