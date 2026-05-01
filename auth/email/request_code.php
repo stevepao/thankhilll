@@ -1,15 +1,15 @@
 <?php
 /**
- * Issue a one-time sign-in code emailed to the address (session stores hash only).
+ * Issue a DB-backed one-time code emailed to the address (cross-device safe).
  *
- * Generic redirects avoid revealing whether an account exists.
+ * Generic redirect avoids account/email enumeration.
  */
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/auth.php';
 require_once dirname(__DIR__, 2) . '/includes/csrf.php';
 require_once dirname(__DIR__, 2) . '/includes/email_auth.php';
-require_once dirname(__DIR__, 2) . '/includes/email_otp_session.php';
+require_once dirname(__DIR__, 2) . '/includes/email_otp_repository.php';
 require_once dirname(__DIR__, 2) . '/includes/mailer.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -25,28 +25,20 @@ if ($email === null) {
     exit;
 }
 
-// Switching to a different address mid-flow drops any prior OTP state.
-if (email_otp_pending_ready()) {
-    $pendingNorm = email_auth_normalize($_SESSION['pending_email'] ?? '');
-    if ($pendingNorm !== null && $pendingNorm !== $email) {
-        email_otp_clear_pending();
-    }
-}
+$pdo = db();
+$latest = email_otp_repo_latest_row($pdo, $email);
 
-$lastSent = (int) ($_SESSION['otp_last_sent_at'] ?? 0);
-if ($lastSent > 0 && time() - $lastSent < EMAIL_OTP_RESEND_SECONDS) {
+if (email_otp_repo_is_throttled($latest)) {
     header('Location: /auth/email/login.php?sent=1');
     exit;
 }
 
 $otp = random_int(100000, 999999);
 $otpString = (string) $otp;
+$hash = password_hash($otpString, PASSWORD_DEFAULT);
 
-$_SESSION['pending_email'] = $email;
-$_SESSION['otp_hash'] = password_hash($otpString, PASSWORD_DEFAULT);
-$_SESSION['otp_expires_at'] = time() + EMAIL_OTP_TTL_SECONDS;
-$_SESSION['otp_attempts'] = 0;
-$_SESSION['otp_last_sent_at'] = time();
+email_otp_repo_invalidate_unconsumed($pdo, $email);
+email_otp_repo_insert_challenge($pdo, $email, $hash);
 
 $body = "Your sign-in code is: {$otpString}\n\n"
     . 'This code expires in 10 minutes. '

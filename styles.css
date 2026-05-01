@@ -104,6 +104,22 @@ body {
     color: #7f1d1d;
 }
 
+.email-auth__step-title {
+    font-weight: 600;
+    font-size: 1rem;
+    margin: 1.25rem 0 0.5rem;
+}
+
+.email-auth__step-title--first {
+    margin-top: 0;
+}
+
+.email-auth__hint {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+
 .note-form__label {
     display: block;
     font-weight: 500;

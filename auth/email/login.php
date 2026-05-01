@@ -1,27 +1,19 @@
 <?php
 /**
- * Email sign-in: step 1 request code, step 2 verify OTP (provider `email`).
+ * Email OTP sign-in: request code and verify on one page (works across devices).
  */
 declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/auth.php';
 require_once dirname(__DIR__, 2) . '/includes/csrf.php';
-require_once dirname(__DIR__, 2) . '/includes/email_otp_session.php';
 
 if (current_user_id() !== null) {
     header('Location: /index.php');
     exit;
 }
 
-if (isset($_GET['cancel'])) {
-    email_otp_clear_pending();
-    header('Location: /auth/email/login.php');
-    exit;
-}
-
 $showSent = isset($_GET['sent']);
 $showErr = isset($_GET['err']);
-$stepCode = email_otp_pending_ready();
 
 $pageTitle = 'Sign in with Email';
 $currentNav = '';
@@ -38,33 +30,28 @@ require_once dirname(__DIR__, 2) . '/header.php';
                 <p class="flash flash--error" role="alert">Invalid or expired code.</p>
             <?php endif; ?>
 
-            <?php if (!$stepCode): ?>
-                <form class="note-form" method="post" action="/auth/email/request_code.php">
-                    <?php csrf_hidden_field(); ?>
-                    <label class="note-form__label" for="email">Email</label>
-                    <input type="email" class="note-form__input" id="email" name="email" autocomplete="username">
+            <p class="email-auth__step-title email-auth__step-title--first">Step 1 — Send code</p>
+            <form class="note-form" method="post" action="/auth/email/request_code.php">
+                <?php csrf_hidden_field(); ?>
+                <label class="note-form__label" for="request_email">Email</label>
+                <input type="email" class="note-form__input" id="request_email" name="email" autocomplete="username">
 
-                    <button type="submit" class="btn btn--primary">Send code</button>
-                </form>
-            <?php else: ?>
-                <p class="empty-state">Code sent to <?= e((string) ($_SESSION['pending_email'] ?? '')) ?></p>
+                <button type="submit" class="btn btn--primary">Send code</button>
+            </form>
 
-                <form class="note-form" method="post" action="/auth/email/verify_code.php">
-                    <?php csrf_hidden_field(); ?>
-                    <label class="note-form__label" for="code">6-digit code</label>
-                    <input type="text" class="note-form__input" id="code" name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+            <p class="email-auth__step-title">Step 2 — Enter code</p>
+            <p class="email-auth__hint">Use the same email and the 6-digit code from your inbox (any device).</p>
 
-                    <button type="submit" class="btn btn--primary">Verify and sign in</button>
-                </form>
+            <form class="note-form" method="post" action="/auth/email/verify_code.php">
+                <?php csrf_hidden_field(); ?>
+                <label class="note-form__label" for="verify_email">Email</label>
+                <input type="email" class="note-form__input" id="verify_email" name="email" autocomplete="username">
 
-                <form class="note-form" method="post" action="/auth/email/request_code.php" style="margin-top: 1rem;">
-                    <?php csrf_hidden_field(); ?>
-                    <input type="hidden" name="email" value="<?= e((string) ($_SESSION['pending_email'] ?? '')) ?>">
-                    <button type="submit" class="btn btn--primary">Resend code</button>
-                </form>
+                <label class="note-form__label" for="code">6-digit code</label>
+                <input type="text" class="note-form__input" id="code" name="code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
 
-                <p class="empty-state"><a href="/auth/email/login.php?cancel=1">Use a different email</a></p>
-            <?php endif; ?>
+                <button type="submit" class="btn btn--primary">Verify and sign in</button>
+            </form>
 
             <p class="empty-state"><a href="/login.php">Other sign-in options</a></p>
 
