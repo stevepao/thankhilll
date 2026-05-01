@@ -1,6 +1,6 @@
 <?php
 /**
- * includes/email_auth.php — Shared normalization and PIN rules for provider `email`.
+ * includes/email_auth.php — Shared normalization for provider `email`.
  *
  * Keeps SMTP and Google OIDC separate from identifier shaping used in auth_identities.
  */
@@ -27,12 +27,10 @@ function email_auth_normalize(mixed $raw): ?string
     return $email;
 }
 
-/** PIN length rules (6–12 characters; trimmed byte length). */
-function email_auth_pin_length_ok(string $pin): bool
+/** True if string is exactly six ASCII digits (OTP entry). */
+function email_auth_otp_format_ok(string $code): bool
 {
-    $len = strlen($pin);
-
-    return $len >= 6 && $len <= 12;
+    return preg_match('/^[0-9]{6}$/', $code) === 1;
 }
 
 /**

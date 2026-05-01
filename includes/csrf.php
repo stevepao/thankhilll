@@ -4,7 +4,7 @@
  *
  * Intent: prevent cross-site requests from forging authenticated actions. Tokens are opaque,
  * stored server-side only, and compared with hash_equals() to avoid timing leaks.
- * Independent of how the user authenticated (Google, email+PIN, etc.).
+ * Independent of how the user authenticated (Google, email OTP, etc.).
  */
 declare(strict_types=1);
 
