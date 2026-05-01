@@ -78,7 +78,13 @@ function bootstrap_session(): void
         session_set_cookie_params(0, '/', '', $secure, true);
     }
 
-    session_start();
+    if (!session_start()) {
+        throw new RuntimeException(
+            'session_start() failed. Typical causes: session.save_path not writable by the web server user, '
+            . 'or output was sent before cookies (check for whitespace/BOM before <?php). '
+            . 'Open /diag.php on this host for session path details.'
+        );
+    }
 
     if (!array_key_exists('_session_initialized_at', $_SESSION)) {
         $_SESSION['_session_initialized_at'] = time();
