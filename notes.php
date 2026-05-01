@@ -1,31 +1,107 @@
 <?php
 /**
- * notes.php — Lists all saved notes, newest first (simple cards).
+ * notes.php — Authorized note library with optional date and group filters (GET).
  *
- * Requires login and only shows notes for the current user.
+ * Browse-only; writing stays on Today.
  */
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/includes/group_helpers.php';
+require_once __DIR__ . '/includes/note_preview.php';
 
 $userId = require_login();
+$pdo = db();
 
-$stmt = db()->prepare(
-    <<<'SQL'
-    SELECT n.id, n.content, n.created_at, n.user_id
-    FROM notes n
-    WHERE n.user_id = ?
-       OR EXISTS (
-           SELECT 1
-           FROM note_groups ng
-           INNER JOIN group_members gm ON gm.group_id = ng.group_id AND gm.user_id = ?
-           WHERE ng.note_id = n.id
-       )
-    ORDER BY n.created_at DESC, n.id DESC
-    SQL
-);
-$stmt->execute([$userId, $userId]);
-$notes = $stmt->fetchAll();
+$dateRaw = $_GET['date'] ?? '';
+$dateFilter = '';
+if (is_string($dateRaw) && in_array($dateRaw, ['today', 'week', 'month', 'older'], true)) {
+    $dateFilter = $dateRaw;
+}
+
+$groupRaw = $_GET['group'] ?? '';
+$groupScope = 'all';
+$groupScopeId = 0;
+if ($groupRaw === 'mine') {
+    $groupScope = 'mine';
+} elseif (is_string($groupRaw) && ctype_digit($groupRaw)) {
+    $gid = (int) $groupRaw;
+    if ($gid > 0 && user_is_group_member($pdo, $userId, $gid)) {
+        $groupScope = 'group';
+        $groupScopeId = $gid;
+    }
+}
+
+$dateSql = '';
+switch ($dateFilter) {
+    case 'today':
+        $dateSql = 'AND DATE(n.created_at) = CURDATE()';
+        break;
+    case 'week':
+        $dateSql = 'AND n.created_at >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+            AND n.created_at < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 7 DAY)';
+        break;
+    case 'month':
+        $dateSql = 'AND YEAR(n.created_at) = YEAR(CURDATE()) AND MONTH(n.created_at) = MONTH(CURDATE())';
+        break;
+    case 'older':
+        $dateSql = 'AND n.created_at < DATE_FORMAT(CURDATE(), \'%Y-%m-01\')';
+        break;
+    default:
+        break;
+}
+
+$groupSql = '';
+$params = [$userId, $userId, $userId];
+
+if ($groupScope === 'mine') {
+    $groupSql = 'AND n.user_id = ?';
+    $params[] = $userId;
+} elseif ($groupScope === 'group' && $groupScopeId > 0) {
+    $groupSql = 'AND EXISTS (
+        SELECT 1
+        FROM note_groups ngx
+        INNER JOIN group_members gmx ON gmx.group_id = ngx.group_id AND gmx.user_id = ?
+        WHERE ngx.note_id = n.id AND ngx.group_id = ?
+    )';
+    $params[] = $userId;
+    $params[] = $groupScopeId;
+}
+
+$sql = <<<SQL
+SELECT
+    n.id,
+    n.content,
+    n.created_at,
+    n.user_id,
+    MAX(COALESCE(u.display_name, '')) AS author_name,
+    GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ', ') AS shared_group_names
+FROM notes n
+LEFT JOIN users u ON u.id = n.user_id
+LEFT JOIN note_groups ng ON ng.note_id = n.id
+LEFT JOIN group_members gm ON gm.group_id = ng.group_id AND gm.user_id = ?
+LEFT JOIN `groups` g ON g.id = ng.group_id AND gm.user_id IS NOT NULL
+WHERE (
+    n.user_id = ?
+    OR EXISTS (
+        SELECT 1
+        FROM note_groups ng_auth
+        INNER JOIN group_members gm_auth ON gm_auth.group_id = ng_auth.group_id AND gm_auth.user_id = ?
+        WHERE ng_auth.note_id = n.id
+    )
+)
+{$dateSql}
+{$groupSql}
+GROUP BY n.id, n.content, n.created_at, n.user_id
+ORDER BY n.created_at DESC, n.id DESC
+SQL;
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$groupsForFilter = groups_for_user_with_counts($pdo, $userId);
+$hasActiveFilters = ($dateFilter !== '' || $groupScope !== 'all');
 
 $pageTitle = 'Notes';
 $currentNav = 'notes';
@@ -33,23 +109,65 @@ $currentNav = 'notes';
 require_once __DIR__ . '/header.php';
 ?>
 
+            <form class="notes-filters" method="get" action="/notes.php" aria-label="Filter notes">
+                <div class="notes-filters__row">
+                    <label class="notes-filters__label" for="filter-date">When</label>
+                    <select class="notes-filters__select" id="filter-date" name="date" onchange="this.form.submit()">
+                        <option value="" <?= $dateFilter === '' ? 'selected' : '' ?>>Any time</option>
+                        <option value="today" <?= $dateFilter === 'today' ? 'selected' : '' ?>>Today</option>
+                        <option value="week" <?= $dateFilter === 'week' ? 'selected' : '' ?>>This week</option>
+                        <option value="month" <?= $dateFilter === 'month' ? 'selected' : '' ?>>This month</option>
+                        <option value="older" <?= $dateFilter === 'older' ? 'selected' : '' ?>>Older</option>
+                    </select>
+                </div>
+                <div class="notes-filters__row">
+                    <label class="notes-filters__label" for="filter-group">Scope</label>
+                    <select class="notes-filters__select" id="filter-group" name="group" onchange="this.form.submit()">
+                        <option value="" <?= $groupScope === 'all' ? 'selected' : '' ?>>All notes</option>
+                        <option value="mine" <?= $groupScope === 'mine' ? 'selected' : '' ?>>Just mine</option>
+                        <?php foreach ($groupsForFilter as $g): ?>
+                            <option
+                                value="<?= (int) $g['id'] ?>"
+                                <?= ($groupScope === 'group' && $groupScopeId === (int) $g['id']) ? 'selected' : '' ?>
+                            ><?= e($g['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </form>
+
             <?php if (count($notes) === 0): ?>
-                <p class="empty-state">No notes yet. Add something on <a href="/index.php">Today</a>.</p>
+                <?php if ($hasActiveFilters): ?>
+                    <p class="notes-empty">Nothing matches these filters.</p>
+                <?php else: ?>
+                    <p class="notes-empty">No notes yet.</p>
+                <?php endif; ?>
             <?php else: ?>
-                <ul class="note-list">
+                <ul class="notes-library">
                     <?php foreach ($notes as $note): ?>
                         <?php
+                        $authorId = (int) $note['user_id'];
+                        $isMine = ($authorId === $userId);
+                        $authorLabel = trim((string) ($note['author_name'] ?? ''));
+                        if ($authorLabel === '') {
+                            $authorLabel = 'Someone';
+                        }
+                        $groupsLabel = trim((string) ($note['shared_group_names'] ?? ''));
                         $ts = strtotime((string) $note['created_at']);
-                        $when = $ts ? date('M j, Y · g:i A', $ts) : e((string) $note['created_at']);
+                        $dateLabel = $ts ? date('M j, Y', $ts) : '';
+                        $preview = note_plain_preview((string) $note['content'], 220);
                         ?>
-                        <li class="note-card">
-                            <time class="note-card__time" datetime="<?= e((string) $note['created_at']) ?>">
-                                <?= e($when) ?>
-                            </time>
-                            <?php if ((int) $note['user_id'] !== $userId): ?>
-                                <span class="note-card__badge" aria-label="Shared note">Shared</span>
+                        <li class="notes-library__card">
+                            <time
+                                class="notes-library__date"
+                                datetime="<?= e((string) $note['created_at']) ?>"
+                            ><?= e($dateLabel) ?></time>
+                            <?php if (!$isMine): ?>
+                                <p class="notes-library__author"><?= e($authorLabel) ?></p>
                             <?php endif; ?>
-                            <div class="note-card__body"><?= nl2br(e((string) $note['content'])) ?></div>
+                            <?php if ($groupsLabel !== ''): ?>
+                                <p class="notes-library__groups">Shared in <?= e($groupsLabel) ?></p>
+                            <?php endif; ?>
+                            <p class="notes-library__preview"><?= e($preview) ?></p>
                         </li>
                     <?php endforeach; ?>
                 </ul>
