@@ -26,7 +26,14 @@
             return;
         }
 
-        const pickerMount = document.getElementById('thought-reaction-picker');
+        let pickerMount = document.getElementById('thought-reaction-picker');
+        if (!pickerMount) {
+            pickerMount = document.createElement('div');
+            pickerMount.id = 'thought-reaction-picker';
+            pickerMount.className = 'thought-reaction-picker-wrap';
+            pickerMount.hidden = true;
+            document.body.appendChild(pickerMount);
+        }
         let pickerHost = null;
         let activeThoughtId = 0;
         let activeContainer = null;
@@ -64,8 +71,9 @@
             activeThoughtId = thoughtId;
             activeContainer = anchorEl.closest('[data-thought-reactions]');
 
-            const top = anchorEl.offsetTop + anchorEl.offsetHeight + 6;
-            const left = anchorEl.offsetLeft;
+            const rect = anchorEl.getBoundingClientRect();
+            const top = rect.bottom + 6;
+            const left = rect.left;
             pickerMount.style.top = `${top}px`;
             pickerMount.style.left = `${left}px`;
             pickerMount.hidden = false;
