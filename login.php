@@ -18,9 +18,14 @@ if (current_user_id() !== null) {
 $pageTitle = 'Sign In';
 $currentNav = '';
 $showNav = false;
+$accountDeleted = isset($_GET['account_deleted']);
 
 require_once __DIR__ . '/header.php';
 ?>
+
+            <?php if ($accountDeleted): ?>
+                <p class="flash" role="status">Your account has been permanently deleted.</p>
+            <?php endif; ?>
 
             <p class="empty-state">Sign in to access your journal.</p>
             <p>

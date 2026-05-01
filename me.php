@@ -13,6 +13,7 @@ $pdo = db();
 
 $flashProfile = isset($_GET['saved']) && $_GET['saved'] === 'profile';
 $flashPrefs = isset($_GET['saved']) && $_GET['saved'] === 'prefs';
+$deleteErr = isset($_GET['delete_err']) ? (string) $_GET['delete_err'] : '';
 $errorMessage = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -125,6 +126,12 @@ require_once __DIR__ . '/header.php';
                 <p class="flash flash--error" role="alert"><?= e($errorMessage) ?></p>
             <?php endif; ?>
 
+            <?php if ($deleteErr === 'confirm' || $deleteErr === 'understand'): ?>
+                <p class="flash flash--error" role="alert">Confirm every step to delete your account.</p>
+            <?php elseif ($deleteErr === 'failed'): ?>
+                <p class="flash flash--error" role="alert">Your account could not be deleted. Try again or contact support.</p>
+            <?php endif; ?>
+
             <section class="me-section" aria-labelledby="me-profile-heading">
                 <h2 id="me-profile-heading" class="me-section__heading">Profile</h2>
                 <dl class="me-dl">
@@ -230,6 +237,38 @@ require_once __DIR__ . '/header.php';
                 <p>
                     <a class="btn btn--primary" href="/auth/logout.php">Sign out</a>
                 </p>
+            </section>
+
+            <section class="me-section delete-account-section" aria-labelledby="me-delete-heading">
+                <h2 id="me-delete-heading" class="me-section__heading">Delete account</h2>
+                <p class="me-muted">
+                    Permanently removes your profile, sign-in methods, notes, thoughts, photos, reactions, and comments you wrote.
+                    Groups you joined stay for other members. Groups you administered stay in the list without an assigned admin.
+                    Other people’s content is not deleted.
+                </p>
+                <form
+                    class="me-form"
+                    method="post"
+                    action="/account_delete.php"
+                    onsubmit="return confirm('Permanently delete your account and everything listed above? This cannot be undone.');"
+                >
+                    <?php csrf_hidden_field(); ?>
+                    <label class="me-check">
+                        <input type="checkbox" name="understand" value="1" required>
+                        <span>I understand this permanently deletes my account and my data.</span>
+                    </label>
+                    <label class="note-form__label" for="delete_confirmation">Type DELETE to confirm</label>
+                    <input
+                        id="delete_confirmation"
+                        name="confirmation"
+                        type="text"
+                        class="note-form__input"
+                        autocomplete="off"
+                        autocapitalize="characters"
+                        placeholder="DELETE"
+                    >
+                    <button type="submit" class="btn btn--danger-fill me-form__submit">Delete my account permanently</button>
+                </form>
             </section>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

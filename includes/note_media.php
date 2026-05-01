@@ -155,16 +155,49 @@ function note_media_store_file(string $tmpPath, string $ext): ?string
  */
 function note_media_delete_relative(string $relativePath): void
 {
-    $root = realpath(note_media_storage_root());
-    if ($root === false) {
-        return;
+    note_media_delete_relative_report($relativePath);
+}
+
+/**
+ * Delete stored photo file; logs failures (account deletion and audits).
+ *
+ * @return bool true if absent or successfully removed
+ */
+function note_media_delete_relative_report(string $relativePath): bool
+{
+    $relativePath = trim(str_replace('\\', '/', $relativePath), '/');
+    if ($relativePath === '' || str_contains($relativePath, '..')) {
+        error_log('note_media_delete_relative_report: unsafe or empty path');
+
+        return false;
     }
 
-    $suffix = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
-    $full = realpath($root . DIRECTORY_SEPARATOR . $suffix);
-    if ($full !== false && strncmp($full, $root, strlen($root)) === 0 && is_file($full)) {
-        @unlink($full);
+    $root = realpath(note_media_storage_root());
+    if ($root === false) {
+        error_log('note_media_delete_relative_report: storage root missing');
+
+        return false;
     }
+
+    $suffix = str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+    $full = realpath($root . DIRECTORY_SEPARATOR . $suffix);
+    if ($full === false || !is_file($full)) {
+        return true;
+    }
+
+    if (strncmp($full, $root, strlen($root)) !== 0) {
+        error_log('note_media_delete_relative_report: path outside storage root');
+
+        return false;
+    }
+
+    if (!@unlink($full)) {
+        error_log('note_media_delete_relative_report: unlink failed for ' . $full);
+
+        return false;
+    }
+
+    return true;
 }
 
 /**
