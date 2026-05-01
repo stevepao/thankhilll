@@ -34,7 +34,10 @@ function user_can_view_note(PDO $pdo, int $userId, int $noteId): bool
     return (bool) $stmt->fetchColumn();
 }
 
-/** True when the user owns the note and it was created today (CURDATE, server TZ). */
+/**
+ * True when the user owns the note and its calendar entry_date is today
+ * (sharing + note-level photos editable).
+ */
 function user_can_edit_note_today(PDO $pdo, int $userId, int $noteId): bool
 {
     if ($noteId <= 0) {
@@ -47,11 +50,34 @@ function user_can_edit_note_today(PDO $pdo, int $userId, int $noteId): bool
         FROM notes n
         WHERE n.id = ?
           AND n.user_id = ?
-          AND DATE(n.created_at) = CURDATE()
+          AND n.entry_date = CURDATE()
         LIMIT 1
         SQL
     );
     $stmt->execute([$noteId, $userId]);
+
+    return (bool) $stmt->fetchColumn();
+}
+
+/** True when the user owns the parent note and the thought was created today. */
+function user_can_edit_thought_today(PDO $pdo, int $userId, int $thoughtId): bool
+{
+    if ($thoughtId <= 0) {
+        return false;
+    }
+
+    $stmt = $pdo->prepare(
+        <<<'SQL'
+        SELECT 1
+        FROM note_thoughts t
+        INNER JOIN notes n ON n.id = t.note_id
+        WHERE t.id = ?
+          AND n.user_id = ?
+          AND DATE(t.created_at) = CURDATE()
+        LIMIT 1
+        SQL
+    );
+    $stmt->execute([$thoughtId, $userId]);
 
     return (bool) $stmt->fetchColumn();
 }

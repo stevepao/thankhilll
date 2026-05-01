@@ -7,6 +7,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/note_access.php';
 require_once __DIR__ . '/includes/note_media.php';
+require_once __DIR__ . '/includes/note_thoughts.php';
 
 $userId = require_login();
 $pdo = db();
@@ -28,11 +29,13 @@ if (!user_can_view_note($pdo, $userId, $noteId)) {
 }
 
 $stmt = $pdo->prepare(
-    'SELECT n.id, n.content, n.created_at, n.user_id, u.display_name AS author_name
-     FROM notes n
-     LEFT JOIN users u ON u.id = n.user_id
-     WHERE n.id = ?
-     LIMIT 1'
+    <<<'SQL'
+    SELECT n.id, n.entry_date, n.created_at, n.updated_at, n.user_id, u.display_name AS author_name
+    FROM notes n
+    LEFT JOIN users u ON u.id = n.user_id
+    WHERE n.id = ?
+    LIMIT 1
+    SQL
 );
 $stmt->execute([$noteId]);
 $note = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -41,6 +44,9 @@ if (!is_array($note)) {
     exit;
 }
 
+$thoughtMap = note_thoughts_grouped_by_note($pdo, [$noteId]);
+$thoughts = $thoughtMap[$noteId] ?? [];
+
 $media = note_media_for_note($pdo, $noteId);
 $isMine = ((int) $note['user_id']) === $userId;
 $authorLabel = trim((string) ($note['author_name'] ?? ''));
@@ -48,7 +54,7 @@ if ($authorLabel === '') {
     $authorLabel = 'Someone';
 }
 
-$ts = strtotime((string) $note['created_at']);
+$ts = strtotime((string) $note['entry_date']);
 $dateLabel = $ts ? date('M j, Y', $ts) : '';
 
 $pageTitle = 'Note';
@@ -62,11 +68,19 @@ require_once __DIR__ . '/header.php';
             </p>
 
             <article class="note-detail">
-                <time class="note-detail__date" datetime="<?= e((string) $note['created_at']) ?>"><?= e($dateLabel) ?></time>
+                <time class="note-detail__date" datetime="<?= e((string) $note['entry_date']) ?>"><?= e($dateLabel) ?></time>
                 <?php if (!$isMine): ?>
                     <p class="note-detail__author"><?= e($authorLabel) ?></p>
                 <?php endif; ?>
-                <div class="note-detail__body"><?= nl2br(e((string) $note['content'])) ?></div>
+
+                <ul class="note-detail__thoughts">
+                    <?php foreach ($thoughts as $th): ?>
+                        <li class="note-detail__thought">
+                            <p class="note-detail__thought-body"><?= nl2br(e($th['body'])) ?></p>
+                            <p class="note-detail__thought-time"><?= e(note_thought_time_label($th['created_at'])) ?></p>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
 
                 <?php if (count($media) > 0): ?>
                     <ul class="note-detail__photos">

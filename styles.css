@@ -322,6 +322,131 @@ body {
     margin-top: 0;
 }
 
+.today-edit-note-hint {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.today-thought-stream {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.today-thought {
+    margin: 0;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.today-thought:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.today-thought__body {
+    margin: 0 0 0.35rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text);
+}
+
+.today-thought__meta {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.today-thought__time {
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+.today-thought__actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.today-thought-delete-form {
+    display: inline;
+    margin: 0;
+}
+
+.today-thought-edit-error {
+    margin-bottom: 0.5rem;
+}
+
+.today-thought-edit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.today-note-meta-readonly {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.today-add-thought {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.today-add-thought__heading {
+    margin: 0 0 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.btn--inline {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+.note-detail__thoughts {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.note-detail__thought {
+    margin: 0;
+}
+
+.note-detail__thought-body {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.note-detail__thought-time {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
 .btn--ghost {
     background: transparent;
     color: var(--muted);

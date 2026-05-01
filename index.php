@@ -1,6 +1,6 @@
 <?php
 /**
- * index.php — Today: primary gratitude composer, today’s own entries, shared-from-others today.
+ * index.php — Today: daily gratitude entry (one per calendar day) with timestamped thoughts.
  *
  * Requires an authenticated session and writes notes for the current user.
  */
@@ -14,15 +14,22 @@ require_once __DIR__ . '/includes/note_preview.php';
 require_once __DIR__ . '/includes/user_preferences.php';
 require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_access.php';
+require_once __DIR__ . '/includes/note_thoughts.php';
 
 $userId = require_login();
 $pdo = db();
 
 $prefs = user_preferences_load($pdo, $userId);
 $validationError = null;
-$formContentValue = '';
+/** @var 'create_first'|'note_meta'|'add_thought'|'thought_edit'|null */
+$errorContext = null;
+
+$formThoughtBodyValue = '';
+$addThoughtBodyValue = '';
+$stickyThoughtEditId = 0;
+$stickyThoughtBodyValue = '';
+
 $editSticky = false;
-$editFormContent = '';
 /** @var array<int, true> */
 $editStickyGroupIds = [];
 /** @var array<int, true> */
@@ -58,11 +65,10 @@ if (($prefs['default_note_visibility'] ?? '') === 'last_used_groups') {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify_post_or_abort();
 
-    $todayAction = isset($_POST['today_action']) ? (string) $_POST['today_action'] : 'create';
+    $todayAction = isset($_POST['today_action']) ? (string) $_POST['today_action'] : 'create_first';
 
-    if ($todayAction === 'update_today') {
+    if ($todayAction === 'update_note') {
         $noteId = (int) ($_POST['note_id'] ?? 0);
-        $editFormContent = is_string($_POST['content'] ?? null) ? (string) ($_POST['content'] ?? '') : '';
         $selectedGroupIds = $parseTodayGroups($_POST);
 
         $authorizedEdit = $noteId > 0 && user_can_edit_note_today($pdo, $userId, $noteId);
@@ -81,11 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($existingIds as $eid) {
                 $existingIdSet[(int) $eid] = true;
             }
-        }
-
-        $validated = validate_required_string($_POST['content'] ?? null, NOTE_CONTENT_MAX_LENGTH);
-        if ($validationError === null && !$validated['ok']) {
-            $validationError = $validated['error'];
         }
 
         if ($validationError === null) {
@@ -139,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($validationError !== null && $authorizedEdit) {
             $editSticky = true;
+            $errorContext = 'note_meta';
             foreach ($selectedGroupIds as $gid) {
                 $editStickyGroupIds[$gid] = true;
             }
@@ -152,10 +154,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($validationError === null && $authorizedEdit) {
             $pdo->beginTransaction();
             try {
-                $stmt = $pdo->prepare(
-                    'UPDATE notes SET content = ? WHERE id = ? AND user_id = ?'
-                );
-                $stmt->execute([$validated['value'], $noteId, $userId]);
+                $pdo->prepare(
+                    'UPDATE notes SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?'
+                )->execute([$noteId, $userId]);
 
                 $pdo->prepare('DELETE FROM note_groups WHERE note_id = ?')->execute([$noteId]);
 
@@ -195,6 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($validationError !== null) {
                 $editSticky = true;
+                $errorContext = 'note_meta';
                 foreach ($selectedGroupIds as $gid) {
                     $editStickyGroupIds[$gid] = true;
                 }
@@ -207,22 +209,196 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 user_preferences_merge_save($pdo, $userId, [
                     'last_used_group_ids' => $selectedGroupIds,
                 ]);
-                header('Location: /index.php?updated=1');
+                header('Location: /index.php?note_updated=1');
+                exit;
+            }
+        }
+    } elseif ($todayAction === 'add_thought') {
+        $noteId = (int) ($_POST['note_id'] ?? 0);
+        $addThoughtBodyValue = is_string($_POST['thought_body'] ?? null)
+            ? (string) ($_POST['thought_body'] ?? '')
+            : '';
+
+        $authorized = $noteId > 0 && user_can_edit_note_today($pdo, $userId, $noteId);
+
+        if (!$authorized) {
+            $validationError = 'You can\'t add to this entry.';
+        }
+
+        $validated = validate_required_string($_POST['thought_body'] ?? null, NOTE_THOUGHT_BODY_MAX_LENGTH);
+        if ($validationError === null && !$validated['ok']) {
+            $validationError = $validated['error'];
+        }
+
+        if ($validationError !== null && $authorized) {
+            $errorContext = 'add_thought';
+        }
+
+        if ($validationError === null && $authorized) {
+            $pdo->beginTransaction();
+            try {
+                $ins = $pdo->prepare(
+                    'INSERT INTO note_thoughts (note_id, body, created_at) VALUES (?, ?, NOW())'
+                );
+                $ins->execute([$noteId, $validated['value']]);
+
+                $pdo->prepare(
+                    'UPDATE notes SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?'
+                )->execute([$noteId, $userId]);
+
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                error_log('index add thought: ' . $e->getMessage());
+                $validationError = 'Could not save your thought. Please try again.';
+                $errorContext = 'add_thought';
+            }
+
+            if ($validationError === null) {
+                header('Location: /index.php?thought_added=1');
+                exit;
+            }
+        }
+    } elseif ($todayAction === 'update_thought') {
+        $thoughtId = (int) ($_POST['thought_id'] ?? 0);
+        $stickyThoughtBodyValue = is_string($_POST['thought_body'] ?? null)
+            ? (string) ($_POST['thought_body'] ?? '')
+            : '';
+
+        $authorized = $thoughtId > 0 && user_can_edit_thought_today($pdo, $userId, $thoughtId);
+
+        if (!$authorized) {
+            $validationError = 'You can\'t edit this thought.';
+        }
+
+        $validated = validate_required_string($_POST['thought_body'] ?? null, NOTE_THOUGHT_BODY_MAX_LENGTH);
+        if ($validationError === null && !$validated['ok']) {
+            $validationError = $validated['error'];
+        }
+
+        if ($validationError !== null && $authorized) {
+            $errorContext = 'thought_edit';
+            $stickyThoughtEditId = $thoughtId;
+        }
+
+        if ($validationError === null && $authorized) {
+            $pdo->beginTransaction();
+            try {
+                $upd = $pdo->prepare(
+                    <<<'SQL'
+                    UPDATE note_thoughts t
+                    INNER JOIN notes n ON n.id = t.note_id
+                    SET t.body = ?
+                    WHERE t.id = ?
+                      AND n.user_id = ?
+                    SQL
+                );
+                $upd->execute([$validated['value'], $thoughtId, $userId]);
+
+                $nidStmt = $pdo->prepare('SELECT note_id FROM note_thoughts WHERE id = ? LIMIT 1');
+                $nidStmt->execute([$thoughtId]);
+                $parentNoteId = (int) $nidStmt->fetchColumn();
+                if ($parentNoteId > 0) {
+                    $pdo->prepare(
+                        'UPDATE notes SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?'
+                    )->execute([$parentNoteId, $userId]);
+                }
+
+                $pdo->commit();
+            } catch (RuntimeException $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                $validationError = $e->getMessage();
+                $errorContext = 'thought_edit';
+                $stickyThoughtEditId = $thoughtId;
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                error_log('index update thought: ' . $e->getMessage());
+                $validationError = 'Could not save your thought. Please try again.';
+                $errorContext = 'thought_edit';
+                $stickyThoughtEditId = $thoughtId;
+            }
+
+            if ($validationError === null) {
+                header('Location: /index.php?thought_updated=1');
+                exit;
+            }
+        }
+    } elseif ($todayAction === 'delete_thought') {
+        $thoughtId = (int) ($_POST['thought_id'] ?? 0);
+
+        $authorized = $thoughtId > 0 && user_can_edit_thought_today($pdo, $userId, $thoughtId);
+
+        if (!$authorized) {
+            $validationError = 'You can\'t delete this thought.';
+        }
+
+        $parentNoteId = 0;
+        if ($authorized) {
+            $nidStmt = $pdo->prepare('SELECT note_id FROM note_thoughts WHERE id = ? LIMIT 1');
+            $nidStmt->execute([$thoughtId]);
+            $parentNoteId = (int) $nidStmt->fetchColumn();
+            if ($parentNoteId <= 0) {
+                $validationError = 'Thought not found.';
+                $authorized = false;
+            }
+        }
+
+        if ($authorized && note_thought_count_for_note($pdo, $parentNoteId) <= 1) {
+            $validationError = 'Keep at least one gratitude moment for today.';
+        }
+
+        if ($validationError === null && $authorized) {
+            $pdo->beginTransaction();
+            try {
+                $del = $pdo->prepare(
+                    <<<'SQL'
+                    DELETE t FROM note_thoughts t
+                    INNER JOIN notes n ON n.id = t.note_id
+                    WHERE t.id = ?
+                      AND n.user_id = ?
+                    SQL
+                );
+                $del->execute([$thoughtId, $userId]);
+                $pdo->prepare(
+                    'UPDATE notes SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?'
+                )->execute([$parentNoteId, $userId]);
+                $pdo->commit();
+            } catch (Throwable $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                error_log('index delete thought: ' . $e->getMessage());
+                $validationError = 'Could not delete this thought. Please try again.';
+            }
+
+            if ($validationError === null) {
+                header('Location: /index.php?thought_deleted=1');
                 exit;
             }
         }
     } else {
-        $validated = validate_required_string($_POST['content'] ?? null, NOTE_CONTENT_MAX_LENGTH);
-        $formContentValue = is_string($_POST['content'] ?? null) ? (string) ($_POST['content'] ?? '') : '';
+        // First gratitude moment today: creates the daily note + first thought.
+        $formThoughtBodyValue = is_string($_POST['thought_body'] ?? null)
+            ? (string) ($_POST['thought_body'] ?? '')
+            : '';
 
+        $validated = validate_required_string($_POST['thought_body'] ?? null, NOTE_THOUGHT_BODY_MAX_LENGTH);
         $selectedGroupIds = $parseTodayGroups($_POST);
 
         if (!$validated['ok']) {
             $validationError = $validated['error'];
+            $errorContext = 'create_first';
         } else {
             foreach ($selectedGroupIds as $gid) {
                 if (!user_is_group_member($pdo, $userId, $gid)) {
                     $validationError = 'Invalid group selection.';
+                    $errorContext = 'create_first';
                     break;
                 }
             }
@@ -231,6 +407,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $uploadNorm = note_media_normalize_uploads_from_request();
         if ($validationError === null && !$uploadNorm['ok']) {
             $validationError = $uploadNorm['error'];
+            $errorContext = 'create_first';
         }
 
         /** @var list<array{tmp:string,size:int}> $photoItems */
@@ -238,11 +415,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($validationError === null) {
             $dup = $pdo->prepare(
-                'SELECT id FROM notes WHERE user_id = ? AND DATE(created_at) = CURDATE() LIMIT 1'
+                'SELECT id FROM notes WHERE user_id = ? AND entry_date = CURDATE() LIMIT 1'
             );
             $dup->execute([$userId]);
             if ($dup->fetchColumn()) {
-                $validationError = 'You already saved today\'s entry. Use Edit below to change it.';
+                $validationError = 'Today\'s entry already exists. Refresh the page.';
+                $errorContext = 'create_first';
             }
         }
 
@@ -250,12 +428,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
             try {
                 $stmt = $pdo->prepare(
-                    'INSERT INTO notes (user_id, content, visibility) VALUES (?, ?, ?)'
+                    <<<'SQL'
+                    INSERT INTO notes (user_id, entry_date, visibility, created_at, updated_at)
+                    VALUES (?, CURDATE(), 'private', NOW(), NOW())
+                    SQL
                 );
-                $stmt->execute([$userId, $validated['value'], 'private']);
+                $stmt->execute([$userId]);
                 $noteId = (int) $pdo->lastInsertId();
 
-                if ($noteId > 0 && count($selectedGroupIds) > 0) {
+                if ($noteId <= 0) {
+                    throw new RuntimeException('Could not create today\'s entry.');
+                }
+
+                $tstmt = $pdo->prepare(
+                    'INSERT INTO note_thoughts (note_id, body, created_at) VALUES (?, ?, NOW())'
+                );
+                $tstmt->execute([$noteId, $validated['value']]);
+
+                if (count($selectedGroupIds) > 0) {
                     $link = $pdo->prepare(
                         'INSERT INTO note_groups (note_id, group_id) VALUES (?, ?)'
                     );
@@ -264,7 +454,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
 
-                if ($noteId > 0 && count($photoItems) > 0) {
+                if (count($photoItems) > 0) {
                     $mediaResult = note_media_attach_to_note($pdo, $noteId, $photoItems);
                     if (!$mediaResult['ok']) {
                         throw new RuntimeException($mediaResult['error']);
@@ -272,19 +462,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $pdo->commit();
-            } catch (RuntimeException $e) {
-                if ($pdo->inTransaction()) {
-                    $pdo->rollBack();
-                }
-                $validationError = $e->getMessage() !== ''
-                    ? $e->getMessage()
-                    : 'Could not save your note. Please try again.';
             } catch (Throwable $e) {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
-                error_log('index note save: ' . $e->getMessage());
-                $validationError = 'Could not save your note. Please try again.';
+                if ($e instanceof \PDOException && (int) ($e->errorInfo[1] ?? 0) === 1062) {
+                    $validationError = 'Today\'s entry already exists. Refresh the page.';
+                } elseif ($e instanceof RuntimeException && $e->getMessage() !== '') {
+                    $validationError = $e->getMessage();
+                } else {
+                    error_log('index note save: ' . $e->getMessage());
+                    $validationError = 'Could not save your note. Please try again.';
+                }
+                $errorContext = 'create_first';
             }
 
             if ($validationError === null) {
@@ -302,18 +492,25 @@ $showSharedOnToday = !empty($prefs['today_show_shared']);
 
 $yoursStmt = $pdo->prepare(
     <<<'SQL'
-    SELECT n.id, n.content
+    SELECT n.id, n.entry_date, n.created_at
     FROM notes n
     WHERE n.user_id = ?
-      AND DATE(n.created_at) = CURDATE()
-    ORDER BY n.created_at DESC, n.id DESC
+      AND n.entry_date = CURDATE()
+    LIMIT 1
     SQL
 );
 $yoursStmt->execute([$userId]);
-$yoursToday = $yoursStmt->fetchAll(PDO::FETCH_ASSOC);
+$yoursRow = $yoursStmt->fetch(PDO::FETCH_ASSOC);
+$yoursToday = is_array($yoursRow) ? [$yoursRow] : [];
 
 $todayPrimaryNote = $yoursToday[0] ?? null;
 $todayPrimaryId = $todayPrimaryNote !== null ? (int) $todayPrimaryNote['id'] : 0;
+
+$todayThoughts = [];
+if ($todayPrimaryId > 0) {
+    $thoughtMap = note_thoughts_grouped_by_note($pdo, [$todayPrimaryId]);
+    $todayThoughts = $thoughtMap[$todayPrimaryId] ?? [];
+}
 
 $todayPrimarySharedRows = [];
 if ($todayPrimaryId > 0) {
@@ -333,29 +530,29 @@ if ($todayPrimaryId > 0) {
 $sharedToday = [];
 if ($showSharedOnToday) {
     $sharedStmt = $pdo->prepare(
-    <<<'SQL'
-    SELECT n.id,
-           n.content,
-           u.display_name AS author_name,
-           (
-               SELECT MIN(g.name)
-               FROM note_groups ng
-               INNER JOIN `groups` g ON g.id = ng.group_id
-               INNER JOIN group_members gm ON gm.group_id = ng.group_id AND gm.user_id = ?
-               WHERE ng.note_id = n.id
-           ) AS shared_via_group_name
-    FROM notes n
-    INNER JOIN users u ON u.id = n.user_id
-    WHERE n.user_id <> ?
-      AND DATE(n.created_at) = CURDATE()
-      AND EXISTS (
-          SELECT 1
-          FROM note_groups ng2
-          INNER JOIN group_members gm2 ON gm2.group_id = ng2.group_id AND gm2.user_id = ?
-          WHERE ng2.note_id = n.id
-      )
-    ORDER BY n.created_at DESC, n.id DESC
-    SQL
+        <<<'SQL'
+        SELECT n.id,
+               n.entry_date,
+               u.display_name AS author_name,
+               (
+                   SELECT MIN(g.name)
+                   FROM note_groups ng
+                   INNER JOIN `groups` g ON g.id = ng.group_id
+                   INNER JOIN group_members gm ON gm.group_id = ng.group_id AND gm.user_id = ?
+                   WHERE ng.note_id = n.id
+               ) AS shared_via_group_name
+        FROM notes n
+        INNER JOIN users u ON u.id = n.user_id
+        WHERE n.user_id <> ?
+          AND n.entry_date = CURDATE()
+          AND EXISTS (
+              SELECT 1
+              FROM note_groups ng2
+              INNER JOIN group_members gm2 ON gm2.group_id = ng2.group_id AND gm2.user_id = ?
+              WHERE ng2.note_id = n.id
+          )
+        ORDER BY n.entry_date DESC, n.id DESC
+        SQL
     );
     $sharedStmt->execute([$userId, $userId, $userId]);
     $sharedToday = $sharedStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -367,35 +564,9 @@ $todayNoteIds = array_merge(
 );
 $todayPhotos = note_media_grouped_by_note($pdo, $todayNoteIds);
 
-/** @var array<int, list<string>> */
-$yoursSharedNamesByNote = [];
-if (count($yoursToday) > 0) {
-    $yids = [];
-    foreach ($yoursToday as $yr) {
-        $yids[] = (int) $yr['id'];
-    }
-    $yids = array_values(array_unique(array_filter($yids, static fn (int $id): bool => $id > 0)));
-    if ($yids !== []) {
-        $placeholders = implode(',', array_fill(0, count($yids), '?'));
-        $shareStmt = $pdo->prepare(
-            <<<SQL
-            SELECT ng.note_id, g.name
-            FROM note_groups ng
-            INNER JOIN `groups` g ON g.id = ng.group_id
-            WHERE ng.note_id IN ($placeholders)
-            ORDER BY ng.note_id ASC, g.name ASC
-            SQL
-        );
-        $shareStmt->execute($yids);
-        while ($srow = $shareStmt->fetch(PDO::FETCH_ASSOC)) {
-            $nid = (int) $srow['note_id'];
-            if (!isset($yoursSharedNamesByNote[$nid])) {
-                $yoursSharedNamesByNote[$nid] = [];
-            }
-            $yoursSharedNamesByNote[$nid][] = (string) $srow['name'];
-        }
-    }
-}
+$sharedThoughtsByNote = $sharedToday !== []
+    ? note_thoughts_grouped_by_note($pdo, array_column($sharedToday, 'id'))
+    : [];
 
 $primaryPhotosList = $todayPhotos[$todayPrimaryId] ?? [];
 
@@ -427,20 +598,24 @@ if ($todayPrimaryId > 0) {
     }
 }
 
-$editTextareaValue = $editSticky
-    ? $editFormContent
-    : (string) ($todayPrimaryNote['content'] ?? '');
-
 $todayPrimarySharedNames = array_map(
     static fn (array $row): string => (string) $row['name'],
     $todayPrimarySharedRows
 );
 
+$canEditTodayNoteMeta = $todayPrimaryId > 0 && user_can_edit_note_today($pdo, $userId, $todayPrimaryId);
+
 $pageTitle = 'Today';
 $currentNav = 'today';
 $savedFlash = isset($_GET['saved']);
-$updatedFlash = isset($_GET['updated']);
+$noteUpdatedFlash = isset($_GET['note_updated']);
+$thoughtAddedFlash = isset($_GET['thought_added']);
+$thoughtUpdatedFlash = isset($_GET['thought_updated']);
+$thoughtDeletedFlash = isset($_GET['thought_deleted']);
 $showEditInitially = $editSticky;
+
+$showTopErrorBanner = $validationError !== null
+    && ($errorContext === null || $errorContext === 'create_first');
 
 require_once __DIR__ . '/header.php';
 ?>
@@ -448,31 +623,40 @@ require_once __DIR__ . '/header.php';
             <?php if ($savedFlash): ?>
                 <p class="flash" role="status">Saved.</p>
             <?php endif; ?>
-            <?php if ($updatedFlash): ?>
-                <p class="flash" role="status">Updated.</p>
+            <?php if ($noteUpdatedFlash): ?>
+                <p class="flash" role="status">Sharing and photos updated.</p>
+            <?php endif; ?>
+            <?php if ($thoughtAddedFlash): ?>
+                <p class="flash" role="status">Thought added.</p>
+            <?php endif; ?>
+            <?php if ($thoughtUpdatedFlash): ?>
+                <p class="flash" role="status">Thought updated.</p>
+            <?php endif; ?>
+            <?php if ($thoughtDeletedFlash): ?>
+                <p class="flash" role="status">Thought removed.</p>
             <?php endif; ?>
 
-            <?php if ($validationError !== null && !$editSticky): ?>
-                <p class="flash flash--error" role="alert"><?= e($validationError) ?></p>
+            <?php if ($showTopErrorBanner): ?>
+                <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
             <?php endif; ?>
 
             <?php if ($todayPrimaryNote === null): ?>
             <form id="today-note-form" class="note-form" method="post" action="/index.php" enctype="multipart/form-data">
                 <?php csrf_hidden_field(); ?>
-                <input type="hidden" name="today_action" value="create">
-                <label class="note-form__label" for="content">What are you grateful for today?</label>
+                <input type="hidden" name="today_action" value="create_first">
+                <label class="note-form__label" for="thought_body">What are you grateful for today?</label>
                 <textarea
-                    id="content"
-                    name="content"
+                    id="thought_body"
+                    name="thought_body"
                     class="note-form__textarea"
-                    rows="8"
+                    rows="6"
                     placeholder="Write a few words…"
-                ><?= e($formContentValue) ?></textarea>
+                ><?= e($formThoughtBodyValue) ?></textarea>
 
                 <?php if (count($shareGroups) > 0): ?>
                     <fieldset class="share-fieldset">
-                        <legend class="share-fieldset__legend">Share with…</legend>
-                        <p class="share-fieldset__hint">Optional. Leave unchecked to keep this note private.</p>
+                        <legend class="share-fieldset__legend">Share this day with…</legend>
+                        <p class="share-fieldset__hint">Optional. Applies to your whole entry for today.</p>
                         <?php foreach ($shareGroups as $g): ?>
                             <label class="share-check">
                                 <input
@@ -487,7 +671,7 @@ require_once __DIR__ . '/header.php';
                     </fieldset>
                 <?php endif; ?>
 
-                <label class="note-form__label" for="today-photo-picker">Photos (optional)</label>
+                <label class="note-form__label" for="today-photo-picker">Photos for today (optional)</label>
                 <p class="share-fieldset__hint">JPEG or PNG. Images are resized on your device before upload.</p>
                 <input
                     type="file"
@@ -513,164 +697,85 @@ require_once __DIR__ . '/header.php';
                 <button type="submit" class="btn btn--primary">Save</button>
             </form>
             <?php else: ?>
-                <p class="today-quiet today-quiet--below-composer">Your gratitude for today is below. Select Edit to change it.</p>
+                <p class="today-quiet today-quiet--below-composer">
+                    Today’s reflection is below. Add another moment, or edit sharing and photos for the whole day.
+                </p>
             <?php endif; ?>
 
             <section class="today-section" aria-labelledby="today-yours-heading">
                 <h2 id="today-yours-heading" class="today-section__heading">Today — Yours</h2>
-                <?php if (count($yoursToday) === 0): ?>
+                <?php if ($todayPrimaryNote === null): ?>
                     <p class="today-quiet">No entry saved yet today.</p>
                 <?php else: ?>
                     <ul class="today-yours-list">
-                        <?php foreach ($yoursToday as $idx => $yn): ?>
-                            <?php
-                            $ynId = (int) $yn['id'];
-                            $isPrimaryEditable = ($idx === 0 && $ynId === $todayPrimaryId && user_can_edit_note_today($pdo, $userId, $ynId));
-                            ?>
-                            <li class="today-yours-card<?= $isPrimaryEditable ? ' today-yours-card--editable' : '' ?>">
-                                <?php if ($isPrimaryEditable): ?>
-                                    <div id="today-yours-readonly" class="today-yours-panel" <?= $showEditInitially ? 'hidden' : '' ?>>
-                                        <div class="today-yours-card__body"><?= nl2br(e((string) $yn['content'])) ?></div>
-                                        <?php if (count($todayPrimarySharedNames) > 0): ?>
-                                            <p class="today-yours-meta">
-                                                Shared with <?= e(implode(', ', $todayPrimarySharedNames)) ?>
-                                            </p>
-                                        <?php else: ?>
-                                            <p class="today-yours-meta today-yours-meta--private">Private</p>
-                                        <?php endif; ?>
-                                        <?php if (!empty($todayPhotos[$ynId])): ?>
-                                            <ul class="today-note-photos">
-                                                <?php foreach ($todayPhotos[$ynId] as $ph): ?>
-                                                    <li class="today-note-photos__item">
-                                                        <img
-                                                            src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
-                                                            alt=""
-                                                            class="today-note-photos__img"
-                                                            loading="lazy"
-                                                            width="<?= (int) $ph['width'] ?>"
-                                                            height="<?= (int) $ph['height'] ?>"
-                                                        >
-                                                    </li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        <?php endif; ?>
-                                        <div class="today-yours-actions">
-                                            <button type="button" class="btn btn--ghost" id="today-yours-edit-btn">Edit</button>
-                                        </div>
-                                    </div>
-
-                                    <div id="today-yours-edit" class="today-yours-panel today-yours-panel--edit" <?= $showEditInitially ? '' : 'hidden' ?>>
-                                        <form id="today-edit-form" class="note-form note-form--compact" method="post" action="/index.php" enctype="multipart/form-data">
-                                            <?php csrf_hidden_field(); ?>
-                                            <input type="hidden" name="today_action" value="update_today">
-                                            <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
-                                            <?php if ($validationError !== null): ?>
-                                                <p class="flash flash--error today-edit-inline-error" role="alert"><?= e($validationError) ?></p>
-                                            <?php endif; ?>
-                                            <label class="note-form__label" for="today-edit-content">Your gratitude</label>
-                                            <textarea
-                                                id="today-edit-content"
-                                                name="content"
-                                                class="note-form__textarea"
-                                                rows="8"
-                                                required
-                                            ><?= e($editTextareaValue) ?></textarea>
-
-                                            <?php if (count($shareGroups) > 0): ?>
-                                                <fieldset class="share-fieldset">
-                                                    <legend class="share-fieldset__legend">Share with…</legend>
-                                                    <p class="share-fieldset__hint">Optional. Leave unchecked to keep this note private.</p>
-                                                    <?php foreach ($shareGroups as $g): ?>
-                                                        <label class="share-check">
-                                                            <input
-                                                                type="checkbox"
-                                                                name="group_ids[]"
-                                                                value="<?= (int) $g['id'] ?>"
-                                                                <?= isset($editGroupCheckedMap[(int) $g['id']]) ? 'checked' : '' ?>
-                                                            >
-                                                            <span><?= e($g['name']) ?></span>
-                                                        </label>
-                                                    <?php endforeach; ?>
-                                                </fieldset>
-                                            <?php endif; ?>
-
-                                            <?php if (count($primaryPhotosList) > 0): ?>
-                                                <fieldset class="share-fieldset today-edit-media-fieldset">
-                                                    <legend class="share-fieldset__legend">Photos</legend>
-                                                    <p class="share-fieldset__hint">Uncheck to remove a photo when you save.</p>
-                                                    <ul class="today-edit-existing-photos">
-                                                        <?php foreach ($primaryPhotosList as $eph): ?>
-                                                            <?php $mid = (int) $eph['id']; ?>
-                                                            <li class="today-edit-existing-photos__item">
-                                                                <label class="today-edit-existing-photos__label">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        name="delete_media_ids[]"
-                                                                        value="<?= $mid ?>"
-                                                                        <?= isset($editStickyDeleteMediaIds[$mid]) ? 'checked' : '' ?>
-                                                                    >
-                                                                    <img
-                                                                        src="/media/note_photo.php?id=<?= $mid ?>"
-                                                                        alt=""
-                                                                        class="today-edit-existing-photos__thumb"
-                                                                        loading="lazy"
-                                                                        width="<?= (int) $eph['width'] ?>"
-                                                                        height="<?= (int) $eph['height'] ?>"
-                                                                    >
-                                                                    <span class="today-edit-existing-photos__hint">Remove</span>
-                                                                </label>
-                                                            </li>
-                                                        <?php endforeach; ?>
-                                                    </ul>
-                                                </fieldset>
-                                            <?php endif; ?>
-
-                                            <?php if ($editMaxNewUploads > 0): ?>
-                                                <label class="note-form__label" for="today-edit-photo-picker">Add photos (optional)</label>
-                                                <p class="share-fieldset__hint">JPEG or PNG. Images are resized on your device before upload.</p>
-                                                <input
-                                                    type="file"
-                                                    id="today-edit-photo-picker"
-                                                    class="note-form__input"
-                                                    multiple
-                                                    accept="image/jpeg,image/png"
-                                                    aria-describedby="today-edit-photo-status"
-                                                >
-                                                <input
-                                                    type="file"
-                                                    name="photos_edit[]"
-                                                    id="today-edit-photos-staged"
-                                                    class="visually-hidden"
-                                                    multiple
-                                                    accept="image/jpeg,image/png"
-                                                    tabindex="-1"
-                                                    aria-hidden="true"
-                                                >
-                                                <p id="today-edit-photo-status" class="today-photo-status" aria-live="polite"></p>
-                                                <p id="today-edit-photo-error" class="flash flash--error today-photo-error" role="alert" hidden></p>
-                                            <?php else: ?>
-                                                <p class="share-fieldset__hint today-edit-photo-cap-hint">Remove a photo above to add different ones (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
-                                            <?php endif; ?>
-
-                                            <div class="today-edit-actions">
-                                                <button type="submit" class="btn btn--primary">Save</button>
-                                                <button type="button" class="btn btn--ghost" id="today-yours-cancel-edit">Cancel</button>
+                        <li class="today-yours-card today-yours-card--editable">
+                            <?php if ($canEditTodayNoteMeta): ?>
+                                <ul class="today-thought-stream" aria-label="Today’s gratitude moments">
+                                    <?php foreach ($todayThoughts as $th): ?>
+                                        <?php
+                                        $tid = (int) $th['id'];
+                                        $canEditThought = user_can_edit_thought_today($pdo, $userId, $tid);
+                                        $showThisThoughtEdit = ($errorContext === 'thought_edit' && $stickyThoughtEditId === $tid);
+                                        $editBodyVal = $showThisThoughtEdit ? $stickyThoughtBodyValue : $th['body'];
+                                        ?>
+                                        <li class="today-thought" data-thought-id="<?= $tid ?>">
+                                            <div class="today-thought-readonly" <?= $showThisThoughtEdit ? 'hidden' : '' ?>>
+                                                <p class="today-thought__body"><?= nl2br(e($th['body'])) ?></p>
+                                                <div class="today-thought__meta">
+                                                    <time class="today-thought__time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
+                                                    <?php if ($canEditThought): ?>
+                                                        <span class="today-thought__actions">
+                                                            <button type="button" class="btn btn--ghost btn--inline" data-thought-edit-open="<?= $tid ?>">Edit</button>
+                                                            <form class="today-thought-delete-form" method="post" action="/index.php">
+                                                                <?php csrf_hidden_field(); ?>
+                                                                <input type="hidden" name="today_action" value="delete_thought">
+                                                                <input type="hidden" name="thought_id" value="<?= $tid ?>">
+                                                                <button type="submit" class="btn btn--ghost btn--inline" onclick="return confirm('Remove this moment?');">Delete</button>
+                                                            </form>
+                                                        </span>
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
-                                        </form>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="today-yours-card__body"><?= nl2br(e((string) $yn['content'])) ?></div>
-                                    <?php $extraNames = $yoursSharedNamesByNote[$ynId] ?? []; ?>
-                                    <?php if (count($extraNames) > 0): ?>
+                                            <?php if ($canEditThought): ?>
+                                                <div class="today-thought-edit" <?= $showThisThoughtEdit ? '' : 'hidden' ?>>
+                                                    <?php if ($showThisThoughtEdit && $validationError !== null): ?>
+                                                        <p class="flash flash--error today-thought-edit-error" role="alert"><?= e((string) $validationError) ?></p>
+                                                    <?php endif; ?>
+                                                    <form class="note-form note-form--compact" method="post" action="/index.php">
+                                                        <?php csrf_hidden_field(); ?>
+                                                        <input type="hidden" name="today_action" value="update_thought">
+                                                        <input type="hidden" name="thought_id" value="<?= $tid ?>">
+                                                        <label class="visually-hidden" for="thought-edit-<?= $tid ?>">Edit thought</label>
+                                                        <textarea
+                                                            id="thought-edit-<?= $tid ?>"
+                                                            name="thought_body"
+                                                            class="note-form__textarea"
+                                                            rows="5"
+                                                            required
+                                                        ><?= e($editBodyVal) ?></textarea>
+                                                        <div class="today-thought-edit-actions">
+                                                            <button type="submit" class="btn btn--primary">Save</button>
+                                                            <button type="button" class="btn btn--ghost" data-thought-edit-cancel="<?= $tid ?>">Cancel</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            <?php endif; ?>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+
+                                <div id="today-note-meta-readonly" class="today-yours-panel today-note-meta-readonly" <?= $showEditInitially ? 'hidden' : '' ?>>
+                                    <?php if (count($todayPrimarySharedNames) > 0): ?>
                                         <p class="today-yours-meta">
-                                            Shared with <?= e(implode(', ', $extraNames)) ?>
+                                            Shared with <?= e(implode(', ', $todayPrimarySharedNames)) ?>
                                         </p>
                                     <?php else: ?>
                                         <p class="today-yours-meta today-yours-meta--private">Private</p>
                                     <?php endif; ?>
-                                    <?php if (!empty($todayPhotos[$ynId])): ?>
+
+                                    <?php if (!empty($todayPhotos[$todayPrimaryId])): ?>
                                         <ul class="today-note-photos">
-                                            <?php foreach ($todayPhotos[$ynId] as $ph): ?>
+                                            <?php foreach ($todayPhotos[$todayPrimaryId] as $ph): ?>
                                                 <li class="today-note-photos__item">
                                                     <img
                                                         src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
@@ -684,9 +789,130 @@ require_once __DIR__ . '/header.php';
                                             <?php endforeach; ?>
                                         </ul>
                                     <?php endif; ?>
-                                <?php endif; ?>
-                            </li>
-                        <?php endforeach; ?>
+
+                                    <div class="today-yours-actions">
+                                        <button type="button" class="btn btn--ghost" id="today-yours-edit-btn">Edit note</button>
+                                    </div>
+                                </div>
+
+                                <div class="today-add-thought">
+                                    <h3 class="today-add-thought__heading">Add another thought</h3>
+                                    <?php if ($errorContext === 'add_thought' && $validationError !== null): ?>
+                                        <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
+                                    <?php endif; ?>
+                                    <form class="note-form note-form--compact" method="post" action="/index.php">
+                                        <?php csrf_hidden_field(); ?>
+                                        <input type="hidden" name="today_action" value="add_thought">
+                                        <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
+                                        <label class="note-form__label" for="add-thought-body">Another moment you’re grateful for</label>
+                                        <textarea
+                                            id="add-thought-body"
+                                            name="thought_body"
+                                            class="note-form__textarea"
+                                            rows="4"
+                                            placeholder="A few more words…"
+                                        ><?= e($addThoughtBodyValue) ?></textarea>
+                                        <button type="submit" class="btn btn--primary">Add</button>
+                                    </form>
+                                </div>
+
+                                <div id="today-note-meta-edit" class="today-yours-panel today-yours-panel--edit" <?= $showEditInitially ? '' : 'hidden' ?>>
+                                    <form id="today-edit-form" class="note-form note-form--compact" method="post" action="/index.php" enctype="multipart/form-data">
+                                        <?php csrf_hidden_field(); ?>
+                                        <input type="hidden" name="today_action" value="update_note">
+                                        <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
+                                        <p class="today-edit-note-hint">Sharing and photos apply to your whole entry for today.</p>
+                                        <?php if ($errorContext === 'note_meta' && $validationError !== null): ?>
+                                            <p class="flash flash--error today-edit-inline-error" role="alert"><?= e((string) $validationError) ?></p>
+                                        <?php endif; ?>
+
+                                        <?php if (count($shareGroups) > 0): ?>
+                                            <fieldset class="share-fieldset">
+                                                <legend class="share-fieldset__legend">Share with…</legend>
+                                                <p class="share-fieldset__hint">Optional. Leave unchecked to keep this day private.</p>
+                                                <?php foreach ($shareGroups as $g): ?>
+                                                    <label class="share-check">
+                                                        <input
+                                                            type="checkbox"
+                                                            name="group_ids[]"
+                                                            value="<?= (int) $g['id'] ?>"
+                                                            <?= isset($editGroupCheckedMap[(int) $g['id']]) ? 'checked' : '' ?>
+                                                        >
+                                                        <span><?= e($g['name']) ?></span>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </fieldset>
+                                        <?php endif; ?>
+
+                                        <?php if (count($primaryPhotosList) > 0): ?>
+                                            <fieldset class="share-fieldset today-edit-media-fieldset">
+                                                <legend class="share-fieldset__legend">Photos</legend>
+                                                <p class="share-fieldset__hint">Uncheck to remove a photo when you save.</p>
+                                                <ul class="today-edit-existing-photos">
+                                                    <?php foreach ($primaryPhotosList as $eph): ?>
+                                                        <?php $mid = (int) $eph['id']; ?>
+                                                        <li class="today-edit-existing-photos__item">
+                                                            <label class="today-edit-existing-photos__label">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    name="delete_media_ids[]"
+                                                                    value="<?= $mid ?>"
+                                                                    <?= isset($editStickyDeleteMediaIds[$mid]) ? 'checked' : '' ?>
+                                                                >
+                                                                <img
+                                                                    src="/media/note_photo.php?id=<?= $mid ?>"
+                                                                    alt=""
+                                                                    class="today-edit-existing-photos__thumb"
+                                                                    loading="lazy"
+                                                                    width="<?= (int) $eph['width'] ?>"
+                                                                    height="<?= (int) $eph['height'] ?>"
+                                                                >
+                                                                <span class="today-edit-existing-photos__hint">Remove</span>
+                                                            </label>
+                                                        </li>
+                                                    <?php endforeach; ?>
+                                                </ul>
+                                            </fieldset>
+                                        <?php endif; ?>
+
+                                        <?php if ($editMaxNewUploads > 0): ?>
+                                            <label class="note-form__label" for="today-edit-photo-picker">Add photos (optional)</label>
+                                            <p class="share-fieldset__hint">JPEG or PNG. Images are resized on your device before upload.</p>
+                                            <input
+                                                type="file"
+                                                id="today-edit-photo-picker"
+                                                class="note-form__input"
+                                                multiple
+                                                accept="image/jpeg,image/png"
+                                                aria-describedby="today-edit-photo-status"
+                                            >
+                                            <input
+                                                type="file"
+                                                name="photos_edit[]"
+                                                id="today-edit-photos-staged"
+                                                class="visually-hidden"
+                                                multiple
+                                                accept="image/jpeg,image/png"
+                                                tabindex="-1"
+                                                aria-hidden="true"
+                                            >
+                                            <p id="today-edit-photo-status" class="today-photo-status" aria-live="polite"></p>
+                                            <p id="today-edit-photo-error" class="flash flash--error today-photo-error" role="alert" hidden></p>
+                                        <?php else: ?>
+                                            <p class="share-fieldset__hint today-edit-photo-cap-hint">Remove a photo above to add different ones (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
+                                        <?php endif; ?>
+
+                                        <div class="today-edit-actions">
+                                            <button type="submit" class="btn btn--primary">Save</button>
+                                            <button type="button" class="btn btn--ghost" id="today-yours-cancel-edit">Cancel</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            <?php else: ?>
+                                <?php /* Should not happen for own today note */ ?>
+                                <p class="today-quiet">This entry isn’t available.</p>
+                            <?php endif; ?>
+                        </li>
                     </ul>
                 <?php endif; ?>
             </section>
@@ -708,7 +934,12 @@ require_once __DIR__ . '/header.php';
                                 if ($groupLabel === '') {
                                     $groupLabel = 'your group';
                                 }
-                                $preview = note_plain_preview((string) $sn['content'], 160);
+                                $snId = (int) $sn['id'];
+                                $blob = '';
+                                foreach ($sharedThoughtsByNote[$snId] ?? [] as $thRow) {
+                                    $blob .= ($blob !== '' ? "\n\n" : '') . trim($thRow['body']);
+                                }
+                                $preview = note_plain_preview($blob, 160);
                                 ?>
                                 <li class="today-shared-card">
                                     <p class="today-shared-card__meta">
@@ -716,10 +947,7 @@ require_once __DIR__ . '/header.php';
                                         <span class="today-shared-card__context"> · Shared in <?= e($groupLabel) ?></span>
                                     </p>
                                     <p class="today-shared-card__preview"><?= e($preview) ?></p>
-                                    <?php
-                                    $snId = (int) $sn['id'];
-                                    if (!empty($todayPhotos[$snId])):
-                                        ?>
+                                    <?php if (!empty($todayPhotos[$snId])): ?>
                                         <ul class="today-note-photos today-note-photos--shared">
                                             <?php foreach ($todayPhotos[$snId] as $ph): ?>
                                                 <li class="today-note-photos__item">
@@ -838,19 +1066,27 @@ require_once __DIR__ . '/header.php';
                         maxNewFiles: <?= (int) $editMaxNewUploads ?>,
                     });
 
-                    var readonlyPanel = document.getElementById('today-yours-readonly');
-                    var editPanel = document.getElementById('today-yours-edit');
+                    function closeAllThoughtEdits() {
+                        document.querySelectorAll('.today-thought').forEach(function (li) {
+                            var ro = li.querySelector('.today-thought-readonly');
+                            var ed = li.querySelector('.today-thought-edit');
+                            if (ro && ed) {
+                                ro.hidden = false;
+                                ed.hidden = true;
+                            }
+                        });
+                    }
+
+                    var readonlyPanel = document.getElementById('today-note-meta-readonly');
+                    var editPanel = document.getElementById('today-note-meta-edit');
                     var editBtn = document.getElementById('today-yours-edit-btn');
                     var cancelBtn = document.getElementById('today-yours-cancel-edit');
 
                     if (editBtn && readonlyPanel && editPanel) {
                         editBtn.addEventListener('click', function () {
+                            closeAllThoughtEdits();
                             readonlyPanel.hidden = true;
                             editPanel.hidden = false;
-                            var ta = document.getElementById('today-edit-content');
-                            if (ta) {
-                                ta.focus();
-                            }
                         });
                     }
 
@@ -859,6 +1095,41 @@ require_once __DIR__ . '/header.php';
                             window.location.href = '/index.php';
                         });
                     }
+
+                    document.body.addEventListener('click', function (e) {
+                        var openBtn = e.target.closest('[data-thought-edit-open]');
+                        if (openBtn) {
+                            e.preventDefault();
+                            var metaEdit = document.getElementById('today-note-meta-edit');
+                            var metaRo = document.getElementById('today-note-meta-readonly');
+                            if (metaEdit && metaRo && metaEdit.hidden === false) {
+                                metaEdit.hidden = true;
+                                metaRo.hidden = false;
+                            }
+                            closeAllThoughtEdits();
+                            var id = openBtn.getAttribute('data-thought-edit-open');
+                            var li = openBtn.closest('.today-thought');
+                            if (!li) {
+                                return;
+                            }
+                            var ro = li.querySelector('.today-thought-readonly');
+                            var ed = li.querySelector('.today-thought-edit');
+                            if (ro && ed) {
+                                ro.hidden = true;
+                                ed.hidden = false;
+                                var ta = ed.querySelector('textarea');
+                                if (ta) {
+                                    ta.focus();
+                                }
+                            }
+                        }
+
+                        var cancelThought = e.target.closest('[data-thought-edit-cancel]');
+                        if (cancelThought) {
+                            e.preventDefault();
+                            window.location.href = '/index.php';
+                        }
+                    });
                 })();
             </script>
 

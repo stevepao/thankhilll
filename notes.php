@@ -11,6 +11,7 @@ require_once __DIR__ . '/includes/group_helpers.php';
 require_once __DIR__ . '/includes/note_preview.php';
 require_once __DIR__ . '/includes/user_preferences.php';
 require_once __DIR__ . '/includes/note_media.php';
+require_once __DIR__ . '/includes/note_thoughts.php';
 
 $userId = require_login();
 $pdo = db();
@@ -48,17 +49,17 @@ if ($groupRaw === 'mine') {
 $dateSql = '';
 switch ($dateFilter) {
     case 'today':
-        $dateSql = 'AND DATE(n.created_at) = CURDATE()';
+        $dateSql = 'AND n.entry_date = CURDATE()';
         break;
     case 'week':
-        $dateSql = 'AND n.created_at >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-            AND n.created_at < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 7 DAY)';
+        $dateSql = 'AND n.entry_date >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+            AND n.entry_date < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 7 DAY)';
         break;
     case 'month':
-        $dateSql = 'AND YEAR(n.created_at) = YEAR(CURDATE()) AND MONTH(n.created_at) = MONTH(CURDATE())';
+        $dateSql = 'AND YEAR(n.entry_date) = YEAR(CURDATE()) AND MONTH(n.entry_date) = MONTH(CURDATE())';
         break;
     case 'older':
-        $dateSql = 'AND n.created_at < DATE_FORMAT(CURDATE(), \'%Y-%m-01\')';
+        $dateSql = 'AND n.entry_date < DATE_FORMAT(CURDATE(), \'%Y-%m-01\')';
         break;
     default:
         break;
@@ -84,7 +85,7 @@ if ($groupScope === 'mine') {
 $sql = <<<SQL
 SELECT
     n.id,
-    n.content,
+    n.entry_date,
     n.created_at,
     n.user_id,
     MAX(COALESCE(u.display_name, '')) AS author_name,
@@ -105,8 +106,8 @@ WHERE (
 )
 {$dateSql}
 {$groupSql}
-GROUP BY n.id, n.content, n.created_at, n.user_id
-ORDER BY n.created_at DESC, n.id DESC
+GROUP BY n.id, n.entry_date, n.created_at, n.user_id
+ORDER BY n.entry_date DESC, n.id DESC
 SQL;
 
 $stmt = $pdo->prepare($sql);
@@ -114,6 +115,7 @@ $stmt->execute($params);
 $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $photosByNote = note_media_grouped_by_note($pdo, array_column($notes, 'id'));
+$thoughtsByNote = note_thoughts_grouped_by_note($pdo, array_column($notes, 'id'));
 
 $groupsForFilter = groups_for_user_with_counts($pdo, $userId);
 
@@ -173,17 +175,22 @@ require_once __DIR__ . '/header.php';
                             $authorLabel = 'Someone';
                         }
                         $groupsLabel = trim((string) ($note['shared_group_names'] ?? ''));
-                        $ts = strtotime((string) $note['created_at']);
+                        $ts = strtotime((string) $note['entry_date']);
                         $dateLabel = $ts ? date('M j, Y', $ts) : '';
-                        $preview = note_plain_preview((string) $note['content'], 220);
                         $nid = (int) $note['id'];
+                        $thoughtRows = $thoughtsByNote[$nid] ?? [];
+                        $previewBlob = '';
+                        foreach ($thoughtRows as $tr) {
+                            $previewBlob .= ($previewBlob !== '' ? "\n\n" : '') . trim($tr['body']);
+                        }
+                        $preview = note_plain_preview($previewBlob, 220);
                         $thumb = $photosByNote[$nid][0] ?? null;
                         ?>
                         <li class="notes-library__card">
                             <a class="notes-library__card-main" href="/note.php?id=<?= $nid ?>">
                                 <time
                                     class="notes-library__date"
-                                    datetime="<?= e((string) $note['created_at']) ?>"
+                                    datetime="<?= e((string) $note['entry_date']) ?>"
                                 ><?= e($dateLabel) ?></time>
                                 <?php if (!$isMine): ?>
                                     <p class="notes-library__author"><?= e($authorLabel) ?></p>
