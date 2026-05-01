@@ -79,10 +79,13 @@ function bootstrap_session(): void
     }
 
     if (!session_start()) {
+        $headersHint = '';
+        if (headers_sent($hsFile, $hsLine)) {
+            $headersHint = sprintf(' Headers already sent (output started at %s line %d).', $hsFile, $hsLine);
+        }
         throw new RuntimeException(
-            'session_start() failed. Typical causes: session.save_path not writable by the web server user, '
-            . 'or output was sent before cookies (check for whitespace/BOM before <?php). '
-            . 'Open /diag.php on this host for session path details.'
+            'session_start() failed.' . $headersHint
+            . ' Other causes: session.save_path not writable, invalid session ini, or BOM/whitespace before <?php in an included file.'
         );
     }
 

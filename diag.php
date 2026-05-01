@@ -11,8 +11,13 @@
  *   /diag.php?token=a-long-random-string
  *
  * Remove or rename this file when you are finished troubleshooting.
+ *
+ * Output is buffered until after bootstrap_session() runs so Set-Cookie headers can still be sent;
+ * otherwise prior echoes make session_start() fail with a misleading false negative.
  */
 declare(strict_types=1);
+
+ob_start();
 
 header('Content-Type: text/plain; charset=UTF-8');
 
