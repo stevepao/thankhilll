@@ -38,6 +38,30 @@
             return;
         }
 
+        if (window.__thankhillThoughtReactionsMounted) {
+            return;
+        }
+        window.__thankhillThoughtReactionsMounted = true;
+
+        /** Serialize async toggles per thought so responses apply in order (pairs with server-side row lock). */
+        function createExclusiveRunner() {
+            let tail = Promise.resolve();
+            return function runExclusive(fn) {
+                const run = tail.then(() => fn());
+                tail = run.catch(() => {}).then(() => {});
+                return run;
+            };
+        }
+        const exclusiveByThoughtId = new Map();
+        function runThoughtExclusive(thoughtId, fn) {
+            let runner = exclusiveByThoughtId.get(thoughtId);
+            if (!runner) {
+                runner = createExclusiveRunner();
+                exclusiveByThoughtId.set(thoughtId, runner);
+            }
+            return runner(fn);
+        }
+
         let pickerMount = document.getElementById('thought-reaction-picker');
         if (!pickerMount) {
             pickerMount = document.createElement('div');
@@ -49,8 +73,6 @@
         let pickerHost = null;
         let activeThoughtId = 0;
         let activeContainer = null;
-        /** Per-thought epoch so slower responses cannot overwrite newer reaction state. */
-        const reactionToggleEpoch = new Map();
 
         pickerMount.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -108,48 +130,42 @@
             pickerMount.hidden = false;
         }
 
-        async function sendToggle(thoughtId, emoji) {
-            const nextEpoch = (reactionToggleEpoch.get(thoughtId) || 0) + 1;
-            reactionToggleEpoch.set(thoughtId, nextEpoch);
-            const epoch = nextEpoch;
+        function sendToggle(thoughtId, emoji) {
+            return runThoughtExclusive(thoughtId, async () => {
+                try {
+                    const body = new URLSearchParams();
+                    body.set('csrf_token', csrfToken);
+                    body.set('thought_id', String(thoughtId));
+                    body.set('emoji', emoji);
 
-            try {
-                const body = new URLSearchParams();
-                body.set('csrf_token', csrfToken);
-                body.set('thought_id', String(thoughtId));
-                body.set('emoji', emoji);
+                    const res = await fetch('/reactions/toggle.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                        },
+                        body: body.toString(),
+                        credentials: 'same-origin',
+                    });
 
-                const res = await fetch('/reactions/toggle.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                    },
-                    body: body.toString(),
-                    credentials: 'same-origin',
-                });
+                    const data = await res.json();
+                    if (!res.ok || !data.ok) {
+                        throw new Error(data.error || 'Could not update reaction.');
+                    }
 
-                const data = await res.json();
-                if (!res.ok || !data.ok) {
-                    throw new Error(data.error || 'Could not update reaction.');
-                }
-
-                if ((reactionToggleEpoch.get(thoughtId) || 0) !== epoch) {
-                    return;
-                }
-
-                const container =
-                    activeContainer ||
-                    document.querySelector(`[data-thought-reactions][data-thought-id="${thoughtId}"]`);
-                if (!container) {
+                    const container =
+                        activeContainer ||
+                        document.querySelector(`[data-thought-reactions][data-thought-id="${thoughtId}"]`);
+                    if (!container) {
+                        hidePicker();
+                        return;
+                    }
+                    const list = container.querySelector('[data-reaction-list]');
+                    renderReactionButtons(list, thoughtId, data.reactions || []);
                     hidePicker();
-                    return;
+                } catch (err) {
+                    console.error(err);
                 }
-                const list = container.querySelector('[data-reaction-list]');
-                renderReactionButtons(list, thoughtId, data.reactions || []);
-                hidePicker();
-            } catch (err) {
-                console.error(err);
-            }
+            });
         }
 
         document.body.addEventListener('click', (ev) => {

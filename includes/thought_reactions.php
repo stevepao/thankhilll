@@ -18,6 +18,13 @@ function thought_reaction_validate_emoji(mixed $raw): array
         return ['ok' => false, 'error' => 'Choose an emoji.'];
     }
 
+    if (\class_exists(\Normalizer::class)) {
+        $normalized = \Normalizer::normalize($emoji, \Normalizer::FORM_C);
+        if (\is_string($normalized) && $normalized !== '') {
+            $emoji = $normalized;
+        }
+    }
+
     $len = function_exists('mb_strlen') ? mb_strlen($emoji, 'UTF-8') : strlen($emoji);
     if ($len > 32 || preg_match('/[\r\n\t]/u', $emoji) === 1) {
         return ['ok' => false, 'error' => 'Invalid emoji.'];
@@ -79,6 +86,15 @@ function thought_reaction_toggle(PDO $pdo, int $thoughtId, int $userId, string $
 
     $pdo->beginTransaction();
     try {
+        // Serialize toggles for the same thought so concurrent requests cannot each read an incomplete row set.
+        $lockThought = $pdo->prepare('SELECT id FROM note_thoughts WHERE id = ? LIMIT 1 FOR UPDATE');
+        $lockThought->execute([$thoughtId]);
+        if ((int) $lockThought->fetchColumn() <= 0) {
+            $pdo->rollBack();
+
+            return ['ok' => false, 'error' => 'Thought not found.'];
+        }
+
         $exists = $pdo->prepare(
             'SELECT id FROM thought_reactions WHERE thought_id = ? AND user_id = ? AND emoji = ? LIMIT 1'
         );
