@@ -190,7 +190,7 @@ $run('shared today notes query', function () use (
         ORDER BY n.entry_date DESC, n.id DESC
         SQL
     );
-    $sharedStmt->execute([$userId, $userId, $userId, $userLocalToday]);
+    $sharedStmt->execute([$userId, $userId, $userLocalToday, $userId]);
     $sharedToday = $sharedStmt->fetchAll(PDO::FETCH_ASSOC);
 });
 
