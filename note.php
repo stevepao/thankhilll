@@ -44,7 +44,7 @@ if (!is_array($note)) {
     exit;
 }
 
-$thoughtMap = note_thoughts_grouped_by_note($pdo, [$noteId]);
+$thoughtMap = note_thoughts_grouped_by_note($pdo, [$noteId], $userId);
 $thoughts = $thoughtMap[$noteId] ?? [];
 
 $media = note_media_for_note($pdo, $noteId);
@@ -76,7 +76,14 @@ require_once __DIR__ . '/header.php';
                 <ul class="note-detail__thoughts">
                     <?php foreach ($thoughts as $th): ?>
                         <li class="note-detail__thought">
-                            <p class="note-detail__thought-body"><?= nl2br(e($th['body'])) ?></p>
+                            <p class="note-detail__thought-body">
+                                <?php if ($isMine && !empty($th['is_private'])): ?>
+                                    <span class="note-detail__thought-private-wrap" role="img" aria-label="Private — only visible to you">
+                                        <span class="note-detail__thought-private" aria-hidden="true">🔒</span>
+                                    </span>
+                                <?php endif; ?>
+                                <?= nl2br(e($th['body'])) ?>
+                            </p>
                             <p class="note-detail__thought-time"><?= e(note_thought_time_label($th['created_at'])) ?></p>
                         </li>
                     <?php endforeach; ?>

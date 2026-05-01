@@ -115,7 +115,7 @@ $stmt->execute($params);
 $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $photosByNote = note_media_grouped_by_note($pdo, array_column($notes, 'id'));
-$thoughtsByNote = note_thoughts_grouped_by_note($pdo, array_column($notes, 'id'));
+$thoughtsByNote = note_thoughts_grouped_by_note($pdo, array_column($notes, 'id'), $userId);
 
 $groupsForFilter = groups_for_user_with_counts($pdo, $userId);
 

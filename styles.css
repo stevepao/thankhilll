@@ -371,6 +371,28 @@ body {
     color: var(--muted);
 }
 
+.today-thought__private-badge {
+    font-size: 0.85rem;
+    line-height: 1;
+}
+
+.today-thought-private-check {
+    margin-top: 0.5rem;
+}
+
+.today-thought-private-hint {
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+}
+
+.note-detail__thought-private-wrap {
+    margin-right: 0.25rem;
+}
+
+.note-detail__thought-private {
+    font-size: 0.9rem;
+}
+
 .today-thought__actions {
     display: inline-flex;
     flex-wrap: wrap;

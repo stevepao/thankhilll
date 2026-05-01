@@ -59,7 +59,10 @@ function user_can_edit_note_today(PDO $pdo, int $userId, int $noteId): bool
     return (bool) $stmt->fetchColumn();
 }
 
-/** True when the user owns the parent note and the thought was created today. */
+/**
+ * True when the user owns the note and its calendar day is still today
+ * (edit/delete thought body, toggle private — no changes after the entry day).
+ */
 function user_can_edit_thought_today(PDO $pdo, int $userId, int $thoughtId): bool
 {
     if ($thoughtId <= 0) {
@@ -73,7 +76,7 @@ function user_can_edit_thought_today(PDO $pdo, int $userId, int $thoughtId): boo
         INNER JOIN notes n ON n.id = t.note_id
         WHERE t.id = ?
           AND n.user_id = ?
-          AND DATE(t.created_at) = CURDATE()
+          AND n.entry_date = CURDATE()
         LIMIT 1
         SQL
     );

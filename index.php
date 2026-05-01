@@ -28,6 +28,9 @@ $formThoughtBodyValue = '';
 $addThoughtBodyValue = '';
 $stickyThoughtEditId = 0;
 $stickyThoughtBodyValue = '';
+$stickyThoughtIsPrivate = false;
+$formThoughtPrivateSticky = false;
+$addThoughtPrivateSticky = false;
 
 $editSticky = false;
 /** @var array<int, true> */
@@ -214,6 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($todayAction === 'add_thought') {
+        $addThoughtPrivateSticky = parse_thought_is_private_from_post($_POST);
         $noteId = (int) ($_POST['note_id'] ?? 0);
         $addThoughtBodyValue = is_string($_POST['thought_body'] ?? null)
             ? (string) ($_POST['thought_body'] ?? '')
@@ -237,10 +241,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($validationError === null && $authorized) {
             $pdo->beginTransaction();
             try {
+                $isPrivate = $addThoughtPrivateSticky ? 1 : 0;
                 $ins = $pdo->prepare(
-                    'INSERT INTO note_thoughts (note_id, body, created_at) VALUES (?, ?, NOW())'
+                    'INSERT INTO note_thoughts (note_id, body, is_private, created_at) VALUES (?, ?, ?, NOW())'
                 );
-                $ins->execute([$noteId, $validated['value']]);
+                $ins->execute([$noteId, $validated['value'], $isPrivate]);
 
                 $pdo->prepare(
                     'UPDATE notes SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?'
@@ -263,6 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($todayAction === 'update_thought') {
         $thoughtId = (int) ($_POST['thought_id'] ?? 0);
+        $stickyThoughtIsPrivate = parse_thought_is_private_from_post($_POST);
         $stickyThoughtBodyValue = is_string($_POST['thought_body'] ?? null)
             ? (string) ($_POST['thought_body'] ?? '')
             : '';
@@ -286,16 +292,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($validationError === null && $authorized) {
             $pdo->beginTransaction();
             try {
+                $isPrivate = $stickyThoughtIsPrivate ? 1 : 0;
                 $upd = $pdo->prepare(
                     <<<'SQL'
                     UPDATE note_thoughts t
                     INNER JOIN notes n ON n.id = t.note_id
-                    SET t.body = ?
+                    SET t.body = ?, t.is_private = ?
                     WHERE t.id = ?
                       AND n.user_id = ?
+                      AND n.entry_date = CURDATE()
                     SQL
                 );
-                $upd->execute([$validated['value'], $thoughtId, $userId]);
+                $upd->execute([$validated['value'], $isPrivate, $thoughtId, $userId]);
 
                 $nidStmt = $pdo->prepare('SELECT note_id FROM note_thoughts WHERE id = ? LIMIT 1');
                 $nidStmt->execute([$thoughtId]);
@@ -362,6 +370,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     INNER JOIN notes n ON n.id = t.note_id
                     WHERE t.id = ?
                       AND n.user_id = ?
+                      AND n.entry_date = CURDATE()
                     SQL
                 );
                 $del->execute([$thoughtId, $userId]);
@@ -384,6 +393,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } else {
         // First gratitude moment today: creates the daily note + first thought.
+        $formThoughtPrivateSticky = parse_thought_is_private_from_post($_POST);
         $formThoughtBodyValue = is_string($_POST['thought_body'] ?? null)
             ? (string) ($_POST['thought_body'] ?? '')
             : '';
@@ -440,10 +450,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Could not create today\'s entry.');
                 }
 
+                $firstPrivate = $formThoughtPrivateSticky ? 1 : 0;
                 $tstmt = $pdo->prepare(
-                    'INSERT INTO note_thoughts (note_id, body, created_at) VALUES (?, ?, NOW())'
+                    'INSERT INTO note_thoughts (note_id, body, is_private, created_at) VALUES (?, ?, ?, NOW())'
                 );
-                $tstmt->execute([$noteId, $validated['value']]);
+                $tstmt->execute([$noteId, $validated['value'], $firstPrivate]);
 
                 if (count($selectedGroupIds) > 0) {
                     $link = $pdo->prepare(
@@ -508,7 +519,7 @@ $todayPrimaryId = $todayPrimaryNote !== null ? (int) $todayPrimaryNote['id'] : 0
 
 $todayThoughts = [];
 if ($todayPrimaryId > 0) {
-    $thoughtMap = note_thoughts_grouped_by_note($pdo, [$todayPrimaryId]);
+    $thoughtMap = note_thoughts_grouped_by_note($pdo, [$todayPrimaryId], $userId);
     $todayThoughts = $thoughtMap[$todayPrimaryId] ?? [];
 }
 
@@ -565,7 +576,7 @@ $todayNoteIds = array_merge(
 $todayPhotos = note_media_grouped_by_note($pdo, $todayNoteIds);
 
 $sharedThoughtsByNote = $sharedToday !== []
-    ? note_thoughts_grouped_by_note($pdo, array_column($sharedToday, 'id'))
+    ? note_thoughts_grouped_by_note($pdo, array_column($sharedToday, 'id'), $userId)
     : [];
 
 $primaryPhotosList = $todayPhotos[$todayPrimaryId] ?? [];
@@ -653,6 +664,17 @@ require_once __DIR__ . '/header.php';
                     placeholder="Write a few words…"
                 ><?= e($formThoughtBodyValue) ?></textarea>
 
+                <label class="share-check today-thought-private-check">
+                    <input
+                        type="checkbox"
+                        name="thought_is_private"
+                        value="1"
+                        <?= $formThoughtPrivateSticky ? 'checked' : '' ?>
+                    >
+                    <span>Just for me</span>
+                </label>
+                <p class="share-fieldset__hint today-thought-private-hint">Private moments are never shown to people you share this day with.</p>
+
                 <?php if (count($shareGroups) > 0): ?>
                     <fieldset class="share-fieldset">
                         <legend class="share-fieldset__legend">Share this day with…</legend>
@@ -717,11 +739,15 @@ require_once __DIR__ . '/header.php';
                                         $canEditThought = user_can_edit_thought_today($pdo, $userId, $tid);
                                         $showThisThoughtEdit = ($errorContext === 'thought_edit' && $stickyThoughtEditId === $tid);
                                         $editBodyVal = $showThisThoughtEdit ? $stickyThoughtBodyValue : $th['body'];
+                                        $editIsPrivate = $showThisThoughtEdit ? $stickyThoughtIsPrivate : !empty($th['is_private']);
                                         ?>
                                         <li class="today-thought" data-thought-id="<?= $tid ?>">
                                             <div class="today-thought-readonly" <?= $showThisThoughtEdit ? 'hidden' : '' ?>>
                                                 <p class="today-thought__body"><?= nl2br(e($th['body'])) ?></p>
                                                 <div class="today-thought__meta">
+                                                    <?php if (!empty($th['is_private'])): ?>
+                                                        <span class="today-thought__private-badge" role="img" aria-label="Private — only visible to you" title="Private — only visible to you">🔒</span>
+                                                    <?php endif; ?>
                                                     <time class="today-thought__time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
                                                     <?php if ($canEditThought): ?>
                                                         <span class="today-thought__actions">
@@ -753,6 +779,16 @@ require_once __DIR__ . '/header.php';
                                                             rows="5"
                                                             required
                                                         ><?= e($editBodyVal) ?></textarea>
+                                                        <label class="share-check today-thought-private-check">
+                                                            <input
+                                                                type="checkbox"
+                                                                name="thought_is_private"
+                                                                value="1"
+                                                                <?= $editIsPrivate ? 'checked' : '' ?>
+                                                            >
+                                                            <span>Just for me</span>
+                                                        </label>
+                                                        <p class="share-fieldset__hint today-thought-private-hint">Only you see private moments, even when this day is shared.</p>
                                                         <div class="today-thought-edit-actions">
                                                             <button type="submit" class="btn btn--primary">Save</button>
                                                             <button type="button" class="btn btn--ghost" data-thought-edit-cancel="<?= $tid ?>">Cancel</button>
@@ -811,7 +847,17 @@ require_once __DIR__ . '/header.php';
                                             class="note-form__textarea"
                                             rows="4"
                                             placeholder="A few more words…"
-                                        ><?= e($addThoughtBodyValue) ?></textarea>
+                                            ><?= e($addThoughtBodyValue) ?></textarea>
+                                        <label class="share-check today-thought-private-check">
+                                            <input
+                                                type="checkbox"
+                                                name="thought_is_private"
+                                                value="1"
+                                                <?= $addThoughtPrivateSticky ? 'checked' : '' ?>
+                                            >
+                                            <span>Just for me</span>
+                                        </label>
+                                        <p class="share-fieldset__hint today-thought-private-hint">Private moments are never shown to people you share this day with.</p>
                                         <button type="submit" class="btn btn--primary">Add</button>
                                     </form>
                                 </div>
