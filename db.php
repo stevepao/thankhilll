@@ -8,6 +8,17 @@
 
 declare(strict_types=1);
 
+// Web handlers often default to an older PHP than CLI (e.g. php8.4-cli vs mod_php 7.x).
+// This codebase uses PHP 8.0+ syntax (`mixed`, arrow functions, str_contains, etc.).
+if (PHP_VERSION_ID < 80000) {
+    http_response_code(503);
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo 'Thankhill requires PHP 8.0 or newer for web requests. ';
+    echo 'Detected PHP ' . PHP_VERSION . ".\n\n";
+    echo "Typical fix (IONOS and similar): in the hosting control panel, set this site's PHP version to 8.x for HTTP — not only the SSH \"php\" CLI used for migrations.\n";
+    exit;
+}
+
 $thankhillAutoload = __DIR__ . '/vendor/autoload.php';
 if (!is_readable($thankhillAutoload)) {
     http_response_code(503);
