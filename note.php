@@ -5,9 +5,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/note_access.php';
 require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
+require_once __DIR__ . '/includes/thought_reactions.php';
 
 $userId = require_login();
 $pdo = db();
@@ -46,6 +48,7 @@ if (!is_array($note)) {
 
 $thoughtMap = note_thoughts_grouped_by_note($pdo, [$noteId], $userId);
 $thoughts = $thoughtMap[$noteId] ?? [];
+$thoughtReactionMap = thought_reactions_grouped_by_thought($pdo, array_column($thoughts, 'id'), $userId);
 
 $media = note_media_for_note($pdo, $noteId);
 $isMine = ((int) $note['user_id']) === $userId;
@@ -75,6 +78,10 @@ require_once __DIR__ . '/header.php';
 
                 <ul class="note-detail__thoughts">
                     <?php foreach ($thoughts as $th): ?>
+                        <?php
+                        $tid = (int) $th['id'];
+                        $thoughtReactions = $thoughtReactionMap[$tid] ?? [];
+                        ?>
                         <li class="note-detail__thought">
                             <p class="note-detail__thought-body">
                                 <?php if ($isMine && !empty($th['is_private'])): ?>
@@ -84,7 +91,34 @@ require_once __DIR__ . '/header.php';
                                 <?php endif; ?>
                                 <?= nl2br(e($th['body'])) ?>
                             </p>
-                            <p class="note-detail__thought-time"><?= e(note_thought_time_label($th['created_at'])) ?></p>
+                            <div class="note-detail__thought-meta">
+                                <p class="note-detail__thought-time"><?= e(note_thought_time_label($th['created_at'])) ?></p>
+                                <span
+                                    class="thought-reactions"
+                                    data-thought-reactions
+                                    data-thought-id="<?= $tid ?>"
+                                >
+                                    <span class="thought-reactions__list" data-reaction-list>
+                                        <?php foreach ($thoughtReactions as $rx): ?>
+                                            <button
+                                                type="button"
+                                                class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
+                                                data-reaction-toggle="1"
+                                                data-thought-id="<?= $tid ?>"
+                                                data-emoji="<?= e($rx['emoji']) ?>"
+                                                aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
+                                            ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
+                                        <?php endforeach; ?>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        class="thought-reaction-add"
+                                        data-reaction-add="1"
+                                        data-thought-id="<?= $tid ?>"
+                                        aria-label="Add reaction"
+                                    >+</button>
+                                </span>
+                            </div>
                         </li>
                     <?php endforeach; ?>
                 </ul>
@@ -106,5 +140,18 @@ require_once __DIR__ . '/header.php';
                     </ul>
                 <?php endif; ?>
             </article>
+
+            <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+            <script src="/reactions/reactions.js"></script>
+            <script>
+                (function () {
+                    if (window.mountThoughtReactions) {
+                        window.mountThoughtReactions({
+                            csrfToken: <?= json_encode(csrf_token(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+                        });
+                    }
+                })();
+            </script>
+            <div id="thought-reaction-picker" class="thought-reaction-picker-wrap" hidden></div>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

@@ -452,6 +452,63 @@ body {
     color: var(--muted);
 }
 
+.thought-reactions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.thought-reactions__list {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.thought-reaction-pill {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 999px;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    padding: 0.15rem 0.4rem;
+    cursor: pointer;
+}
+
+.thought-reaction-pill.is-active {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.thought-reaction-add {
+    border: 1px solid var(--border);
+    background: transparent;
+    border-radius: 999px;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.78rem;
+    line-height: 1;
+    width: 1.3rem;
+    height: 1.3rem;
+    padding: 0;
+    cursor: pointer;
+}
+
+.thought-reaction-picker-wrap {
+    position: fixed;
+    z-index: 2;
+}
+
+.thought-reaction-picker-wrap[hidden] {
+    display: none !important;
+}
+
+.thought-reaction-picker {
+    max-width: min(22rem, 100%);
+}
+
 .today-thought__private-badge {
     font-size: 0.85rem;
     line-height: 1;
@@ -555,6 +612,14 @@ body {
     margin: 0;
     font-size: 0.82rem;
     color: var(--muted);
+}
+
+.note-detail__thought-meta {
+    margin-top: 0.35rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
 }
 
 .btn--ghost {
@@ -683,6 +748,17 @@ body {
     font-size: 0.92rem;
     line-height: 1.45;
     color: var(--text);
+}
+
+.notes-library__reactions {
+    margin: 0.2rem 0 0.45rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.notes-library__reactions .thought-reaction-pill {
+    cursor: default;
 }
 
 .notes-library__card-main {

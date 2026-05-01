@@ -15,6 +15,7 @@ require_once __DIR__ . '/includes/user_preferences.php';
 require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_access.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
+require_once __DIR__ . '/includes/thought_reactions.php';
 
 $userId = require_login();
 $pdo = db();
@@ -523,6 +524,12 @@ if ($todayPrimaryId > 0) {
     $todayThoughts = $thoughtMap[$todayPrimaryId] ?? [];
 }
 
+$todayThoughtReactionMap = thought_reactions_grouped_by_thought(
+    $pdo,
+    array_column($todayThoughts, 'id'),
+    $userId
+);
+
 $todayPrimarySharedRows = [];
 if ($todayPrimaryId > 0) {
     $sgStmt = $pdo->prepare(
@@ -744,6 +751,7 @@ require_once __DIR__ . '/header.php';
                                         $showThisThoughtEdit = ($errorContext === 'thought_edit' && $stickyThoughtEditId === $tid);
                                         $editBodyVal = $showThisThoughtEdit ? $stickyThoughtBodyValue : $th['body'];
                                         $editIsPrivate = $showThisThoughtEdit ? $stickyThoughtIsPrivate : !empty($th['is_private']);
+                                        $thoughtReactions = $todayThoughtReactionMap[$tid] ?? [];
                                         ?>
                                         <li class="today-thought" data-thought-id="<?= $tid ?>">
                                             <div class="today-thought-readonly" <?= $showThisThoughtEdit ? 'hidden' : '' ?>>
@@ -753,6 +761,31 @@ require_once __DIR__ . '/header.php';
                                                         <span class="today-thought__private-badge" role="img" aria-label="Private — only visible to you" title="Private — only visible to you">🔒</span>
                                                     <?php endif; ?>
                                                     <time class="today-thought__time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
+                                                    <span
+                                                        class="thought-reactions"
+                                                        data-thought-reactions
+                                                        data-thought-id="<?= $tid ?>"
+                                                    >
+                                                        <span class="thought-reactions__list" data-reaction-list>
+                                                            <?php foreach ($thoughtReactions as $rx): ?>
+                                                                <button
+                                                                    type="button"
+                                                                    class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
+                                                                    data-reaction-toggle="1"
+                                                                    data-thought-id="<?= $tid ?>"
+                                                                    data-emoji="<?= e($rx['emoji']) ?>"
+                                                                    aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
+                                                                ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
+                                                            <?php endforeach; ?>
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            class="thought-reaction-add"
+                                                            data-reaction-add="1"
+                                                            data-thought-id="<?= $tid ?>"
+                                                            aria-label="Add reaction"
+                                                        >+</button>
+                                                    </span>
                                                     <?php if ($canEditThought): ?>
                                                         <span class="today-thought__actions" aria-label="Thought actions">
                                                             <button type="button" class="btn btn--ghost btn--inline today-thought__action-btn" data-thought-edit-open="<?= $tid ?>">Edit</button>
@@ -1185,5 +1218,17 @@ require_once __DIR__ . '/header.php';
                     });
                 })();
             </script>
+            <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+            <script src="/reactions/reactions.js"></script>
+            <script>
+                (function () {
+                    if (window.mountThoughtReactions) {
+                        window.mountThoughtReactions({
+                            csrfToken: <?= json_encode(csrf_token(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+                        });
+                    }
+                })();
+            </script>
+            <div id="thought-reaction-picker" class="thought-reaction-picker-wrap" hidden></div>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

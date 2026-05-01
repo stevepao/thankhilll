@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/note_preview.php';
 require_once __DIR__ . '/includes/user_preferences.php';
 require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
+require_once __DIR__ . '/includes/thought_reactions.php';
 
 $userId = require_login();
 $pdo = db();
@@ -116,6 +117,13 @@ $notes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $photosByNote = note_media_grouped_by_note($pdo, array_column($notes, 'id'));
 $thoughtsByNote = note_thoughts_grouped_by_note($pdo, array_column($notes, 'id'), $userId);
+$allVisibleThoughtIds = [];
+foreach ($thoughtsByNote as $rows) {
+    foreach ($rows as $tr) {
+        $allVisibleThoughtIds[] = (int) $tr['id'];
+    }
+}
+$reactionByThought = thought_reactions_grouped_by_thought($pdo, $allVisibleThoughtIds, $userId);
 
 $groupsForFilter = groups_for_user_with_counts($pdo, $userId);
 
@@ -185,6 +193,17 @@ require_once __DIR__ . '/header.php';
                         }
                         $preview = note_plain_preview($previewBlob, 220);
                         $thumbs = $photosByNote[$nid] ?? [];
+                        $noteReactions = [];
+                        foreach ($thoughtRows as $tr) {
+                            $tid = (int) $tr['id'];
+                            foreach ($reactionByThought[$tid] ?? [] as $rx) {
+                                $emoji = (string) $rx['emoji'];
+                                if (!isset($noteReactions[$emoji])) {
+                                    $noteReactions[$emoji] = 0;
+                                }
+                                $noteReactions[$emoji] += (int) $rx['count'];
+                            }
+                        }
                         ?>
                         <li class="notes-library__card">
                             <a class="notes-library__card-main" href="/note.php?id=<?= $nid ?>">
@@ -213,6 +232,13 @@ require_once __DIR__ . '/header.php';
                                             </li>
                                         <?php endforeach; ?>
                                     </ul>
+                                <?php endif; ?>
+                                <?php if (count($noteReactions) > 0): ?>
+                                    <p class="notes-library__reactions" aria-label="Thought reactions">
+                                        <?php foreach ($noteReactions as $emoji => $count): ?>
+                                            <span class="thought-reaction-pill"><?= e($emoji) ?> <?= (int) $count ?></span>
+                                        <?php endforeach; ?>
+                                    </p>
                                 <?php endif; ?>
                                 <p class="notes-library__preview"><?= e($preview) ?></p>
                             </a>
