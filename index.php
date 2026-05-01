@@ -8,19 +8,27 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/validation.php';
 
 $userId = require_login();
+
+$validationError = null;
+$formContentValue = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify_post_or_abort();
 
-    $content = trim((string) ($_POST['content'] ?? ''));
-    if ($content !== '') {
+    $validated = validate_required_string($_POST['content'] ?? null, NOTE_CONTENT_MAX_LENGTH);
+    $formContentValue = is_string($_POST['content'] ?? null) ? (string) ($_POST['content'] ?? '') : '';
+
+    if (!$validated['ok']) {
+        $validationError = $validated['error'];
+    } else {
         $stmt = db()->prepare('INSERT INTO notes (user_id, content, visibility) VALUES (?, ?, ?)');
-        $stmt->execute([$userId, $content, 'private']);
+        $stmt->execute([$userId, $validated['value'], 'private']);
+        header('Location: /index.php?saved=1');
+        exit;
     }
-    header('Location: /index.php?saved=1');
-    exit;
 }
 
 $pageTitle = 'Today';
@@ -34,6 +42,10 @@ require_once __DIR__ . '/header.php';
                 <p class="flash" role="status">Saved.</p>
             <?php endif; ?>
 
+            <?php if ($validationError !== null): ?>
+                <p class="flash flash--error" role="alert"><?= e($validationError) ?></p>
+            <?php endif; ?>
+
             <form class="note-form" method="post" action="/index.php">
                 <?php csrf_hidden_field(); ?>
                 <label class="note-form__label" for="content">What are you grateful for today?</label>
@@ -43,8 +55,7 @@ require_once __DIR__ . '/header.php';
                     class="note-form__textarea"
                     rows="8"
                     placeholder="Write a few words…"
-                    required
-                ></textarea>
+                ><?= e($formContentValue) ?></textarea>
                 <button type="submit" class="btn btn--primary">Save</button>
             </form>
 

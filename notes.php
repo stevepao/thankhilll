@@ -29,13 +29,13 @@ require_once __DIR__ . '/header.php';
                     <?php foreach ($notes as $note): ?>
                         <?php
                         $ts = strtotime((string) $note['created_at']);
-                        $when = $ts ? date('M j, Y · g:i A', $ts) : htmlspecialchars((string) $note['created_at'], ENT_QUOTES, 'UTF-8');
+                        $when = $ts ? date('M j, Y · g:i A', $ts) : e((string) $note['created_at']);
                         ?>
                         <li class="note-card">
-                            <time class="note-card__time" datetime="<?= htmlspecialchars((string) $note['created_at'], ENT_QUOTES, 'UTF-8') ?>">
-                                <?= htmlspecialchars($when, ENT_QUOTES, 'UTF-8') ?>
+                            <time class="note-card__time" datetime="<?= e((string) $note['created_at']) ?>">
+                                <?= e($when) ?>
                             </time>
-                            <div class="note-card__body"><?= nl2br(htmlspecialchars((string) $note['content'], ENT_QUOTES, 'UTF-8')) ?></div>
+                            <div class="note-card__body"><?= nl2br(e((string) $note['content'])) ?></div>
                         </li>
                     <?php endforeach; ?>
                 </ul>

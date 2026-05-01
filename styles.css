@@ -99,6 +99,11 @@ body {
     font-size: 0.9rem;
 }
 
+.flash--error {
+    background: #fde8e8;
+    color: #7f1d1d;
+}
+
 .note-form__label {
     display: block;
     font-weight: 500;
