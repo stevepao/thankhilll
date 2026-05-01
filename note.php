@@ -11,6 +11,7 @@ require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
 require_once __DIR__ . '/includes/thought_reactions.php';
 require_once __DIR__ . '/includes/thought_comments.php';
+require_once __DIR__ . '/includes/note_reading_thoughts.php';
 
 $userId = require_login();
 $pdo = db();
@@ -102,67 +103,18 @@ require_once __DIR__ . '/header.php';
                     <p class="note-detail__author"><?= e($authorLabel) ?></p>
                 <?php endif; ?>
 
-                <ul class="note-detail__thoughts">
-                    <?php foreach ($thoughts as $th): ?>
-                        <?php
-                        $tid = (int) $th['id'];
-                        $thoughtReactions = $thoughtReactionMap[$tid] ?? [];
-                        $showThoughtComments = !$th['is_private'] && $noteSharedWithGroup;
-                        $thoughtCommentsList = $thoughtCommentsMap[$tid] ?? [];
-                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at']);
-                        ?>
-                        <li class="note-detail__thought">
-                            <div class="thought-block">
-                                <div class="thought-block__text">
-                                    <p class="thought-block__body note-detail__thought-body"><?php
-                                        if ($isMine && !empty($th['is_private'])) {
-                                            echo '<span class="note-detail__thought-private-wrap" role="img" aria-label="Private — only visible to you"><span class="note-detail__thought-private" aria-hidden="true">🔒</span></span>';
-                                        }
-                                        echo nl2br(e(trim((string) $th['body'])));
-                                    ?></p>
-                                </div>
-                                <div class="thought-block__meta">
-                                    <span
-                                        class="thought-reactions"
-                                        data-thought-reactions
-                                        data-thought-id="<?= $tid ?>"
-                                    >
-                                        <span class="thought-reactions__list" data-reaction-list>
-                                            <?php foreach ($thoughtReactions as $rx): ?>
-                                                <button
-                                                    type="button"
-                                                    class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
-                                                    data-reaction-toggle="1"
-                                                    data-thought-id="<?= $tid ?>"
-                                                    data-emoji="<?= e($rx['emoji']) ?>"
-                                                    aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
-                                                ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
-                                            <?php endforeach; ?>
-                                        </span>
-                                        <button
-                                            type="button"
-                                            class="thought-reaction-add"
-                                            data-reaction-add="1"
-                                            data-thought-id="<?= $tid ?>"
-                                            aria-label="Add reaction"
-                                        >+</button>
-                                    </span>
-                                    <time class="thought-block__time note-detail__thought-time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
-                                </div>
-                            <?php if ($showThoughtComments): ?>
-                                <?php
-                                $thoughtId = $tid;
-                                $comments = $thoughtCommentsList;
-                                $canPostComment = $canPostThoughtComment;
-                                $redirectTarget = '/note.php?id=' . $noteId;
-                                $thoughtCommentsIconOnlyComposer = false;
-                                require __DIR__ . '/includes/thought_comments_section.php';
-                                ?>
-                            <?php endif; ?>
-                            </div>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
+                <?php
+                note_reading_render_thoughts_list(
+                    $userId,
+                    $thoughts,
+                    $thoughtReactionMap,
+                    $thoughtCommentsMap,
+                    $noteSharedWithGroup,
+                    $isMine,
+                    '/note.php?id=' . $noteId,
+                    false,
+                );
+                ?>
 
                 <?php if (count($media) > 0): ?>
                     <ul class="note-detail__photos">

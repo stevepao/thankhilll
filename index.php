@@ -608,6 +608,25 @@ $sharedTodayReactionByThought = $sharedTodayThoughtIdsForReactions !== []
     ? thought_reactions_grouped_by_thought($pdo, $sharedTodayThoughtIdsForReactions, $userId)
     : [];
 
+$sharedNoteSharedMap = [];
+foreach (array_column($sharedToday, 'id') as $sharedNid) {
+    $sharedNoteSharedMap[(int) $sharedNid] = note_is_shared_with_any_group($pdo, (int) $sharedNid);
+}
+$sharedThoughtIdsForCommentsFetch = [];
+foreach ($sharedThoughtsByNote as $sharedThoughtsNid => $sharedThoughtRows) {
+    if (!($sharedNoteSharedMap[(int) $sharedThoughtsNid] ?? false)) {
+        continue;
+    }
+    foreach ($sharedThoughtRows as $sharedTr) {
+        if (empty($sharedTr['is_private'])) {
+            $sharedThoughtIdsForCommentsFetch[] = (int) $sharedTr['id'];
+        }
+    }
+}
+$sharedTodayThoughtCommentsMap = $sharedThoughtIdsForCommentsFetch !== []
+    ? thought_comments_grouped_by_thought($pdo, $sharedThoughtIdsForCommentsFetch)
+    : [];
+
 $primaryPhotosList = $todayPhotos[$todayPrimaryId] ?? [];
 
 $existingIdsForPrimary = array_column($primaryPhotosList, 'id');
@@ -792,63 +811,21 @@ require_once __DIR__ . '/header.php';
                                         ?>
                                         <li class="today-thought" data-thought-id="<?= $tid ?>">
                                             <div class="today-thought-readonly" <?= $showThisThoughtEdit ? 'hidden' : '' ?>>
-                                                <div class="thought-block">
-                                                    <div class="thought-block__text">
-                                                        <p class="thought-block__body today-thought__body"><?= nl2br(e(trim((string) $th['body']))) ?></p>
-                                                    </div>
-                                                    <div class="thought-block__meta">
-                                                        <span
-                                                            class="thought-reactions"
-                                                            data-thought-reactions
-                                                            data-thought-id="<?= $tid ?>"
-                                                        >
-                                                            <span class="thought-reactions__list" data-reaction-list>
-                                                                <?php foreach ($thoughtReactions as $rx): ?>
-                                                                    <button
-                                                                        type="button"
-                                                                        class="thought-reaction-pill<?= $rx['reacted_by_me'] ? ' is-active' : '' ?>"
-                                                                        data-reaction-toggle="1"
-                                                                        data-thought-id="<?= $tid ?>"
-                                                                        data-emoji="<?= e($rx['emoji']) ?>"
-                                                                        aria-label="Toggle reaction <?= e($rx['emoji']) ?>"
-                                                                    ><?= e($rx['emoji']) ?> <?= (int) $rx['count'] ?></button>
-                                                                <?php endforeach; ?>
-                                                            </span>
-                                                            <button
-                                                                type="button"
-                                                                class="thought-reaction-add"
-                                                                data-reaction-add="1"
-                                                                data-thought-id="<?= $tid ?>"
-                                                                aria-label="Add reaction"
-                                                            >+</button>
-                                                        </span>
-                                                        <?php if (!empty($th['is_private'])): ?>
-                                                            <span class="today-thought__private-badge" role="img" aria-label="Private — only visible to you" title="Private — only visible to you">🔒</span>
-                                                        <?php endif; ?>
-                                                        <time class="thought-block__time today-thought__time" datetime="<?= e($th['created_at']) ?>"><?= e(note_thought_time_label($th['created_at'])) ?></time>
-                                                        <?php if ($canEditThought): ?>
-                                                            <span class="thought-block__actions" aria-label="Thought actions">
-                                                                <button type="button" class="today-thought__icon-btn" data-thought-edit-open="<?= $tid ?>" title="Edit" aria-label="Edit moment">✏️</button>
-                                                                <form class="today-thought-delete-form" method="post" action="/index.php">
-                                                                    <?php csrf_hidden_field(); ?>
-                                                                    <input type="hidden" name="today_action" value="delete_thought">
-                                                                    <input type="hidden" name="thought_id" value="<?= $tid ?>">
-                                                                    <button type="submit" class="today-thought__icon-btn today-thought__icon-btn--danger" title="Delete" aria-label="Delete moment" onclick="return confirm('Remove this moment?');">🗑</button>
-                                                                </form>
-                                                            </span>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                <?php if ($showThoughtComments): ?>
-                                                    <?php
-                                                    $thoughtId = $tid;
-                                                    $comments = $thoughtCommentsList;
-                                                    $canPostComment = $canPostThoughtComment;
-                                                    $redirectTarget = '/index.php';
-                                                    $thoughtCommentsIconOnlyComposer = true;
-                                                    require __DIR__ . '/includes/thought_comments_section.php';
-                                                    ?>
-                                                <?php endif; ?>
-                                                </div>
+                                                <?php
+                                                note_reading_render_thought_block(
+                                                    $tid,
+                                                    $th,
+                                                    $thoughtReactions,
+                                                    $showThoughtComments,
+                                                    $thoughtCommentsList,
+                                                    $canPostThoughtComment,
+                                                    $userId,
+                                                    '/index.php',
+                                                    true,
+                                                    true,
+                                                    ['can_edit' => $canEditThought],
+                                                );
+                                                ?>
                                             </div>
                                             <?php if ($canEditThought): ?>
                                                 <div class="today-thought-edit" <?= $showThisThoughtEdit ? '' : 'hidden' ?>>
@@ -1077,7 +1054,9 @@ require_once __DIR__ . '/header.php';
                                     $sharedThoughtsByNote[$snId] ?? [],
                                     $todayPhotos[$snId] ?? [],
                                     $sharedTodayReactionByThought,
-                                    NOTE_LIBRARY_CARD_PREVIEW_MAX
+                                    $sharedTodayThoughtCommentsMap,
+                                    $sharedNoteSharedMap[$snId] ?? false,
+                                    '/index.php',
                                 );
                                 ?>
                             <?php endforeach; ?>

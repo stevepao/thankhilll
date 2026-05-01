@@ -7,12 +7,14 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/group_helpers.php';
 require_once __DIR__ . '/includes/note_library_card.php';
 require_once __DIR__ . '/includes/user_preferences.php';
 require_once __DIR__ . '/includes/note_media.php';
 require_once __DIR__ . '/includes/note_thoughts.php';
 require_once __DIR__ . '/includes/thought_reactions.php';
+require_once __DIR__ . '/includes/thought_comments.php';
 
 $userId = require_login();
 $pdo = db();
@@ -125,6 +127,30 @@ foreach ($thoughtsByNote as $rows) {
 }
 $reactionByThought = thought_reactions_grouped_by_thought($pdo, $allVisibleThoughtIds, $userId);
 
+$noteSharedMap = [];
+foreach (array_column($notes, 'id') as $nidKey) {
+    $noteSharedMap[(int) $nidKey] = note_is_shared_with_any_group($pdo, (int) $nidKey);
+}
+$thoughtIdsForCommentsFetch = [];
+foreach ($thoughtsByNote as $nidKey => $rows) {
+    if (!($noteSharedMap[(int) $nidKey] ?? false)) {
+        continue;
+    }
+    foreach ($rows as $trRow) {
+        if (empty($trRow['is_private'])) {
+            $thoughtIdsForCommentsFetch[] = (int) $trRow['id'];
+        }
+    }
+}
+$thoughtCommentsByThought = $thoughtIdsForCommentsFetch !== []
+    ? thought_comments_grouped_by_thought($pdo, $thoughtIdsForCommentsFetch)
+    : [];
+
+$commentsRedirectBase = '/notes.php';
+if (isset($_SERVER['QUERY_STRING']) && is_string($_SERVER['QUERY_STRING']) && $_SERVER['QUERY_STRING'] !== '') {
+    $commentsRedirectBase .= '?' . $_SERVER['QUERY_STRING'];
+}
+
 $groupsForFilter = groups_for_user_with_counts($pdo, $userId);
 
 $hasActiveFilters = ($dateExplicit && $dateFilter !== '')
@@ -183,11 +209,26 @@ require_once __DIR__ . '/header.php';
                             $thoughtsByNote[$nid] ?? [],
                             $photosByNote[$nid] ?? [],
                             $reactionByThought,
-                            NOTE_LIBRARY_CARD_PREVIEW_MAX
+                            $thoughtCommentsByThought,
+                            $noteSharedMap[$nid] ?? false,
+                            $commentsRedirectBase,
                         );
                         ?>
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
+
+            <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+            <script src="<?= e(asset_url('/reactions/reactions.js')) ?>"></script>
+            <script>
+                (function () {
+                    if (window.mountThoughtReactions) {
+                        window.mountThoughtReactions({
+                            csrfToken: <?= json_encode(csrf_token(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>,
+                        });
+                    }
+                })();
+            </script>
+            <div id="thought-reaction-picker" class="thought-reaction-picker-wrap" hidden></div>
 
 <?php require_once __DIR__ . '/footer.php'; ?>
