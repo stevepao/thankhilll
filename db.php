@@ -65,3 +65,10 @@ function db(): PDO
 
     return $pdo;
 }
+
+/** True when MySQL reports an unknown column (e.g. migration not applied yet). */
+function pdo_error_is_unknown_column(PDOException $e): bool
+{
+    return ($e->errorInfo[0] ?? '') === '42S22'
+        || (int) ($e->errorInfo[1] ?? 0) === 1054;
+}

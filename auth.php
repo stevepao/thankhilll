@@ -64,9 +64,24 @@ function currentUser(): ?array
         return null;
     }
 
-    $stmt = db()->prepare('SELECT id, display_name, timezone FROM users WHERE id = ? LIMIT 1');
-    $stmt->execute([$userId]);
-    $row = $stmt->fetch();
+    try {
+        $stmt = db()->prepare('SELECT id, display_name, timezone FROM users WHERE id = ? LIMIT 1');
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+    } catch (PDOException $e) {
+        if (!pdo_error_is_unknown_column($e)) {
+            throw $e;
+        }
+        $stmt = db()->prepare('SELECT id, display_name FROM users WHERE id = ? LIMIT 1');
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        if (!is_array($row)) {
+            return null;
+        }
+        $row['timezone'] = null;
+
+        return $row;
+    }
 
     return is_array($row) ? $row : null;
 }

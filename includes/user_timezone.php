@@ -47,9 +47,17 @@ function user_timezone_get(PDO $pdo, int $userId): string
     if ($userId <= 0) {
         return 'UTC';
     }
-    $stmt = $pdo->prepare('SELECT timezone FROM users WHERE id = ? LIMIT 1');
-    $stmt->execute([$userId]);
-    $col = $stmt->fetchColumn();
+    try {
+        $stmt = $pdo->prepare('SELECT timezone FROM users WHERE id = ? LIMIT 1');
+        $stmt->execute([$userId]);
+        $col = $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        if (!pdo_error_is_unknown_column($e)) {
+            throw $e;
+        }
+
+        return 'UTC';
+    }
 
     return user_timezone_normalize(is_string($col) ? $col : null);
 }
@@ -60,8 +68,15 @@ function user_timezone_save(PDO $pdo, int $userId, string $ianaOrOffset): void
         return;
     }
     $z = user_timezone_normalize($ianaOrOffset);
-    $stmt = $pdo->prepare('UPDATE users SET timezone = ? WHERE id = ?');
-    $stmt->execute([$z, $userId]);
+    try {
+        $stmt = $pdo->prepare('UPDATE users SET timezone = ? WHERE id = ?');
+        $stmt->execute([$z, $userId]);
+    } catch (PDOException $e) {
+        if (!pdo_error_is_unknown_column($e)) {
+            throw $e;
+        }
+        // Column absent until migration 014 runs; browser probe is a no-op.
+    }
 }
 
 function user_local_today_ymd(string $ianaTz): string
