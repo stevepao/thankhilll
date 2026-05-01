@@ -12,6 +12,15 @@ require_once __DIR__ . '/includes/assets.php';
 
 $currentNav = $currentNav ?? 'today';
 $showNav = $showNav ?? true;
+
+$pendingGroupInviteCount = 0;
+if ($showNav) {
+    $footerNavUserId = current_user_id();
+    if ($footerNavUserId !== null) {
+        require_once __DIR__ . '/includes/group_helpers.php';
+        $pendingGroupInviteCount = count(group_invitations_pending_for_user(db(), $footerNavUserId));
+    }
+}
 ?>
         </main>
 
@@ -23,8 +32,20 @@ $showNav = $showNav ?? true;
                 <a href="/notes.php" class="bottom-nav__link <?= $currentNav === 'notes' ? 'is-active' : '' ?>">
                     <span class="bottom-nav__label">Notes</span>
                 </a>
-                <a href="/groups.php" class="bottom-nav__link <?= $currentNav === 'groups' ? 'is-active' : '' ?>">
-                    <span class="bottom-nav__label">Groups</span>
+                <a
+                    href="/groups.php"
+                    class="bottom-nav__link <?= $currentNav === 'groups' ? 'is-active' : '' ?>"
+                    <?= $pendingGroupInviteCount > 0 ? 'aria-describedby="nav-groups-pending-desc"' : '' ?>
+                >
+                    <span class="bottom-nav__labelWrap">
+                        <?php if ($pendingGroupInviteCount > 0): ?>
+                            <span id="nav-groups-pending-desc" class="visually-hidden"><?= (int) $pendingGroupInviteCount ?> pending group invitation<?= $pendingGroupInviteCount === 1 ? '' : 's' ?></span>
+                        <?php endif; ?>
+                        <span class="bottom-nav__label">Groups</span>
+                        <?php if ($pendingGroupInviteCount > 0): ?>
+                            <span class="bottom-nav__badge" aria-hidden="true"><?= $pendingGroupInviteCount > 9 ? '9+' : (string) (int) $pendingGroupInviteCount ?></span>
+                        <?php endif; ?>
+                    </span>
                 </a>
                 <a href="/me.php" class="bottom-nav__link <?= $currentNav === 'me' ? 'is-active' : '' ?>">
                     <span class="bottom-nav__label">Me</span>

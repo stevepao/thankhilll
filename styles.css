@@ -1575,6 +1575,32 @@ body {
     background: var(--bg);
 }
 
+.bottom-nav__labelWrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    max-width: 100%;
+}
+
+.bottom-nav__badge {
+    flex-shrink: 0;
+    min-width: 0.95rem;
+    padding: 0.1rem 0.28rem;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--surface);
+    font-size: 0.58rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    opacity: 0.82;
+}
+
+.bottom-nav__link.is-active .bottom-nav__badge {
+    opacity: 0.9;
+}
+
 @media (min-width: 480px) {
     .btn {
         width: auto;
