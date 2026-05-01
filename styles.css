@@ -1481,6 +1481,43 @@ body {
     margin: 0 0 0.5rem;
 }
 
+.detail-section__subtitle {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 1rem 0 0.5rem;
+}
+
+.group-detail-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.65rem;
+}
+
+.group-detail-header__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0 0 0.35rem;
+    line-height: 1.25;
+}
+
+.group-detail-header__role {
+    font-weight: 600;
+    margin: 0 0 0.35rem;
+}
+
+.group-detail-header__helper {
+    margin-bottom: 0;
+}
+
+.group-invitations-stack {
+    margin-top: 1.25rem;
+}
+
+.group-lifecycle-delete {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+
 .member-list,
 .invite-list {
     list-style: none;

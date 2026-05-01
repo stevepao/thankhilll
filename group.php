@@ -1,6 +1,6 @@
 <?php
 /**
- * group.php — Group detail: members; owner sees pending invites + invite form + invite requests.
+ * group.php — Group detail: role-aware layout; admin invitations/members/lifecycle; member request/members/leave.
  */
 declare(strict_types=1);
 
@@ -53,6 +53,18 @@ $mStmt = $pdo->prepare(
 $mStmt->execute([$groupId]);
 $members = $mStmt->fetchAll(PDO::FETCH_ASSOC);
 
+usort($members, static function (array $a, array $b) use ($ownerUserId): int {
+    $aid = (int) $a['user_id'];
+    $bid = (int) $b['user_id'];
+    $aAdmin = $aid === $ownerUserId ? 0 : 1;
+    $bAdmin = $bid === $ownerUserId ? 0 : 1;
+    if ($aAdmin !== $bAdmin) {
+        return $aAdmin <=> $bAdmin;
+    }
+
+    return strcmp((string) $a['joined_at'], (string) $b['joined_at']);
+});
+
 $pendingInvites = [];
 $pendingInviteRequests = [];
 if ($isOwner) {
@@ -88,6 +100,14 @@ $deleteGroupConfirmMsg = "Delete this group?\n\n"
     . "None of your notes or thoughts will be deleted—they stay on each person’s account.\n\n"
     . "This cannot be undone.";
 
+if ($isOwner) {
+    $groupRoleLabel = 'You’re the group admin';
+    $groupRoleHelper = 'You send invitations, review requests from members, and manage who’s in this group.';
+} else {
+    $groupRoleLabel = 'You’re a member';
+    $groupRoleHelper = 'You can ask the admin to invite someone new, or leave this group whenever you like.';
+}
+
 $pageTitle = (string) $groupRow['name'];
 $currentNav = 'groups';
 
@@ -97,6 +117,12 @@ require_once __DIR__ . '/header.php';
             <p class="sub-nav">
                 <a href="/groups.php">← Groups</a>
             </p>
+
+            <header class="group-detail-header detail-section">
+                <h1 class="group-detail-header__title"><?= e((string) $groupRow['name']) ?></h1>
+                <p class="group-detail-header__role"><?= e($groupRoleLabel) ?></p>
+                <p class="muted-note group-detail-header__helper"><?= e($groupRoleHelper) ?></p>
+            </header>
 
             <?php if ($created): ?>
                 <p class="flash" role="status">Group created.</p>
@@ -146,8 +172,104 @@ require_once __DIR__ . '/header.php';
                 <p class="flash flash--error" role="alert">You can’t leave while you’re the group admin.</p>
             <?php endif; ?>
 
-            <section class="detail-section">
-                <h2 class="detail-section__title">Members</h2>
+            <?php if ($isOwner): ?>
+                <section
+                    class="detail-section<?= $highlightInviteRequests ? ' detail-section--highlight' : '' ?>"
+                    aria-labelledby="invitations-requests-heading"
+                >
+                    <h2 id="invitations-requests-heading" class="detail-section__title">Invitations & requests</h2>
+
+                    <form class="note-form stack-top" method="post" action="/group_invite_send.php">
+                        <?php csrf_hidden_field(); ?>
+                        <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                        <label class="note-form__label" for="invite_email">Invite by email</label>
+                        <input
+                            id="invite_email"
+                            name="email"
+                            type="email"
+                            class="note-form__input"
+                            maxlength="255"
+                            autocomplete="email"
+                            placeholder="friend@example.com"
+                        >
+                        <button type="submit" class="btn btn--primary">Send invitation</button>
+                    </form>
+
+                    <div id="pending-invite-requests" class="group-invitations-stack">
+                        <h3 class="detail-section__subtitle">Pending invite requests</h3>
+                        <?php if (count($pendingInviteRequests) === 0): ?>
+                            <p class="empty-state">No pending requests from members.</p>
+                        <?php else: ?>
+                            <ul class="invite-request-list">
+                                <?php foreach ($pendingInviteRequests as $pr): ?>
+                                    <li class="invite-request-list__item">
+                                        <div class="invite-request-list__body">
+                                            <p class="invite-request-list__email"><?= e($pr['requested_email']) ?></p>
+                                            <p class="invite-request-list__meta">
+                                                Requested by <?= e($pr['requester_display_name']) ?>
+                                                · <?= e($pr['created_at']) ?>
+                                            </p>
+                                        </div>
+                                        <div class="invite-request-list__actions">
+                                            <form method="post" action="/group_invite_request_respond.php" class="inline-form-row">
+                                                <?php csrf_hidden_field(); ?>
+                                                <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                                                <input type="hidden" name="request_id" value="<?= (int) $pr['id'] ?>">
+                                                <input type="hidden" name="action" value="approve">
+                                                <button type="submit" class="btn btn--primary btn--small">Approve</button>
+                                            </form>
+                                            <form method="post" action="/group_invite_request_respond.php" class="inline-form-row">
+                                                <?php csrf_hidden_field(); ?>
+                                                <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                                                <input type="hidden" name="request_id" value="<?= (int) $pr['id'] ?>">
+                                                <input type="hidden" name="action" value="decline">
+                                                <button type="submit" class="btn btn--ghost btn--small">Ignore</button>
+                                            </form>
+                                        </div>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="group-invitations-stack">
+                        <h3 class="detail-section__subtitle">Pending invitations</h3>
+                        <?php if (count($pendingInvites) === 0): ?>
+                            <p class="empty-state">No pending invitations.</p>
+                        <?php else: ?>
+                            <ul class="invite-list">
+                                <?php foreach ($pendingInvites as $inv): ?>
+                                    <li class="invite-list__item"><?= e((string) $inv['email']) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php endif; ?>
+                    </div>
+                </section>
+            <?php else: ?>
+                <section class="detail-section" aria-labelledby="request-invite-heading">
+                    <h2 id="request-invite-heading" class="detail-section__title">Request invite</h2>
+                    <p class="muted-note">Ask the group admin to send an invitation. You won’t see the admin’s email address.</p>
+                    <form class="note-form stack-top" method="post" action="/group_invite_request_submit.php">
+                        <?php csrf_hidden_field(); ?>
+                        <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                        <label class="note-form__label" for="request_invite_email">Their email address</label>
+                        <input
+                            id="request_invite_email"
+                            name="email"
+                            type="email"
+                            class="note-form__input"
+                            maxlength="255"
+                            autocomplete="email"
+                            placeholder="friend@example.com"
+                            required
+                        >
+                        <button type="submit" class="btn btn--primary">Request invite</button>
+                    </form>
+                </section>
+            <?php endif; ?>
+
+            <section class="detail-section" aria-labelledby="members-heading">
+                <h2 id="members-heading" class="detail-section__title">Members</h2>
                 <?php if (count($members) === 0): ?>
                     <p class="empty-state">No members yet.</p>
                 <?php else: ?>
@@ -174,106 +296,8 @@ require_once __DIR__ . '/header.php';
             </section>
 
             <?php if (!$isOwner): ?>
-                <section class="detail-section">
-                    <h2 class="detail-section__title">Request invite</h2>
-                    <p class="muted-note">Ask the group admin to send an invitation. You won’t see the admin’s email address.</p>
-                    <form class="note-form stack-top" method="post" action="/group_invite_request_submit.php">
-                        <?php csrf_hidden_field(); ?>
-                        <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
-                        <label class="note-form__label" for="request_invite_email">Their email address</label>
-                        <input
-                            id="request_invite_email"
-                            name="email"
-                            type="email"
-                            class="note-form__input"
-                            maxlength="255"
-                            autocomplete="email"
-                            placeholder="friend@example.com"
-                            required
-                        >
-                        <button type="submit" class="btn btn--primary">Request invite</button>
-                    </form>
-                </section>
-            <?php endif; ?>
-
-            <?php if ($isOwner): ?>
-                <section
-                    id="pending-invite-requests"
-                    class="detail-section<?= $highlightInviteRequests ? ' detail-section--highlight' : '' ?>"
-                >
-                    <h2 class="detail-section__title">Pending invite requests</h2>
-                    <?php if (count($pendingInviteRequests) === 0): ?>
-                        <p class="empty-state">No pending requests from members.</p>
-                    <?php else: ?>
-                        <ul class="invite-request-list">
-                            <?php foreach ($pendingInviteRequests as $pr): ?>
-                                <li class="invite-request-list__item">
-                                    <div class="invite-request-list__body">
-                                        <p class="invite-request-list__email"><?= e($pr['requested_email']) ?></p>
-                                        <p class="invite-request-list__meta">
-                                            Requested by <?= e($pr['requester_display_name']) ?>
-                                            · <?= e($pr['created_at']) ?>
-                                        </p>
-                                    </div>
-                                    <div class="invite-request-list__actions">
-                                        <form method="post" action="/group_invite_request_respond.php" class="inline-form-row">
-                                            <?php csrf_hidden_field(); ?>
-                                            <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
-                                            <input type="hidden" name="request_id" value="<?= (int) $pr['id'] ?>">
-                                            <input type="hidden" name="action" value="approve">
-                                            <button type="submit" class="btn btn--primary btn--small">Approve</button>
-                                        </form>
-                                        <form method="post" action="/group_invite_request_respond.php" class="inline-form-row">
-                                            <?php csrf_hidden_field(); ?>
-                                            <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
-                                            <input type="hidden" name="request_id" value="<?= (int) $pr['id'] ?>">
-                                            <input type="hidden" name="action" value="decline">
-                                            <button type="submit" class="btn btn--ghost btn--small">Ignore</button>
-                                        </form>
-                                    </div>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                </section>
-
-                <section class="detail-section">
-                    <h2 class="detail-section__title">Pending invitations</h2>
-                    <?php if (count($pendingInvites) === 0): ?>
-                        <p class="empty-state">No pending invitations.</p>
-                    <?php else: ?>
-                        <ul class="invite-list">
-                            <?php foreach ($pendingInvites as $inv): ?>
-                                <li class="invite-list__item"><?= e((string) $inv['email']) ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-
-                    <form class="note-form stack-top" method="post" action="/group_invite_send.php">
-                        <?php csrf_hidden_field(); ?>
-                        <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
-                        <label class="note-form__label" for="invite_email">Invite by email</label>
-                        <input
-                            id="invite_email"
-                            name="email"
-                            type="email"
-                            class="note-form__input"
-                            maxlength="255"
-                            autocomplete="email"
-                            placeholder="friend@example.com"
-                        >
-                        <button type="submit" class="btn btn--primary">Send invitation</button>
-                    </form>
-                </section>
-            <?php endif; ?>
-
-            <section class="detail-section leave-group-section" aria-labelledby="leave-group-heading">
-                <h2 id="leave-group-heading" class="detail-section__title">Membership</h2>
-                <?php if ($isOwner): ?>
-                    <p class="muted-note leave-group-section__admin-note">
-                        You manage invites and membership for this group. Leaving isn’t available while you’re the only admin—ownership transfer isn’t supported yet.
-                    </p>
-                <?php else: ?>
+                <section class="detail-section leave-group-section" aria-labelledby="leave-group-heading">
+                    <h2 id="leave-group-heading" class="detail-section__title">Membership</h2>
                     <p class="muted-note">
                         Membership is voluntary. If you leave, you lose access to this group until someone invites you again.
                     </p>
@@ -290,25 +314,31 @@ require_once __DIR__ . '/header.php';
                             <a href="/groups.php" class="btn btn--ghost leave-group-form__cancel">Cancel</a>
                         </div>
                     </form>
-                <?php endif; ?>
-            </section>
+                </section>
+            <?php endif; ?>
 
             <?php if ($isOwner): ?>
-                <section class="detail-section delete-group-section" aria-labelledby="delete-group-heading">
-                    <h2 id="delete-group-heading" class="detail-section__title">Delete group</h2>
+                <section class="detail-section delete-group-section group-lifecycle-section" aria-labelledby="lifecycle-heading">
+                    <h2 id="lifecycle-heading" class="detail-section__title">Group lifecycle</h2>
                     <p class="muted-note">
-                        Remove this group for every member. Sharing through this group ends; notes and thoughts are not deleted.
+                        You manage invites and membership for this group. Leaving isn’t available while you’re the only admin—ownership transfer isn’t supported yet.
                     </p>
-                    <form
-                        class="delete-group-form stack-top"
-                        method="post"
-                        action="/group_delete.php"
-                        onsubmit='return confirm(<?= json_encode($deleteGroupConfirmMsg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>);'
-                    >
-                        <?php csrf_hidden_field(); ?>
-                        <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
-                        <button type="submit" class="btn btn--danger-fill">Delete group</button>
-                    </form>
+                    <div class="group-lifecycle-delete">
+                        <h3 class="detail-section__subtitle">Delete group</h3>
+                        <p class="muted-note">
+                            Remove this group for every member. Sharing through this group ends; notes and thoughts are not deleted.
+                        </p>
+                        <form
+                            class="delete-group-form stack-top"
+                            method="post"
+                            action="/group_delete.php"
+                            onsubmit='return confirm(<?= json_encode($deleteGroupConfirmMsg, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>);'
+                        >
+                            <?php csrf_hidden_field(); ?>
+                            <input type="hidden" name="group_id" value="<?= (int) $groupId ?>">
+                            <button type="submit" class="btn btn--danger-fill">Delete group</button>
+                        </form>
+                    </div>
                 </section>
             <?php endif; ?>
 
