@@ -41,7 +41,8 @@ function push_browser_test_post_json(string $url, string $jsonBody, string $cook
         ],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_TIMEOUT => 60,
+        CURLOPT_CONNECTTIMEOUT => 15,
+        CURLOPT_TIMEOUT => 45,
         CURLOPT_SSL_VERIFYPEER => true,
     ]);
     $body = curl_exec($ch);
@@ -61,25 +62,31 @@ function push_browser_test_absolute_base(): string
     return $scheme . '://' . $host;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['run_push_browser_test'] ?? '') === '1') {
+$formAction = htmlspecialchars($_SERVER['SCRIPT_NAME'] ?? '/debug/push_browser_test.php', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+$runPushBrowserTest = (string) ($_POST['run_push_browser_test'] ?? '') === '1'
+    || (string) ($_POST['run_push_browser_test_btn'] ?? '') === '1';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $runPushBrowserTest) {
     csrf_verify_post_or_abort();
 
-    $pdo = db();
-    $report = [];
-    $cookie = $_SERVER['HTTP_COOKIE'] ?? '';
-    $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'PushBrowserTest/1.0';
-    $base = push_browser_test_absolute_base();
-    $csrf = csrf_token();
+    try {
+        $pdo = db();
+        $report = [];
+        $cookie = $_SERVER['HTTP_COOKIE'] ?? '';
+        $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'PushBrowserTest/1.0';
+        $base = push_browser_test_absolute_base();
+        $csrf = csrf_token();
 
-    if ($cookie === '') {
-        $testReport = [
-            [
-                'label' => 'Prerequisite',
-                'pass' => false,
-                'detail' => 'No HTTP Cookie header — enable cookies for this site and try again.',
-            ],
-        ];
-    } else {
+        if ($cookie === '') {
+            $testReport = [
+                [
+                    'label' => 'Prerequisite',
+                    'pass' => false,
+                    'detail' => 'No HTTP Cookie header — enable cookies for this site and try again.',
+                ],
+            ];
+        } else {
         $countSubs = static function () use ($pdo, $userId): int {
             return count(push_subscription_list_for_user($pdo, $userId));
         };
@@ -180,8 +187,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['run_push_browser_test'] ??
             'detail' => 'Subscriptions for your account back to baseline count ' . $before . '.',
         ];
 
-        $testReport = $report;
+            $testReport = $report;
+        }
+    } catch (Throwable $e) {
+        error_log('push_browser_test: ' . $e->getMessage());
+        $testReport = [
+            [
+                'label' => 'Server error',
+                'pass' => false,
+                'detail' => $e->getMessage() . ' (' . $e->getFile() . ':' . $e->getLine() . ')',
+            ],
+        ];
     }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // POST reached this URL but our fields were missing (proxy strips body, wrong action, etc.)
+    $testReport = [
+        [
+            'label' => 'Form POST not recognized',
+            'pass' => false,
+            'detail' => 'This page received POST without run_push_browser_test=1. Try again from this URL, or check that the form posts to ' . ($formAction) . '.',
+        ],
+    ];
 }
 
 $pageTitle = 'Push endpoints test';
@@ -212,10 +238,10 @@ require_once dirname(__DIR__) . '/header.php';
                 </section>
             <?php endif; ?>
 
-            <form method="post" action="" style="margin-top: 1.25rem;">
+            <form method="post" action="<?= $formAction ?>" id="push-browser-test-form" style="margin-top: 1.25rem;">
                 <?php csrf_hidden_field(); ?>
                 <input type="hidden" name="run_push_browser_test" value="1">
-                <button type="submit" class="btn btn--primary">Run tests</button>
+                <button type="submit" name="run_push_browser_test_btn" value="1" class="btn btn--primary">Run tests</button>
             </form>
 
             <p class="empty-state" style="margin-top: 1.5rem;"><a href="/me.php">Back to Me</a></p>
