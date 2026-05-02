@@ -36,7 +36,9 @@ require_once __DIR__ . '/header.php';
                 <h2 class="policy-doc__h2">1. Who this applies to</h2>
                 <p>
                     This policy applies to visitors and registered users of the Service.
-                    We operate the Service to provide a personal gratitude journaling and optional social/group experience for adults and general audiences.
+                    We operate the Service to provide a personal gratitude journaling and optional social/group experience.
+                    The Service is <strong>intended for adults 18 years of age or older</strong>; see our
+                    <a href="/terms">Terms of Use</a> for eligibility.
                 </p>
 
                 <h2 class="policy-doc__h2">2. Information we collect</h2>
@@ -167,9 +169,11 @@ require_once __DIR__ . '/header.php';
 
                 <h2 class="policy-doc__h2">9. Children’s privacy</h2>
                 <p>
-                    The Service is <strong>not directed to children under 13</strong> (or the minimum age in your jurisdiction).
-                    We do not knowingly collect personal information from children.
-                    If you believe we have collected information from a child, contact us and we will take appropriate steps.
+                    The Service is <strong>intended for users who are 18 or older</strong> and is <strong>not directed at children</strong>.
+                    We do not knowingly collect personal information from anyone <strong>under 18</strong>.
+                    If you are under 18, do not use the Service or provide personal information to us.
+                    If you believe we have collected information from someone under 18, contact
+                    <a href="mailto:support@hillwork.com">support@hillwork.com</a> and we will take appropriate steps.
                 </p>
 
                 <h2 class="policy-doc__h2">10. International users</h2>
@@ -221,6 +225,7 @@ require_once __DIR__ . '/header.php';
                 <p class="policy-doc__footer-note">
                     This Privacy Policy is published at <a href="https://thank.hillwork.net/policy">https://thank.hillwork.net/policy</a>.
                 </p>
+                <p class="policy-doc__copyright">© 2026 Hillwork, LLC. All rights reserved.</p>
             </article>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

@@ -2,4 +2,5 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^policy/?$ policy.php [L,QSA]
+    RewriteRule ^terms/?$ terms.php [L,QSA]
 </IfModule>

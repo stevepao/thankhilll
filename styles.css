@@ -2069,3 +2069,10 @@ body {
     font-size: 0.9rem;
     color: var(--muted);
 }
+
+.policy-doc__copyright {
+    margin: 0.75rem 0 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+}

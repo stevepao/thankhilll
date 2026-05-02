@@ -41,6 +41,6 @@ require_once __DIR__ . '/header.php';
             <p>
                 <a class="btn btn--primary" href="/auth/email/login.php">Sign in with email</a>
             </p>
-            <p class="login-footnote"><a href="/policy">Privacy Policy</a></p>
+            <p class="login-footnote"><a href="/policy">Privacy Policy</a> · <a href="/terms">Terms of Use</a></p>
 
 <?php require_once __DIR__ . '/footer.php'; ?>
