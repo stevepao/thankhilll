@@ -12,7 +12,8 @@ $projectRoot = dirname(__DIR__);
 
 th_mcp_load_env($projectRoot . '/.env');
 
-if (!th_mcp_authorization_ok($projectRoot)) {
+$mcpUserId = th_mcp_authenticated_user_id($projectRoot);
+if ($mcpUserId === null) {
     th_mcp_respond_401();
 }
 
@@ -104,7 +105,46 @@ switch ($rpcMethod) {
         ]);
 
     case 'tools/list':
-        th_mcp_jsonrpc_success($id, ['tools' => []]);
+        th_mcp_jsonrpc_success($id, [
+            'tools' => [
+                th_mcp_tool_record_gratitude_definition(),
+                th_mcp_tool_list_recent_photos_definition(),
+                th_mcp_tool_export_notes_timeline_definition(),
+            ],
+        ]);
+
+    case 'tools/call':
+        $params = $payload['params'] ?? null;
+        if (!is_array($params)) {
+            th_mcp_jsonrpc_error_response($id, -32602, 'Invalid params');
+        }
+        $toolName = $params['name'] ?? null;
+        $toolArgs = $params['arguments'] ?? [];
+        if (!is_array($toolArgs)) {
+            $toolArgs = [];
+        }
+        if (!is_string($toolName) || $toolName === '') {
+            th_mcp_jsonrpc_error_response($id, -32602, 'Invalid params');
+        }
+        if ($toolName === 'record_gratitude') {
+            require_once __DIR__ . '/record_gratitude.php';
+            $pdo = db();
+            $run = th_mcp_record_gratitude_run($pdo, $mcpUserId, $toolArgs);
+            th_mcp_tool_result($id, $run['text'], $run['is_error']);
+        }
+        if ($toolName === 'list_recent_photos') {
+            require_once __DIR__ . '/list_recent_photos.php';
+            $pdo = db();
+            $run = th_mcp_list_recent_photos_run($pdo, $mcpUserId, $toolArgs);
+            th_mcp_tool_result($id, $run['text'], $run['is_error']);
+        }
+        if ($toolName === 'export_notes_timeline') {
+            require_once __DIR__ . '/export_notes_timeline.php';
+            $pdo = db();
+            $run = th_mcp_export_notes_timeline_run($pdo, $mcpUserId, $toolArgs);
+            th_mcp_tool_result($id, $run['text'], $run['is_error']);
+        }
+        th_mcp_tool_result($id, 'Unknown or unsupported tool.', true);
 
     default:
         th_mcp_jsonrpc_error_response($id, -32601, 'Method not implemented');
@@ -174,20 +214,116 @@ function th_mcp_jsonrpc_error_response(string|int|float|null $id, int $code, str
     exit;
 }
 
-function th_mcp_authorization_ok(string $projectRoot): bool
+function th_mcp_authenticated_user_id(string $projectRoot): ?int
 {
     $raw = th_mcp_authorization_header_raw();
     if ($raw === '' || !preg_match('/^\s*Bearer\s+(\S+)\s*$/i', $raw, $m)) {
-        return false;
+        return null;
     }
 
     try {
         $pdo = th_mcp_pdo_from_env($projectRoot);
     } catch (Throwable) {
-        return false;
+        return null;
     }
 
-    return th_mcp_resolve_bearer_user_id($pdo, $m[1]) !== null;
+    return th_mcp_resolve_bearer_user_id($pdo, $m[1]);
+}
+
+/**
+ * @return never
+ */
+function th_mcp_tool_result(string|int|float|null $id, string $text, bool $isError): void
+{
+    th_mcp_jsonrpc_success($id, [
+        'content' => [
+            [
+                'type' => 'text',
+                'text' => $text,
+            ],
+        ],
+        'isError' => $isError,
+    ]);
+}
+
+/**
+ * @return array{name:string,description:string,inputSchema:array<string,mixed>}
+ */
+function th_mcp_tool_export_notes_timeline_definition(): array
+{
+    return [
+        'name' => 'export_notes_timeline',
+        'description' => 'Export a timeline of notes activity for a date range visible to the authenticated user.',
+        'inputSchema' => [
+            'type' => 'object',
+            'properties' => [
+                'from' => [
+                    'type' => 'string',
+                    'description' => 'YYYY-MM-DD (inclusive)',
+                ],
+                'to' => [
+                    'type' => 'string',
+                    'description' => 'YYYY-MM-DD (inclusive)',
+                ],
+                'include_view_urls' => [
+                    'type' => 'boolean',
+                    'description' => 'Include signed view URLs for photos (default true)',
+                ],
+            ],
+            'required' => ['from', 'to'],
+        ],
+    ];
+}
+
+function th_mcp_tool_list_recent_photos_definition(): array
+{
+    return [
+        'name' => 'list_recent_photos',
+        'description' => 'List recent photos owned by the authenticated user, returning signed view URLs.',
+        'inputSchema' => [
+            'type' => 'object',
+            'properties' => [
+                'limit' => [
+                    'type' => 'integer',
+                    'minimum' => 1,
+                    'maximum' => 50,
+                    'description' => 'How many photos to return (default 10)',
+                ],
+                'since' => [
+                    'type' => 'string',
+                    'description' => 'Optional ISO date/time; return photos created at/after this (optional)',
+                ],
+            ],
+            'required' => [],
+        ],
+    ];
+}
+
+function th_mcp_tool_record_gratitude_definition(): array
+{
+    return [
+        'name' => 'record_gratitude',
+        'description' => 'Record gratitude text and/or attach existing photos to your daily note for a calendar day.',
+        'inputSchema' => [
+            'type' => 'object',
+            'properties' => [
+                'text' => [
+                    'type' => 'string',
+                    'description' => 'Gratitude text to record (optional if photos provided)',
+                ],
+                'date' => [
+                    'type' => 'string',
+                    'description' => 'YYYY-MM-DD (optional; defaults to today)',
+                ],
+                'photo_ids' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'string'],
+                    'description' => 'Optional photo identifiers to attach',
+                ],
+            ],
+            'required' => [],
+        ],
+    ];
 }
 
 function th_mcp_authorization_header_raw(): string
