@@ -11,10 +11,10 @@ require_once dirname(__DIR__) . '/includes/push_subscription_repository.php';
 require_once dirname(__DIR__) . '/includes/app_url.php';
 
 /**
- * Evening window: local clock hour must be >= this value (24-hour). Intentionally fixed here;
- * no user-facing picker yet.
+ * Evening window: local clock hour must be >= this value (24-hour), i.e. from 6:00 PM local onward.
+ * Intentionally fixed here; no user-facing picker yet.
  */
-const DAILY_GRATITUDE_REMINDER_EVENING_LOCAL_HOUR_MIN = 20;
+const DAILY_GRATITUDE_REMINDER_EVENING_LOCAL_HOUR_MIN = 18;
 
 const DAILY_GRATITUDE_REMINDER_TITLE = 'A moment for gratitude';
 const DAILY_GRATITUDE_REMINDER_BODY = 'Take a moment to write something you\'re grateful for today.';
