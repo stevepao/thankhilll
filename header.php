@@ -3,7 +3,7 @@
  * header.php — Opening HTML, viewport meta, and shared layout shell.
  *
  * Expects before include:
- *   $pageTitle (string) — used in <title>
+ *   $pageTitle (string) — main heading (top bar); document <title> is fixed to Thankhill for PWA identity
  *   $currentNav (string) — 'today' | 'notes' | 'groups' | 'me' for bottom nav active state (set in footer)
  */
 declare(strict_types=1);
@@ -24,9 +24,15 @@ if ($headerUser !== null) {
 <!DOCTYPE html>
 <html lang="en"<?= $htmlUserTzAttr ?>>
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?= e($pageTitle) ?> — Gratitude</title>
+    <title>Thankhill</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2d6a4f">
+    <link rel="icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="stylesheet" href="<?= e(asset_url('/styles.css')) ?>">
 </head>
 <body>
