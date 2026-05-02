@@ -1,6 +1,9 @@
 # Pretty URL for privacy policy (requires AllowOverride / mod_rewrite).
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    # PHP/CGI often does not receive Authorization unless forwarded into HTTP_AUTHORIZATION.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
     RewriteRule ^policy/?$ policy.php [L,QSA]
     RewriteRule ^terms/?$ terms.php [L,QSA]
     # Pretty MCP URL (leading slash helps some hosts); /mcp/.htaccess disables MultiViews (406 fix).

@@ -67,10 +67,48 @@ function mcp_http_content_type_json(string $contentType): bool
     return preg_match('#^application/json\b#i', $contentType) === 1;
 }
 
+/**
+ * Raw Authorization header. Apache/CGI often omits $_SERVER['HTTP_AUTHORIZATION']; rely on
+ * REDIRECT_*, apache_request_headers(), or root .htaccess forwarding HTTP_AUTHORIZATION.
+ */
+function mcp_http_authorization_header_raw(): string
+{
+    $candidates = [
+        $_SERVER['HTTP_AUTHORIZATION'] ?? null,
+        $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null,
+    ];
+    foreach ($candidates as $v) {
+        if (is_string($v) && $v !== '') {
+            return $v;
+        }
+    }
+
+    if (function_exists('apache_request_headers')) {
+        foreach (apache_request_headers() as $name => $value) {
+            if (strcasecmp((string) $name, 'Authorization') === 0 && is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+    }
+
+    if (function_exists('getallheaders')) {
+        $headers = getallheaders();
+        if (is_array($headers)) {
+            foreach ($headers as $name => $value) {
+                if (strcasecmp((string) $name, 'Authorization') === 0 && is_string($value) && $value !== '') {
+                    return $value;
+                }
+            }
+        }
+    }
+
+    return '';
+}
+
 function mcp_http_parse_bearer(): ?string
 {
-    $h = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    if (!is_string($h)) {
+    $h = mcp_http_authorization_header_raw();
+    if ($h === '') {
         return null;
     }
     if (preg_match('/^\s*Bearer\s+(\S+)\s*$/i', $h, $m) !== 1) {
