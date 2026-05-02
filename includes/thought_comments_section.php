@@ -23,7 +23,9 @@ $thoughtCommentsIconOnlyComposer = $thoughtCommentsIconOnlyComposer ?? false;
 /** @var string $viewerTz */
 $viewerTz = isset($viewerTz) && is_string($viewerTz) ? $viewerTz : 'UTC';
 
-$showClosedHint = !$canPostComment && $comments === [];
+if (!$canPostComment && $comments === []) {
+    return;
+}
 ?>
                     <div class="thought-comments" id="thought-comments-<?= (int) $thoughtId ?>">
                         <?php if ($comments !== []): ?>
@@ -86,9 +88,5 @@ $showClosedHint = !$canPostComment && $comments === [];
                                     <button type="submit" class="btn btn--ghost thought-comments__submit">Post</button>
                                 </form>
                             </details>
-                        <?php elseif ($showClosedHint): ?>
-                            <p class="thought-comments__closed-hint share-fieldset__hint">
-                                Comments can be added on the same calendar day as this moment, or within 24 hours after it was posted.
-                            </p>
                         <?php endif; ?>
                     </div>

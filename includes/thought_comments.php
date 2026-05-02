@@ -43,6 +43,44 @@ function thought_comment_post_window_open(string $thoughtCreatedAtUtc, string $v
     return $sameCalendarDay || $within24h;
 }
 
+/** Normalize notes.entry_date (DATE or datetime string) to Y-m-d. */
+function thought_comment_note_entry_ymd(?string $raw): ?string
+{
+    if ($raw === null) {
+        return null;
+    }
+    $t = trim($raw);
+    if ($t === '') {
+        return null;
+    }
+    if (strlen($t) >= 10) {
+        $t = substr($t, 0, 10);
+    }
+
+    return preg_match('/^\d{4}-\d{2}-\d{2}$/', $t) === 1 ? $t : null;
+}
+
+/**
+ * Server/client gate for posting: usual same-day / 24h window around thought created_at, or the parent
+ * note's calendar entry matches the viewer's local today (so Today's note stays commentable even when a
+ * moment's created_at falls on the prior local day).
+ */
+function thought_comment_post_allowed(
+    string $thoughtCreatedAtUtc,
+    string $viewerTz,
+    ?string $noteEntryDateRaw = null,
+): bool {
+    if (thought_comment_post_window_open($thoughtCreatedAtUtc, $viewerTz)) {
+        return true;
+    }
+    $entryYmd = thought_comment_note_entry_ymd($noteEntryDateRaw);
+    if ($entryYmd === null) {
+        return false;
+    }
+
+    return $entryYmd === user_local_today_ymd($viewerTz);
+}
+
 /** Delete allowed only on the viewer's current local calendar day when the comment was created. */
 function thought_comment_delete_window_open(string $commentCreatedAtUtc, string $viewerTz): bool
 {
@@ -177,7 +215,7 @@ function thought_comments_grouped_by_thought(PDO $pdo, array $thoughtIds): array
 }
 
 /**
- * @return array{thought_id:int,note_id:int,is_private:bool,thought_created_at:string}|null
+ * @return array{thought_id:int,note_id:int,is_private:bool,thought_created_at:string,note_entry_date:string}|null
  */
 function thought_comment_row_meta(PDO $pdo, int $thoughtId): ?array
 {
@@ -190,8 +228,10 @@ function thought_comment_row_meta(PDO $pdo, int $thoughtId): ?array
         SELECT t.id AS thought_id,
                t.note_id,
                t.is_private,
-               t.created_at AS thought_created_at
+               t.created_at AS thought_created_at,
+               n.entry_date AS note_entry_date
         FROM note_thoughts t
+        INNER JOIN notes n ON n.id = t.note_id
         WHERE t.id = ?
         LIMIT 1
         SQL
@@ -207,6 +247,7 @@ function thought_comment_row_meta(PDO $pdo, int $thoughtId): ?array
         'note_id' => (int) $row['note_id'],
         'is_private' => ((int) $row['is_private']) === 1,
         'thought_created_at' => (string) $row['thought_created_at'],
+        'note_entry_date' => (string) $row['note_entry_date'],
     ];
 }
 

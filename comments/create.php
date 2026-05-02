@@ -43,7 +43,7 @@ if ($meta['is_private'] || !note_is_shared_with_any_group($pdo, $meta['note_id']
     $failRedirect();
 }
 
-if (!thought_comment_post_window_open($meta['thought_created_at'], $viewerTz)) {
+if (!thought_comment_post_allowed($meta['thought_created_at'], $viewerTz, $meta['note_entry_date'] ?? null)) {
     $failRedirect();
 }
 
@@ -63,7 +63,7 @@ try {
 
     $meta2 = thought_comment_row_meta($pdo, $thoughtId);
     if ($meta2 === null || $meta2['is_private'] || !note_is_shared_with_any_group($pdo, $meta2['note_id'])
-        || !thought_comment_post_window_open($meta2['thought_created_at'], $viewerTz)) {
+        || !thought_comment_post_allowed($meta2['thought_created_at'], $viewerTz, $meta2['note_entry_date'] ?? null)) {
         $pdo->rollBack();
         $failRedirect();
     }

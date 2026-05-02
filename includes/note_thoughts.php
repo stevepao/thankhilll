@@ -20,7 +20,7 @@ function parse_thought_is_private_from_post(array $post): bool
 /**
  * Thoughts visible to the viewer: authors see all rows; others omit private thoughts.
  *
- * @return array<int, list<array{id:int,note_id:int,body:string,created_at:string,is_private:bool}>>
+ * @return array<int, list<array{id:int,note_id:int,body:string,created_at:string,is_private:bool,entry_date:string}>>
  */
 function note_thoughts_grouped_by_note(PDO $pdo, array $noteIds, int $viewerUserId): array
 {
@@ -31,7 +31,7 @@ function note_thoughts_grouped_by_note(PDO $pdo, array $noteIds, int $viewerUser
 
     $placeholders = implode(',', array_fill(0, count($noteIds), '?'));
     $sql = <<<SQL
-        SELECT t.id, t.note_id, t.body, t.is_private, t.created_at
+        SELECT t.id, t.note_id, t.body, t.is_private, t.created_at, n.entry_date
         FROM note_thoughts t
         INNER JOIN notes n ON n.id = t.note_id
         WHERE t.note_id IN ($placeholders)
@@ -54,6 +54,7 @@ function note_thoughts_grouped_by_note(PDO $pdo, array $noteIds, int $viewerUser
             'body' => (string) $row['body'],
             'created_at' => (string) $row['created_at'],
             'is_private' => (bool) (int) $row['is_private'],
+            'entry_date' => (string) $row['entry_date'],
         ];
     }
 

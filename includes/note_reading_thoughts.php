@@ -14,7 +14,7 @@ require_once __DIR__ . '/user_timezone.php';
 /**
  * One thought: thought-block markup matching note detail behavior.
  *
- * @param array{id:int,body:string,created_at:string,is_private:bool} $th
+ * @param array{id:int,body:string,created_at:string,is_private:bool,entry_date?:string} $th
  * @param list<array{emoji:string,count:int,reacted_by_me?:bool}> $thoughtReactions
  * @param list<array{id:int,user_id:int,body:string,created_at:string,display_name:string}> $thoughtCommentsList
  * @param array{can_edit?:bool}|null $todayExtras When set (Today — Yours), may render edit/delete controls in meta row.
@@ -99,7 +99,7 @@ function note_reading_render_thought_block(
 /**
  * Full list of thoughts for a note (same structure as note detail).
  *
- * @param list<array{id:int,note_id:int,body:string,created_at:string,is_private:bool}> $thoughts
+ * @param list<array{id:int,note_id:int,body:string,created_at:string,is_private:bool,entry_date?:string}> $thoughts
  * @param array<int, list<array{emoji:string,count:int,reacted_by_me?:bool}>> $thoughtReactionMap
  * @param array<int, list<array{id:int,user_id:int,body:string,created_at:string,display_name:string}>> $thoughtCommentsMap
  */
@@ -122,7 +122,8 @@ function note_reading_render_thoughts_list(
                         $thoughtReactions = $thoughtReactionMap[$tid] ?? [];
                         $showThoughtComments = !$th['is_private'] && $noteSharedWithGroup;
                         $thoughtCommentsList = $thoughtCommentsMap[$tid] ?? [];
-                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at'], $viewerTz);
+                        $noteEntry = isset($th['entry_date']) && is_string($th['entry_date']) ? $th['entry_date'] : null;
+                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_allowed($th['created_at'], $viewerTz, $noteEntry);
                         ?>
                         <li class="note-detail__thought">
                             <?php

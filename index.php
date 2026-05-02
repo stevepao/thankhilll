@@ -823,7 +823,8 @@ require_once __DIR__ . '/header.php';
                                         $thoughtReactions = $todayThoughtReactionMap[$tid] ?? [];
                                         $showThoughtComments = !$th['is_private'] && $todayNoteSharedWithGroup;
                                         $thoughtCommentsList = $thoughtCommentsMap[$tid] ?? [];
-                                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_window_open($th['created_at'], $userTimezone);
+                                        $noteEntryToday = isset($th['entry_date']) && is_string($th['entry_date']) ? $th['entry_date'] : null;
+                                        $canPostThoughtComment = $showThoughtComments && thought_comment_post_allowed($th['created_at'], $userTimezone, $noteEntryToday);
                                         ?>
                                         <li class="today-thought" data-thought-id="<?= $tid ?>">
                                             <div class="today-thought-readonly" <?= $showThisThoughtEdit ? 'hidden' : '' ?>>

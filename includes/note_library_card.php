@@ -11,7 +11,7 @@ require_once __DIR__ . '/note_reading_thoughts.php';
 
 /**
  * @param array{id:int,entry_date:string,user_id:int,author_name?:string,shared_group_names?:string|null} $noteRow
- * @param list<array{id:int,note_id:int,body:string,created_at:string,is_private:bool}> $thoughtRows
+ * @param list<array{id:int,note_id:int,body:string,created_at:string,is_private:bool,entry_date:string}> $thoughtRows
  * @param list<array{id:int,width:int,height:int}> $thumbs
  * @param array<int, list<array{emoji:string,count:int,reacted_by_me:bool}>> $reactionByThoughtMap
  * @param array<int, list<array{id:int,user_id:int,body:string,created_at:string,display_name:string}>> $thoughtCommentsMap
