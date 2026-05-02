@@ -14,8 +14,22 @@ require_once dirname(__DIR__) . '/header.php';
 
             <article class="public-home">
                 <header class="public-home__hero">
+                    <img
+                        class="public-home__logo"
+                        src="<?= e(asset_url('/icons/icon-192.png')) ?>"
+                        width="72"
+                        height="72"
+                        alt="Thankhill"
+                        decoding="async"
+                    >
                     <p class="public-home__brand">Thankhill</p>
-                    <p class="public-home__tagline">A gratitude journal for everyday life.</p>
+                    <p class="public-home__tagline">
+                        Life moves fast—Thankhill is a quiet pause to notice what you’re grateful for, big or small.
+                    </p>
+                    <p class="public-home__tagline public-home__tagline--secondary">
+                        It’s a gentle daily journal in your browser: one note per calendar day, thoughts as you go,
+                        photos optional, and sharing only with groups you choose.
+                    </p>
                 </header>
 
                 <section class="public-home__section" aria-labelledby="public-home-purpose-heading">
