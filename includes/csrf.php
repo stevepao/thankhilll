@@ -88,3 +88,27 @@ function csrf_verify_json_or_header_or_abort(): void
         exit;
     }
 }
+
+/**
+ * Same as csrf_verify_json_or_header_or_abort when JSON was already parsed from php://input
+ * (so the raw stream must not be read twice).
+ *
+ * @param array<string, mixed>|null $decoded
+ */
+function csrf_verify_decoded_json_or_header_or_abort(?array $decoded): void
+{
+    $token = '';
+    if (is_array($decoded) && isset($decoded['csrf_token']) && is_string($decoded['csrf_token'])) {
+        $token = $decoded['csrf_token'];
+    }
+    if ($token === '') {
+        $h = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        $token = is_string($h) ? $h : '';
+    }
+    if ($token === '' || !csrf_validate($token)) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=UTF-8');
+        echo json_encode(['ok' => false, 'error' => 'csrf']);
+        exit;
+    }
+}

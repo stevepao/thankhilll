@@ -1,0 +1,13 @@
+# Pretty URLs for push infrastructure (Apache mod_rewrite).
+# Without mod_rewrite, use:
+#   /push/vapid-public-key.php
+#   /push/subscribe.php
+#   /push/unsubscribe.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /push/
+    RewriteRule ^vapid-public-key$ vapid-public-key.php [L]
+    RewriteRule ^subscribe$ subscribe.php [L]
+    RewriteRule ^unsubscribe$ unsubscribe.php [L]
+</IfModule>

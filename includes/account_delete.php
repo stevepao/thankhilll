@@ -84,6 +84,8 @@ function account_delete_collect_otp_emails(PDO $pdo, int $userId): array
 /**
  * Hard-delete the user and all attributable rows. Groups are kept; owners become NULL via FK.
  * Idempotent if the user row is already gone.
+ *
+ * push_subscriptions and user_notification_prefs are removed via FK CASCADE on users.id.
  */
 function account_delete_user_completely(PDO $pdo, int $userId): bool
 {

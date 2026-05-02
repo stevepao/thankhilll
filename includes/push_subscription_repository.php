@@ -119,6 +119,22 @@ function push_subscription_delete_by_id(PDO $pdo, int $userId, int $subscription
     return $stmt->execute([$subscriptionId, $userId]) && $stmt->rowCount() > 0;
 }
 
+/**
+ * Remove one subscription by opaque endpoint URL (scoped to user). Endpoint must match stored URL exactly.
+ */
+function push_subscription_delete_by_endpoint_for_user(PDO $pdo, int $userId, string $endpointUrl): void
+{
+    if ($userId <= 0 || $endpointUrl === '') {
+        return;
+    }
+
+    $hash = push_subscription_endpoint_hash($endpointUrl);
+    $stmt = $pdo->prepare(
+        'DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint_hash = ?'
+    );
+    $stmt->execute([$userId, $hash]);
+}
+
 function push_subscription_delete_all_for_user(PDO $pdo, int $userId): int
 {
     if ($userId <= 0) {

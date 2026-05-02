@@ -6,6 +6,8 @@
  */
 declare(strict_types=1);
 
+require_once __DIR__ . '/push_opt_out.php';
+
 /**
  * @return array{
  *   push_enabled: bool,
@@ -90,6 +92,14 @@ function user_notification_prefs_save(
         $pushRemindersEnabled ? 1 : 0,
         $pushCommentRepliesEnabled ? 1 : 0,
     ]);
+
+    push_subscriptions_remove_if_all_prefs_disabled(
+        $pdo,
+        $userId,
+        $pushEnabled,
+        $pushRemindersEnabled,
+        $pushCommentRepliesEnabled
+    );
 }
 
 /**
