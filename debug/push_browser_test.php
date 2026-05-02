@@ -2,7 +2,9 @@
 /**
  * debug/push_browser_test.php — Run push subscribe/unsubscribe endpoint checks in the browser (logged-in only).
  *
- * Uses your current session (no CLI). Does not send push notifications.
+ * Uses your current session (no CLI). After subscribe/unsubscribe checks, exercises PushService
+ * (minishlink/web-push) queue path only — leave PUSH_SENDING_ENABLED unset/false so fake test
+ * endpoints are never POSTed.
  * Removes only the test subscription rows it creates. Safe for production if you trust logged-in users.
  *
  * Delete this file when you no longer need it.
@@ -12,6 +14,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/auth.php';
 require_once dirname(__DIR__) . '/includes/csrf.php';
 require_once dirname(__DIR__) . '/includes/push_subscription_repository.php';
+require_once dirname(__DIR__) . '/includes/PushService.php';
 
 $userId = require_login();
 
@@ -179,6 +182,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $runPushBrowserTest) {
             'detail' => 'HTTP ' . $c5,
         ];
 
+        $libRows = push_subscription_list_for_user($pdo, $userId);
+        $libResult = push_service_queue_and_flush($libRows);
+        $libJson = json_encode($libResult, JSON_UNESCAPED_SLASHES);
+        $libDetail = is_string($libJson)
+            ? (strlen($libJson) > 240 ? substr($libJson, 0, 240) . '…' : $libJson)
+            : '(encode error)';
+        $report[] = [
+            'label' => 'PushService queue (minishlink); no browser delivery asserted',
+            'pass' => push_service_diagnostic_result_acceptable($libResult, 1),
+            'detail' => $libDetail,
+        ];
+
         push_subscription_delete_by_endpoint_for_user($pdo, $userId, $endpoint);
         $afterCleanup = $countSubs();
         $report[] = [
@@ -218,8 +233,9 @@ require_once dirname(__DIR__) . '/header.php';
 ?>
 
             <p class="email-auth__hint">
-                This page calls <code>/push/subscribe.php</code> and <code>/push/unsubscribe.php</code> using your current login.
-                It does not send push notifications. It adds one temporary subscription, then removes it so your account returns to the same number of saved devices as before.
+                This page calls <code>/push/subscribe.php</code> and <code>/push/unsubscribe.php</code> using your current login,
+                then runs <code>PushService</code> (library queue only if VAPID is configured). Keep
+                <code>PUSH_SENDING_ENABLED</code> unset or false so test endpoints are not contacted over HTTP.
             </p>
 
             <?php if ($testReport !== null): ?>

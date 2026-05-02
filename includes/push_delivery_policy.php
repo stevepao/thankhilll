@@ -4,6 +4,9 @@
  *
  * Do not send a push unless the user has turned push on and at least one subscription row exists.
  * Callers that target reminder/reply channels must also check the relevant pref flags.
+ *
+ * Actual delivery must go through includes/PushService.php (minishlink/web-push only — no custom
+ * VAPID/JWT, encryption, or raw POSTs to push endpoints).
  */
 declare(strict_types=1);
 

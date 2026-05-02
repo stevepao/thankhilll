@@ -24,6 +24,7 @@ if (!is_readable($autoload)) {
 
 require_once $root . '/db.php';
 require_once $root . '/includes/push_subscription_repository.php';
+require_once $root . '/includes/PushService.php';
 
 loadEnv();
 
@@ -197,6 +198,21 @@ try {
             ? ["count still {$cnt3}", "same id {$id1b}", 'p256dh updated on duplicate']
             : ["count {$cnt3} (expected 2)", "id repeat {$id1} vs {$id1b}"]
     );
+
+    $libSubOk = false;
+    $libSubLines = [];
+    if (is_array($row1)) {
+        try {
+            $subObj = push_service_subscription_from_row($row1);
+            $libSubOk = $subObj->getEndpoint() === $ep1;
+            $libSubLines = $libSubOk ? ['endpoint matches stored URL'] : ['endpoint mismatch'];
+        } catch (Throwable $e) {
+            $libSubLines = [$e->getMessage()];
+        }
+    } else {
+        $libSubLines = ['expected row for ep1 after upsert'];
+    }
+    out_step('minishlink Subscription from DB row (opaque keys)', $libSubOk, $libSubLines);
 
     $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([$userId]);
 

@@ -6,7 +6,8 @@
  * Requires HTTP reachable at THANKHILL_BASE_URL where **web** PHP uses the **same**
  * session.save_path as this CLI (THANKHILL_SESSION_SAVE_PATH). Otherwise Cookie PHPSESSID
  * points at files the web worker never reads → 401 unauthenticated.
- * Does not send push notifications.
+ * Does not send push notifications. After step 5, runs PushService queue diagnostics (keep
+ * PUSH_SENDING_ENABLED unset so fake endpoints are not POSTed).
  *
  * Usage:
  *   export THANKHILL_BASE_URL=http://127.0.0.1:8080
@@ -36,6 +37,8 @@ require_once $root . '/db.php';
 require_once $root . '/auth.php';
 require_once $root . '/includes/csrf.php';
 require_once $root . '/includes/user_notification_prefs_repository.php';
+require_once $root . '/includes/push_subscription_repository.php';
+require_once $root . '/includes/PushService.php';
 
 loadEnv();
 
@@ -268,6 +271,12 @@ $ok5 = $code5 === 200 && str_contains($body5, '"ok":true') && $n5 === 1;
 echo '[step 5] POST subscribe (re-create subscription) — HTTP ' . $code5 . ($ok5 ? ' PASS' : ' FAIL') . "\n";
 echo "[count] push_subscriptions for user: {$n5}\n\n";
 
+$libRows = push_subscription_list_for_user($pdo, $userId);
+$libResult = push_service_queue_and_flush($libRows);
+$okLib = push_service_diagnostic_result_acceptable($libResult, 1);
+echo '[step 5b] PushService queue (minishlink) — ' . ($okLib ? 'PASS' : 'FAIL') . "\n";
+echo '        ' . json_encode($libResult, JSON_UNESCAPED_SLASHES) . "\n\n";
+
 user_notification_prefs_save($pdo, $userId, false, false, false);
 $n6 = push_test_count_subs($pdo, $userId);
 $ok6 = $n6 === 0;
@@ -277,7 +286,7 @@ echo "[count] push_subscriptions for user: {$n6}\n\n";
 $globalCount = (int) $pdo->query('SELECT COUNT(*) FROM push_subscriptions')->fetchColumn();
 echo "Final push_subscriptions row count (full table): {$globalCount}\n";
 
-$exitCode = ($ok1 && $ok2 && $ok3 && $ok4 && $ok5 && $ok6) ? 0 : 1;
+$exitCode = ($ok1 && $ok2 && $ok3 && $ok4 && $ok5 && $okLib && $ok6) ? 0 : 1;
 if ($exitCode !== 0) {
     echo "\nFAIL: One or more steps failed.\n";
 }
