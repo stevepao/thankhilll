@@ -1,0 +1,9 @@
+# Prevent Apache MultiViews from treating "v1" as negotiated content (406 Not Acceptable + variant list).
+<IfModule mod_negotiation.c>
+    Options -MultiViews
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^v1/?$ v1.php [L,QSA]
+</IfModule>

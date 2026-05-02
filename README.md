@@ -81,7 +81,7 @@ This README reflects the product **as of early development / alpha**. Features a
 
 ### URL rewrites (production)
 
-The repo includes an **`.htaccess`** example mapping **`/policy`** → `policy.php`, **`/terms`** → `terms.php`, **`/mcp/v1`** → **`mcp/v1.php`** (Streamable HTTP MCP adapter; Bearer auth), and internal MCP routes under **`/internal/mcp/`**. Configure the equivalent on **nginx** if you do not use Apache.
+The repo includes an **`.htaccess`** example mapping **`/policy`** → `policy.php`, **`/terms`** → `terms.php`, **`/mcp/v1`** → **`mcp/v1.php`** (Streamable HTTP MCP adapter; Bearer auth), and internal MCP routes under **`/internal/mcp/`**. The **`mcp/.htaccess`** file turns off **MultiViews** for that folder so **`/mcp/v1`** is not handled as content negotiation (which otherwise yields **406** on some Apache hosts). Configure the equivalent on **nginx** if you do not use Apache.
 
 **Internal MCP token API** (not linked in the UI): see **`internal/README.md`** after applying migration **`002_mcp_access_tokens.sql`** (`php bin/migrate.php`). Issue tokens there, then call **`/mcp/v1`** over **HTTPS** (`X-Forwarded-Proto=https` behind a proxy) with **`Authorization: Bearer …`**. Clients sending **`Origin`** must match **`MCP_ALLOWED_ORIGINS`**; clients omitting **`Origin`** must send **`Host: MCP_PUBLIC_HOST`**. **`POST`**: **`Accept`** includes **`application/json`** (may also list **`text/event-stream`**); **`GET`**: minimal **`text/event-stream`** response — see **`includes/mcp_streamable_http.php`**. The PHP built-in **`php -S` server is HTTP-only**, so **`/mcp/v1`** returns **403** there unless you terminate TLS in front (e.g. **Caddy**/nginx) and forward **`X-Forwarded-Proto: https`**.
 
