@@ -39,6 +39,26 @@ function loadEnv(): void
 }
 
 /**
+ * Read a string env value after loadEnv(). Uses getenv() if the key is missing from $_ENV — some
+ * PHP builds use variables_order without "E", leaving $_ENV empty while Dotenv still sets getenv().
+ */
+function env_var(string $key, string $default = ''): string
+{
+    loadEnv();
+
+    if (array_key_exists($key, $_ENV) && is_string($_ENV[$key])) {
+        return trim($_ENV[$key]);
+    }
+
+    $g = getenv($key);
+    if ($g !== false) {
+        return trim((string) $g);
+    }
+
+    return $default;
+}
+
+/**
  * Returns a singleton PDO instance for the whole request.
  */
 function db(): PDO

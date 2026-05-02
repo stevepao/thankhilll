@@ -75,9 +75,9 @@ function push_service_vapid_configured(): bool
     }
     loadEnv();
 
-    $pub = trim((string) ($_ENV['VAPID_PUBLIC_KEY'] ?? ''));
-    $priv = trim((string) ($_ENV['VAPID_PRIVATE_KEY'] ?? ''));
-    $sub = trim((string) ($_ENV['VAPID_SUBJECT'] ?? ''));
+    $pub = env_var('VAPID_PUBLIC_KEY');
+    $priv = env_var('VAPID_PRIVATE_KEY');
+    $sub = env_var('VAPID_SUBJECT');
 
     return $pub !== '' && $priv !== '' && $sub !== '';
 }
@@ -96,9 +96,9 @@ function push_service_vapid_auth(): array
 
     return [
         'VAPID' => [
-            'subject' => trim((string) ($_ENV['VAPID_SUBJECT'] ?? '')),
-            'publicKey' => trim((string) ($_ENV['VAPID_PUBLIC_KEY'] ?? '')),
-            'privateKey' => trim((string) ($_ENV['VAPID_PRIVATE_KEY'] ?? '')),
+            'subject' => env_var('VAPID_SUBJECT'),
+            'publicKey' => env_var('VAPID_PUBLIC_KEY'),
+            'privateKey' => env_var('VAPID_PRIVATE_KEY'),
         ],
     ];
 }

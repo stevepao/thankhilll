@@ -195,10 +195,11 @@ echo '[diag] That file exists on disk: ' . ($sessOk ? 'yes' : 'no') . "\n";
 echo "[diag] Web PHP must use this same session.save_path or requests stay logged out (401).\n\n";
 
 $endpoint = 'https://fcm.googleapis.com/fcm/send/cli-test-' . bin2hex(random_bytes(16));
-$p256dh = 'BOpush_test_p256dh_' . rtrim(strtr(base64_encode(random_bytes(65)), '+/', '-_'), '=');
-$auth = 'auth_push_' . rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
-$p256dh2 = 'BOpush_test_p256dh2_' . rtrim(strtr(base64_encode(random_bytes(65)), '+/', '-_'), '=');
-$auth2 = 'auth_push2_' . rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
+$b64url = static fn (int $bytes): string => rtrim(strtr(base64_encode(random_bytes($bytes)), '+/', '-_'), '=');
+$p256dh = $b64url(65);
+$auth = $b64url(16);
+$p256dh2 = $b64url(65);
+$auth2 = $b64url(16);
 
 $subsPayload = [
     'endpoint' => $endpoint,
@@ -290,13 +291,13 @@ if ($firstSmoke === null) {
         ]);
         $auth = [
             'VAPID' => [
-                'subject' => trim((string) ($_ENV['VAPID_SUBJECT'] ?? '')),
-                'publicKey' => trim((string) ($_ENV['VAPID_PUBLIC_KEY'] ?? '')),
-                'privateKey' => trim((string) ($_ENV['VAPID_PRIVATE_KEY'] ?? '')),
+                'subject' => env_var('VAPID_SUBJECT'),
+                'publicKey' => env_var('VAPID_PUBLIC_KEY'),
+                'privateKey' => env_var('VAPID_PRIVATE_KEY'),
             ],
         ];
         $webPush = new WebPush($auth);
-        $webPush->queueNotification($subscription, '{"diagnostic":true}');
+        $webPush->queueNotification($subscription, null);
         $readmeReports = [];
         foreach ($webPush->flush() as $sentReport) {
             $readmeReports[] = [

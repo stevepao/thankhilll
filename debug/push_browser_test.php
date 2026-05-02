@@ -43,10 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $runPushBrowserTest) {
         $before = $countSubs();
 
         $endpoint = 'https://fcm.googleapis.com/fcm/send/browser-test-' . bin2hex(random_bytes(16));
-        $p256dh = 'Bp_test_' . rtrim(strtr(base64_encode(random_bytes(65)), '+/', '-_'), '=');
-        $auth = 'auth_t_' . rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
-        $p256dh2 = 'Bp_test2_' . rtrim(strtr(base64_encode(random_bytes(65)), '+/', '-_'), '=');
-        $auth2 = 'auth_t2_' . rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
+        // Must be plain base64url (no ASCII prefixes): library Base64Url-decodes these for encryption/VAPID.
+        $b64url = static fn (int $bytes): string => rtrim(strtr(base64_encode(random_bytes($bytes)), '+/', '-_'), '=');
+        $p256dh = $b64url(65);
+        $auth = $b64url(16);
+        $p256dh2 = $b64url(65);
+        $auth2 = $b64url(16);
 
         // Step 1 — same as POST /push/subscribe (repository), avoids curl loopback deadlock.
         $id1 = push_subscription_upsert($pdo, $userId, $endpoint, $p256dh, $auth, null, null);
@@ -113,14 +115,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $runPushBrowserTest) {
 
                 $auth = [
                     'VAPID' => [
-                        'subject' => trim((string) ($_ENV['VAPID_SUBJECT'] ?? '')),
-                        'publicKey' => trim((string) ($_ENV['VAPID_PUBLIC_KEY'] ?? '')),
-                        'privateKey' => trim((string) ($_ENV['VAPID_PRIVATE_KEY'] ?? '')),
+                        'subject' => env_var('VAPID_SUBJECT'),
+                        'publicKey' => env_var('VAPID_PUBLIC_KEY'),
+                        'privateKey' => env_var('VAPID_PRIVATE_KEY'),
                     ],
                 ];
 
                 $webPush = new WebPush($auth);
-                $webPush->queueNotification($subscription, '{"diagnostic":true}');
+                // README allows null payload (optional). Wiring-only: skips payload encryption so fake DB keys need not be a valid EC point.
+                $webPush->queueNotification($subscription, null);
 
                 $readmeReports = [];
                 foreach ($webPush->flush() as $sentReport) {
@@ -188,10 +191,9 @@ require_once dirname(__DIR__) . '/header.php';
                 <code>/push/unsubscribe</code> in-process (calling those URLs via curl here would deadlock
                 single-worker PHP). For HTTP endpoint coverage use <code>debug/push_endpoints_cli_test.php</code>.
                 The last step runs the <strong>minishlink/web-push README</strong> pattern (<code>WebPush</code>,
-                <code>Subscription::create</code>, <code>queueNotification</code>, <code>flush</code>).
-                Set <code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code>, and <code>VAPID_SUBJECT</code> in
-                <code>.env</code>. It performs a real <code>flush()</code> (wiring check); fake endpoints typically return
-                failed <code>MessageSentReport</code> entries, which still counts as a passing wiring run if reports are returned.
+                <code>Subscription::create</code>, <code>queueNotification(null)</code>, <code>flush</code>) — null payload is valid in the README and skips payload encryption so synthetic DB keys do not need to be a real EC key.
+                Keys are read with <code>env_var()</code> (<code>$_ENV</code> plus <code>getenv()</code>), since some PHP installs leave <code>$_ENV</code> empty.
+                <code>flush()</code> still performs VAPID signing and HTTP; fake endpoints usually return failed <code>MessageSentReport</code> rows, which is fine for wiring.
             </p>
 
             <?php if ($testReport !== null): ?>

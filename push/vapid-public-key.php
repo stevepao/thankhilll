@@ -10,7 +10,7 @@ require_once dirname(__DIR__) . '/db.php';
 
 loadEnv();
 
-$publicKey = trim((string) ($_ENV['VAPID_PUBLIC_KEY'] ?? ''));
+$publicKey = env_var('VAPID_PUBLIC_KEY');
 
 if ($publicKey === '') {
     http_response_code(503);

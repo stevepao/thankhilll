@@ -142,10 +142,11 @@ if ($schemaErrors !== []) {
 $userId = null;
 $ep1 = 'https://fcm.googleapis.com/fcm/send/diag-' . bin2hex(random_bytes(16));
 $ep2 = 'https://push.example.test/v1/diag-' . bin2hex(random_bytes(16));
-$p256dhA = 'BH4xx_diag_a_' . rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-$authA = 'auth_diag_a_' . rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
-$p256dhB = 'BH4xx_diag_b_' . rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-$authB = 'auth_diag_b_' . rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
+$b64url = static fn (int $bytes): string => rtrim(strtr(base64_encode(random_bytes($bytes)), '+/', '-_'), '=');
+$p256dhA = $b64url(65);
+$authA = $b64url(16);
+$p256dhB = $b64url(65);
+$authB = $b64url(16);
 
 try {
     try {
@@ -181,8 +182,8 @@ try {
             : ["expected count 2, got {$cnt2}"]
     );
 
-    $p256dhA2 = 'BH4xx_diag_a2_' . rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-    $authA2 = 'auth_diag_a2_' . rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
+    $p256dhA2 = $b64url(65);
+    $authA2 = $b64url(16);
     $id1b = push_subscription_upsert($pdo, $userId, $ep1, $p256dhA2, $authA2, null, 'diag/ua2');
 
     $cntStmt->execute([$userId]);
