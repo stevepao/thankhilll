@@ -116,6 +116,11 @@ switch ($rpcMethod) {
                 th_mcp_tool_record_gratitude_definition(),
                 th_mcp_tool_list_recent_photos_definition(),
                 th_mcp_tool_export_notes_timeline_definition(),
+                th_mcp_tool_list_my_groups_definition(),
+                th_mcp_tool_list_group_members_definition(),
+                th_mcp_tool_request_group_member_add_definition(),
+                th_mcp_tool_list_group_join_requests_definition(),
+                th_mcp_tool_review_group_join_request_definition(),
             ],
         ]);
 
@@ -173,6 +178,61 @@ switch ($rpcMethod) {
             $pdo = db();
             $run = th_mcp_export_notes_timeline_run($pdo, $mcpUserId, $toolArgs);
             th_mcp_tool_result($id, $run['text'], $run['is_error']);
+        }
+        if ($toolName === 'list_my_groups') {
+            try {
+                require_once __DIR__ . '/group_tools.php';
+                $pdo = db();
+                $run = th_mcp_list_my_groups_run($pdo, $mcpUserId, $toolArgs);
+                th_mcp_tool_result($id, $run['text'], $run['is_error']);
+            } catch (Throwable $e) {
+                error_log('thankhill-mcp list_my_groups: ' . $e->getMessage());
+                th_mcp_tool_result($id, '{"error":"list_my_groups failed."}', true);
+            }
+        }
+        if ($toolName === 'list_group_members') {
+            try {
+                require_once __DIR__ . '/group_tools.php';
+                $pdo = db();
+                $run = th_mcp_list_group_members_run($pdo, $mcpUserId, $toolArgs);
+                th_mcp_tool_result($id, $run['text'], $run['is_error']);
+            } catch (Throwable $e) {
+                error_log('thankhill-mcp list_group_members: ' . $e->getMessage());
+                th_mcp_tool_result($id, '{"error":"list_group_members failed."}', true);
+            }
+        }
+        if ($toolName === 'request_group_member_add') {
+            try {
+                require_once __DIR__ . '/group_tools.php';
+                $pdo = db();
+                $run = th_mcp_request_group_member_add_run($pdo, $mcpUserId, $toolArgs);
+                th_mcp_tool_result($id, $run['text'], $run['is_error']);
+            } catch (Throwable $e) {
+                error_log('thankhill-mcp request_group_member_add: ' . $e->getMessage());
+                th_mcp_tool_result($id, '{"error":"request_group_member_add failed."}', true);
+            }
+        }
+        if ($toolName === 'list_group_join_requests') {
+            try {
+                require_once __DIR__ . '/group_tools.php';
+                $pdo = db();
+                $run = th_mcp_list_group_join_requests_run($pdo, $mcpUserId, $toolArgs);
+                th_mcp_tool_result($id, $run['text'], $run['is_error']);
+            } catch (Throwable $e) {
+                error_log('thankhill-mcp list_group_join_requests: ' . $e->getMessage());
+                th_mcp_tool_result($id, '{"error":"list_group_join_requests failed."}', true);
+            }
+        }
+        if ($toolName === 'review_group_join_request') {
+            try {
+                require_once __DIR__ . '/group_tools.php';
+                $pdo = db();
+                $run = th_mcp_review_group_join_request_run($pdo, $mcpUserId, $toolArgs);
+                th_mcp_tool_result($id, $run['text'], $run['is_error']);
+            } catch (Throwable $e) {
+                error_log('thankhill-mcp review_group_join_request: ' . $e->getMessage());
+                th_mcp_tool_result($id, '{"error":"review_group_join_request failed."}', true);
+            }
         }
         th_mcp_tool_result($id, 'Unknown or unsupported tool.', true);
 
@@ -325,6 +385,117 @@ function th_mcp_tool_list_recent_photos_definition(): array
                 ],
             ],
             'required' => [],
+        ],
+    ];
+}
+
+/**
+ * @return array{name:string,description:string,inputSchema:array<string,mixed>}
+ */
+function th_mcp_tool_list_my_groups_definition(): array
+{
+    return [
+        'name' => 'list_my_groups',
+        'description' => 'List groups the authenticated user belongs to, including role.',
+        'inputSchema' => [
+            'type' => 'object',
+        ],
+    ];
+}
+
+/**
+ * @return array{name:string,description:string,inputSchema:array<string,mixed>}
+ */
+function th_mcp_tool_list_group_members_definition(): array
+{
+    return [
+        'name' => 'list_group_members',
+        'description' => 'List members of a group (must be a member). Includes user_id, display_name, and role.',
+        'inputSchema' => [
+            'type' => 'object',
+            'properties' => [
+                'group_id' => [
+                    'type' => 'string',
+                    'description' => 'Group identifier',
+                ],
+            ],
+            'required' => ['group_id'],
+        ],
+    ];
+}
+
+/**
+ * @return array{name:string,description:string,inputSchema:array<string,mixed>}
+ */
+function th_mcp_tool_request_group_member_add_definition(): array
+{
+    return [
+        'name' => 'request_group_member_add',
+        'description' => 'Admin: invite by email immediately. Member: create a pending invite request for the admin.',
+        'inputSchema' => [
+            'type' => 'object',
+            'properties' => [
+                'group_id' => [
+                    'type' => 'string',
+                    'description' => 'Group identifier',
+                ],
+                'email' => [
+                    'type' => 'string',
+                    'description' => 'Email address to invite',
+                ],
+            ],
+            'required' => ['group_id', 'email'],
+        ],
+    ];
+}
+
+/**
+ * @return array{name:string,description:string,inputSchema:array<string,mixed>}
+ */
+function th_mcp_tool_list_group_join_requests_definition(): array
+{
+    return [
+        'name' => 'list_group_join_requests',
+        'description' => 'List pending member-add requests for a group (admins only).',
+        'inputSchema' => [
+            'type' => 'object',
+            'properties' => [
+                'group_id' => [
+                    'type' => 'string',
+                    'description' => 'Group identifier',
+                ],
+            ],
+            'required' => ['group_id'],
+        ],
+    ];
+}
+
+/**
+ * @return array{name:string,description:string,inputSchema:array<string,mixed>}
+ */
+function th_mcp_tool_review_group_join_request_definition(): array
+{
+    return [
+        'name' => 'review_group_join_request',
+        'description' => 'Approve or reject a pending member-add request (admins only). Approve sends an invitation email.',
+        'inputSchema' => [
+            'type' => 'object',
+            'properties' => [
+                'group_id' => [
+                    'type' => 'string',
+                    'description' => 'Group identifier',
+                ],
+                'request_id' => [
+                    'type' => 'string',
+                    'description' => 'Invite request identifier',
+                ],
+                'action' => [
+                    'type' => 'string',
+                    'enum' => ['approve', 'reject'],
+                    'description' => 'approve or reject',
+                ],
+            ],
+            'required' => ['group_id', 'request_id', 'action'],
         ],
     ];
 }
