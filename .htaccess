@@ -3,6 +3,11 @@
     SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
 </IfModule>
 
+# Disable MultiViews so /mcp/v1 is not negotiated from Accept (avoids 406 with MCP clients).
+<IfModule mod_negotiation.c>
+    Options -MultiViews
+</IfModule>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteCond %{HTTP:Authorization} .
