@@ -38,7 +38,7 @@ require_once __DIR__ . '/header.php';
                     This policy applies to visitors and registered users of the Service.
                     We operate the Service to provide a personal gratitude journaling and optional social/group experience.
                     The Service is <strong>intended for adults 18 years of age or older</strong>; see our
-                    <a href="/terms">Terms of Use</a> for eligibility.
+                    <a href="/terms.php">Terms of Use</a> for eligibility.
                 </p>
 
                 <h2 class="policy-doc__h2">2. Information we collect</h2>

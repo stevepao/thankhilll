@@ -15,7 +15,7 @@ bootstrap_session();
 
 $userId = current_user_id();
 if ($userId === null) {
-    header('Location: /login.php?next=' . rawurlencode('/internal/mcp/token/issue'));
+    header('Location: /login.php?next=' . rawurlencode('/internal/mcp/token/issue.php'));
     exit;
 }
 
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </section>
 
                 <p class="mcp-issue-footer-actions">
-                    <a class="btn btn--ghost" href="/internal/mcp/token/issue">Issue another token</a>
+                    <a class="btn btn--ghost" href="/internal/mcp/token/issue.php">Issue another token</a>
                     <a class="btn btn--ghost" href="/index.php">Back to Thankhill</a>
                 </p>
 
@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <script type="module">
                     import { activateOPButton } from 'https://unpkg.com/@1password/save-button@1.3.0/built/index.js';
 
-                    history.replaceState(null, '', '/internal/mcp/token/issue');
+                    history.replaceState(null, '', '/internal/mcp/token/issue.php');
 
                     const bootEl = document.getElementById('thankhill-mcp-token-bootstrap');
                     let token = '';
@@ -323,7 +323,7 @@ require_once dirname(__DIR__, 3) . '/header.php';
                         }
 
                         function loadTokens() {
-                            fetch('/internal/mcp/tokens', { credentials: 'same-origin' })
+                            fetch('/internal/mcp/tokens.php', { credentials: 'same-origin' })
                                 .then(function (r) {
                                     return r.json();
                                 })
@@ -355,7 +355,7 @@ require_once dirname(__DIR__, 3) . '/header.php';
                             }
                             btn.disabled = true;
                             var csrf = thankhillCsrf();
-                            fetch('/internal/mcp/token/revoke', {
+                            fetch('/internal/mcp/token/revoke.php', {
                                 method: 'POST',
                                 credentials: 'same-origin',
                                 headers: {

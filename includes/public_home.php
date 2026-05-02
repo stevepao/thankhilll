@@ -56,7 +56,7 @@ require_once dirname(__DIR__) . '/header.php';
                     <h2 id="public-home-audience-heading" class="public-home__h2">Who it’s for</h2>
                     <p>
                         Thankhill is operated by <strong>Hillwork, LLC</strong> and is intended for <strong>adults 18 and older</strong>.
-                        See our <a href="/terms">Terms of Use</a> and <a href="/policy">Privacy Policy</a> for details.
+                        See our <a href="/terms.php">Terms of Use</a> and <a href="/policy.php">Privacy Policy</a> for details.
                     </p>
                 </section>
 

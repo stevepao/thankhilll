@@ -30,7 +30,7 @@ require_once __DIR__ . '/header.php';
 
                 <p>
                     By accessing or using the Service, you agree to these Terms and to our
-                    <a href="/policy">Privacy Policy</a>.
+                    <a href="/policy.php">Privacy Policy</a>.
                     If you do not agree, do not use the Service.
                 </p>
 
@@ -90,7 +90,7 @@ require_once __DIR__ . '/header.php';
                 <p>
                     To operate the Service, you grant Hillwork a <strong>non-exclusive, worldwide, royalty-free license</strong>
                     to host, store, reproduce, display, and process User Content <strong>solely to run, improve, and secure
-                    the Service</strong> and as described in our <a href="/policy">Privacy Policy</a> (for example, showing
+                    the Service</strong> and as described in our <a href="/policy.php">Privacy Policy</a> (for example, showing
                     your notes to you, or to a group you choose). This license ends when you delete the content or your
                     account, subject to reasonable backup and technical retention.
                 </p>
@@ -103,7 +103,7 @@ require_once __DIR__ . '/header.php';
                     If you use <strong>Sign in with Google</strong>, your use is also subject to
                     <strong>Google’s applicable terms and policies</strong> (for example, the Google Terms of Service and
                     Google’s user policies for the products you use). We access Google user data only as described in our
-                    <a href="/policy">Privacy Policy</a> and in the limited ways needed to provide sign-in. We do not use
+                    <a href="/policy.php">Privacy Policy</a> and in the limited ways needed to provide sign-in. We do not use
                     Google user data in ways that violate the <strong>Google API Services User Data Policy</strong> (including
                     <strong>Limited Use</strong> where it applies).
                 </p>
@@ -164,7 +164,7 @@ require_once __DIR__ . '/header.php';
                 </p>
                 <p>
                     You may delete your account through features we provide where available; deletion is described in our
-                    <a href="/policy">Privacy Policy</a>. Provisions of these Terms that by their nature should survive
+                    <a href="/policy.php">Privacy Policy</a>. Provisions of these Terms that by their nature should survive
                     termination (including intellectual property, disclaimers, limitations of liability, indemnity, and
                     governing law) will survive.
                 </p>

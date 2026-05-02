@@ -1,20 +1,11 @@
-# Pretty URL for privacy policy (requires AllowOverride / mod_rewrite).
-
-# Backup path for Authorization → PHP (some stacks ignore RewriteRule env alone).
+# Authorization → PHP (FastCGI / CGI safe passthrough).
 <IfModule mod_setenvif.c>
     SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
 </IfModule>
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    # PHP/CGI often does not receive Authorization unless forwarded into HTTP_AUTHORIZATION.
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-    RewriteRule ^policy/?$ policy.php [L,QSA]
-    RewriteRule ^terms/?$ terms.php [L,QSA]
-    RewriteRule ^mcp/v1/?$ public/mcp-v1.php [L,QSA]
-    RewriteRule ^internal/mcp/token/issue/?$ internal/mcp/token/issue.php [L,QSA]
-    RewriteRule ^internal/mcp/token/create/?$ internal/mcp/token/create.php [L,QSA]
-    RewriteRule ^internal/mcp/tokens/?$ internal/mcp/tokens.php [L,QSA]
-    RewriteRule ^internal/mcp/token/revoke/?$ internal/mcp/token/revoke.php [L,QSA]
+    RewriteRule ^mcp/v1/?$ mcp/v1.php [L,QSA]
 </IfModule>

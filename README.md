@@ -81,9 +81,14 @@ This README reflects the product **as of early development / alpha**. Features a
 
 ### URL rewrites (production)
 
-The repo includes an **`.htaccess`** example mapping **`/policy`** → `policy.php`, **`/terms`** → `terms.php`, **`/mcp/v1`** → **`public/mcp-v1.php`** (minimal JSON-RPC MCP over HTTP), and internal MCP routes under **`/internal/mcp/`**. Configure the equivalent on **nginx** if you do not use Apache.
+Root **`.htaccess`** is intentionally minimal:
 
-**MCP HTTP endpoint** — **`POST /mcp/v1`** only (implemented in **`public/mcp-v1.php`**, no includes). Requires **HTTPS**, **`Authorization: Bearer …`** (opaque token from below), and **`Content-Type: application/json`**. Responds with **`401`** + **`WWW-Authenticate: Bearer`** when auth fails. Handles JSON-RPC **`initialize`**, **`notifications/initialized`** (**204**), **`tools/list`** (empty), and returns **`-32601`** for other methods. There is **no** SSE, **no** `GET`, and **no** `Accept`-header filtering (so clients are not rejected with **406** for `Accept`). **Internal MCP token API** (not linked in the UI): see **`internal/README.md`** after applying migration **`002_mcp_access_tokens.sql`** (`php bin/migrate.php`).
+1. **`Authorization`** passthrough into **`HTTP_AUTHORIZATION`** (PHP FastCGI/CGI).
+2. Internal rewrite **`/mcp/v1`** (optional trailing slash) → **`mcp/v1.php`** — browser URL stays **`/mcp/v1`**.
+
+There are **no** other rewrite rules in this file (no mapped **`public/`**, **`internal/`**, etc.). Use direct **`*.php`** URLs or your host’s routing for legal pages, internal tools, and anything else. Configure the equivalent **`Authorization`** + **`/mcp/v1`** mapping on **nginx** if you do not use Apache.
+
+**MCP v1** — **`GET`** and **`POST`** to **`/mcp/v1`** both hit **`mcp/v1.php`** via the rule above. The script is currently a **routing placeholder** (plain-text confirmation). Token issuance for future MCP auth: **`internal/README.md`** and migration **`002_mcp_access_tokens.sql`** (`php bin/migrate.php`).
 
 ### Optional automation
 
@@ -100,7 +105,7 @@ The repo includes an **`.htaccess`** example mapping **`/policy`** → `policy.p
 | `me.php` | Profile, preferences, notifications, account deletion |
 | `login.php`, `auth/` | Sign-in flows |
 | `policy.php`, `terms.php` | Legal pages |
-| `public/mcp-v1.php` | MCP JSON-RPC endpoint (`POST /mcp/v1`); self-contained (Bearer + DB token lookup) |
+| `mcp/v1.php` | MCP v1 endpoint file (`/mcp/v1` → rewrite); placeholder until MCP behavior is implemented |
 | `includes/` | Shared libraries (sessions, auth refresh tokens, push, mailer, MCP token helpers for internal routes, …) |
 | `migrations/` | SQL migrations applied by `bin/migrate.php` |
 
