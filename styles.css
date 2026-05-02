@@ -1353,6 +1353,71 @@ body {
     color: var(--accent);
 }
 
+/* Public home (/) — signed-out marketing shell for OAuth / store verification */
+.public-home {
+    max-width: 36rem;
+    margin: 0 auto;
+    padding: 0 1rem 2rem;
+}
+
+.public-home__hero {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.public-home__brand {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+}
+
+.public-home__tagline {
+    margin: 0.35rem 0 0;
+    font-size: 1rem;
+    color: var(--muted);
+}
+
+.public-home__section {
+    margin-bottom: 1.25rem;
+}
+
+.public-home__h2 {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.public-home__section p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--text);
+}
+
+.public-home__list {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--text);
+}
+
+.public-home__list li {
+    margin-bottom: 0.35rem;
+}
+
+.public-home__section a {
+    color: var(--accent);
+}
+
+.public-home__cta {
+    margin: 1.75rem 0 0;
+    text-align: center;
+}
+
 .note-list {
     list-style: none;
     margin: 0;

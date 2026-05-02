@@ -13,6 +13,7 @@ require_once __DIR__ . '/includes/escape.php';
 require_once __DIR__ . '/includes/assets.php';
 
 $pageTitle = $pageTitle ?? 'Gratitude';
+$metaDescription = $metaDescription ?? null;
 $headerUser = currentUser();
 $htmlUserTzAttr = '';
 if ($headerUser !== null) {
@@ -26,6 +27,9 @@ if ($headerUser !== null) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php if ($metaDescription !== null && $metaDescription !== ''): ?>
+        <meta name="description" content="<?= e($metaDescription) ?>">
+    <?php endif; ?>
     <title>Thankhill</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#2d6a4f">

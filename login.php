@@ -19,7 +19,7 @@ if (current_user_id() !== null) {
     exit;
 }
 
-$pageTitle = 'Sign In';
+$pageTitle = 'Thankhill — Sign in';
 $currentNav = '';
 $showNav = false;
 $accountDeleted = isset($_GET['account_deleted']);
@@ -34,7 +34,9 @@ require_once __DIR__ . '/header.php';
                 </p>
             <?php endif; ?>
 
-            <p class="empty-state">Sign in to access your journal.</p>
+            <p class="empty-state">
+                <strong>Thankhill</strong> is Hillwork’s gratitude journal—sign in to open your Today page and notes.
+            </p>
             <p>
                 <a class="btn btn--primary" href="/auth/google/login.php">Sign in with Google</a>
             </p>

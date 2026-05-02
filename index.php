@@ -2,11 +2,19 @@
 /**
  * index.php — Today: daily gratitude entry (one per calendar day) with timestamped thoughts.
  *
- * Requires an authenticated session and writes notes for the current user.
+ * Signed-out visitors see a public overview of Thankhill (OAuth verification); signed-in users get Today.
  */
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
+
+bootstrap_session();
+
+if (current_user_id() === null) {
+    require_once __DIR__ . '/includes/public_home.php';
+    exit;
+}
+
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/validation.php';
 require_once __DIR__ . '/includes/group_helpers.php';
