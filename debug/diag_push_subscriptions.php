@@ -10,6 +10,8 @@
  */
 declare(strict_types=1);
 
+use Minishlink\WebPush\Subscription;
+
 $root = dirname(__DIR__);
 
 if (PHP_SAPI !== 'cli') {
@@ -24,7 +26,6 @@ if (!is_readable($autoload)) {
 
 require_once $root . '/db.php';
 require_once $root . '/includes/push_subscription_repository.php';
-require_once $root . '/includes/PushService.php';
 
 loadEnv();
 
@@ -203,7 +204,13 @@ try {
     $libSubLines = [];
     if (is_array($row1)) {
         try {
-            $subObj = push_service_subscription_from_row($row1);
+            $subObj = Subscription::create([
+                'endpoint' => (string) ($row1['endpoint_url'] ?? ''),
+                'keys' => [
+                    'p256dh' => (string) ($row1['p256dh'] ?? ''),
+                    'auth' => (string) ($row1['auth'] ?? ''),
+                ],
+            ]);
             $libSubOk = $subObj->getEndpoint() === $ep1;
             $libSubLines = $libSubOk ? ['endpoint matches stored URL'] : ['endpoint mismatch'];
         } catch (Throwable $e) {

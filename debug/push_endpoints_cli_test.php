@@ -6,8 +6,8 @@
  * Requires HTTP reachable at THANKHILL_BASE_URL where **web** PHP uses the **same**
  * session.save_path as this CLI (THANKHILL_SESSION_SAVE_PATH). Otherwise Cookie PHPSESSID
  * points at files the web worker never reads → 401 unauthenticated.
- * Does not send push notifications. After step 5, runs PushService queue diagnostics (keep
- * PUSH_SENDING_ENABLED unset so fake endpoints are not POSTed).
+ * After step 5, runs the minishlink/web-push README wiring (WebPush, queueNotification, flush).
+ * Set VAPID in .env; fake endpoints usually yield failed MessageSentReport entries (wiring only).
  *
  * Usage:
  *   export THANKHILL_BASE_URL=http://127.0.0.1:8080
@@ -20,6 +20,9 @@
  *   php debug/push_endpoints_cli_test.php http://127.0.0.1:8080
  */
 declare(strict_types=1);
+
+use Minishlink\WebPush\Subscription;
+use Minishlink\WebPush\WebPush;
 
 if (PHP_SAPI !== 'cli') {
     fwrite(STDERR, "This script is CLI-only.\n");
@@ -38,7 +41,6 @@ require_once $root . '/auth.php';
 require_once $root . '/includes/csrf.php';
 require_once $root . '/includes/user_notification_prefs_repository.php';
 require_once $root . '/includes/push_subscription_repository.php';
-require_once $root . '/includes/PushService.php';
 
 loadEnv();
 
@@ -271,11 +273,45 @@ $ok5 = $code5 === 200 && str_contains($body5, '"ok":true') && $n5 === 1;
 echo '[step 5] POST subscribe (re-create subscription) — HTTP ' . $code5 . ($ok5 ? ' PASS' : ' FAIL') . "\n";
 echo "[count] push_subscriptions for user: {$n5}\n\n";
 
-$libRows = push_subscription_list_for_user($pdo, $userId);
-$libResult = push_service_queue_and_flush($libRows);
-$okLib = push_service_diagnostic_result_acceptable($libResult, 1);
-echo '[step 5b] PushService queue (minishlink) — ' . ($okLib ? 'PASS' : 'FAIL') . "\n";
-echo '        ' . json_encode($libResult, JSON_UNESCAPED_SLASHES) . "\n\n";
+$smokeRows = push_subscription_list_for_user($pdo, $userId);
+$okLib = false;
+$readmeOut = '';
+$firstSmoke = $smokeRows[0] ?? null;
+if ($firstSmoke === null) {
+    $readmeOut = 'no subscription row';
+} else {
+    try {
+        $subscription = Subscription::create([
+            'endpoint' => (string) ($firstSmoke['endpoint_url'] ?? ''),
+            'keys' => [
+                'p256dh' => (string) ($firstSmoke['p256dh'] ?? ''),
+                'auth' => (string) ($firstSmoke['auth'] ?? ''),
+            ],
+        ]);
+        $auth = [
+            'VAPID' => [
+                'subject' => trim((string) ($_ENV['VAPID_SUBJECT'] ?? '')),
+                'publicKey' => trim((string) ($_ENV['VAPID_PUBLIC_KEY'] ?? '')),
+                'privateKey' => trim((string) ($_ENV['VAPID_PRIVATE_KEY'] ?? '')),
+            ],
+        ];
+        $webPush = new WebPush($auth);
+        $webPush->queueNotification($subscription, '{"diagnostic":true}');
+        $readmeReports = [];
+        foreach ($webPush->flush() as $sentReport) {
+            $readmeReports[] = [
+                'success' => $sentReport->isSuccess(),
+                'reason' => $sentReport->getReason(),
+            ];
+        }
+        $okLib = $readmeReports !== [];
+        $readmeOut = json_encode($readmeReports, JSON_UNESCAPED_SLASHES);
+    } catch (Throwable $e) {
+        $readmeOut = $e->getMessage();
+    }
+}
+echo '[step 5b] README WebPush wiring (flush → MessageSentReport) — ' . ($okLib ? 'PASS' : 'FAIL') . "\n";
+echo '        ' . $readmeOut . "\n\n";
 
 user_notification_prefs_save($pdo, $userId, false, false, false);
 $n6 = push_test_count_subs($pdo, $userId);

@@ -225,25 +225,6 @@ function push_service_queue_and_flush(array $rows, ?string $payloadJson = null):
 /**
  * @return array{success: bool, reason: string, endpoint: string, expired: bool, http_status: ?int}
  */
-/**
- * True when an infrastructure test should pass: if VAPID is not configured, the library path is
- * intentionally skipped. Otherwise require ok=true and at least $minQueued notifications queued.
- *
- * @param int|null $minQueued Minimum queued count when VAPID is configured (null = no minimum)
- */
-function push_service_diagnostic_result_acceptable(array $result, ?int $minQueued = 1): bool
-{
-    if (!push_service_vapid_configured()) {
-        return true;
-    }
-
-    if ($minQueued !== null && (int) ($result['queued'] ?? 0) < $minQueued) {
-        return false;
-    }
-
-    return ($result['ok'] ?? false) === true;
-}
-
 function push_service_message_report_to_array(MessageSentReport $report): array
 {
     $status = null;

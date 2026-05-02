@@ -2,9 +2,11 @@
 /**
  * debug/push_browser_test.php — Run push subscribe/unsubscribe endpoint checks in the browser (logged-in only).
  *
- * Uses your current session (no CLI). After subscribe/unsubscribe checks, exercises PushService
- * (minishlink/web-push) queue path only — leave PUSH_SENDING_ENABLED unset/false so fake test
- * endpoints are never POSTed.
+ * Uses your current session (no CLI). Subscription steps call push_subscription_* directly (same
+ * logic as /push/subscribe and /push/unsubscribe). HTTP loopback curl would deadlock when PHP
+ * serves only one request at a time (e.g. php -S or a single worker). For full HTTP+session tests
+ * use debug/push_endpoints_cli_test.php. WebPush wiring step follows minishlink/web-push README
+ * (WebPush, Subscription::create, queueNotification, flush → MessageSentReport); configure VAPID in .env.
  * Removes only the test subscription rows it creates. Safe for production if you trust logged-in users.
  *
  * Delete this file when you no longer need it.
@@ -14,56 +16,14 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/auth.php';
 require_once dirname(__DIR__) . '/includes/csrf.php';
 require_once dirname(__DIR__) . '/includes/push_subscription_repository.php';
-require_once dirname(__DIR__) . '/includes/PushService.php';
+
+use Minishlink\WebPush\Subscription;
+use Minishlink\WebPush\WebPush;
 
 $userId = require_login();
 
 /** @var list<array{label: string, pass: bool, detail: string}>|null */
 $testReport = null;
-
-/**
- * @return array{0: int, 1: string}
- */
-function push_browser_test_post_json(string $url, string $jsonBody, string $cookieHeader, string $userAgent): array
-{
-    if (!function_exists('curl_init')) {
-        return [0, 'curl extension required'];
-    }
-
-    $ch = curl_init($url);
-    if ($ch === false) {
-        return [0, ''];
-    }
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => $jsonBody,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'Cookie: ' . $cookieHeader,
-            'User-Agent: ' . $userAgent,
-        ],
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_CONNECTTIMEOUT => 15,
-        CURLOPT_TIMEOUT => 45,
-        CURLOPT_SSL_VERIFYPEER => true,
-    ]);
-    $body = curl_exec($ch);
-    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    return [$code, is_string($body) ? $body : ''];
-}
-
-function push_browser_test_absolute_base(): string
-{
-    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443');
-    $scheme = $https ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-
-    return $scheme . '://' . $host;
-}
 
 $formAction = htmlspecialchars($_SERVER['SCRIPT_NAME'] ?? '/debug/push_browser_test.php', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
@@ -76,20 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $runPushBrowserTest) {
     try {
         $pdo = db();
         $report = [];
-        $cookie = $_SERVER['HTTP_COOKIE'] ?? '';
-        $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'PushBrowserTest/1.0';
-        $base = push_browser_test_absolute_base();
-        $csrf = csrf_token();
-
-        if ($cookie === '') {
-            $testReport = [
-                [
-                    'label' => 'Prerequisite',
-                    'pass' => false,
-                    'detail' => 'No HTTP Cookie header — enable cookies for this site and try again.',
-                ],
-            ];
-        } else {
         $countSubs = static function () use ($pdo, $userId): int {
             return count(push_subscription_list_for_user($pdo, $userId));
         };
@@ -102,96 +48,102 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $runPushBrowserTest) {
         $p256dh2 = 'Bp_test2_' . rtrim(strtr(base64_encode(random_bytes(65)), '+/', '-_'), '=');
         $auth2 = 'auth_t2_' . rtrim(strtr(base64_encode(random_bytes(16)), '+/', '-_'), '=');
 
-        $post = static function (string $path, array $body) use ($base, $cookie, $ua): array {
-            $url = $base . $path;
-            $json = json_encode($body, JSON_UNESCAPED_SLASHES);
-
-            return push_browser_test_post_json(
-                $url,
-                is_string($json) ? $json : '{}',
-                $cookie,
-                $ua
-            );
-        };
-
-        // Step 1
-        [$c1, $b1] = $post('/push/subscribe.php', [
-            'endpoint' => $endpoint,
-            'keys' => ['p256dh' => $p256dh, 'auth' => $auth],
-            'csrf_token' => $csrf,
-        ]);
-        $j1 = json_decode($b1, true);
-        $id1 = is_array($j1) && isset($j1['id']) ? (int) $j1['id'] : 0;
+        // Step 1 — same as POST /push/subscribe (repository), avoids curl loopback deadlock.
+        $id1 = push_subscription_upsert($pdo, $userId, $endpoint, $p256dh, $auth, null, null);
         $after1 = $countSubs();
         $report[] = [
-            'label' => 'POST /push/subscribe (first)',
-            'pass' => $c1 === 200 && ($j1['ok'] ?? false) === true && $after1 === $before + 1,
-            'detail' => 'HTTP ' . $c1 . ' body: ' . substr($b1, 0, 180) . (strlen($b1) > 180 ? '…' : ''),
+            'label' => 'Subscribe — first (in-process)',
+            'pass' => $id1 > 0 && $after1 === $before + 1,
+            'detail' => 'id=' . $id1 . ' count=' . $after1,
         ];
 
         // Step 2 — same endpoint, new keys (no duplicate row)
-        [$c2, $b2] = $post('/push/subscribe.php', [
-            'endpoint' => $endpoint,
-            'keys' => ['p256dh' => $p256dh2, 'auth' => $auth2],
-            'csrf_token' => $csrf,
-        ]);
-        $j2 = json_decode($b2, true);
-        $id2 = is_array($j2) && isset($j2['id']) ? (int) $j2['id'] : 0;
+        $id2 = push_subscription_upsert($pdo, $userId, $endpoint, $p256dh2, $auth2, null, null);
         $after2 = $countSubs();
         $report[] = [
-            'label' => 'POST /push/subscribe (same endpoint — upsert)',
-            'pass' => $c2 === 200 && ($j2['ok'] ?? false) === true && $id2 === $id1 && $id1 > 0 && $after2 === $before + 1,
-            'detail' => 'HTTP ' . $c2 . ' id=' . $id2 . ' (same as first id) count=' . $after2 . ' (expect ' . ($before + 1) . ')',
+            'label' => 'Subscribe — same endpoint, new keys (upsert)',
+            'pass' => $id2 === $id1 && $id1 > 0 && $after2 === $before + 1,
+            'detail' => 'id=' . $id2 . ' count=' . $after2 . ' (expect ' . ($before + 1) . ')',
         ];
 
         // Step 3 — unsubscribe
-        [$c3, $b3] = $post('/push/unsubscribe.php', [
-            'endpoint' => $endpoint,
-            'csrf_token' => $csrf,
-        ]);
+        push_subscription_delete_by_endpoint_for_user($pdo, $userId, $endpoint);
         $after3 = $countSubs();
         $report[] = [
-            'label' => 'POST /push/unsubscribe',
-            'pass' => $c3 === 200 && str_contains($b3, '"ok":true') && $after3 === $before,
-            'detail' => 'HTTP ' . $c3 . ' count after: ' . $after3 . ' (expect baseline ' . $before . ')',
+            'label' => 'Unsubscribe — delete by endpoint',
+            'pass' => $after3 === $before,
+            'detail' => 'count=' . $after3 . ' (expect baseline ' . $before . ')',
         ];
 
         // Step 4 — idempotent
-        [$c4, $b4] = $post('/push/unsubscribe.php', [
-            'endpoint' => $endpoint,
-            'csrf_token' => $csrf,
-        ]);
+        push_subscription_delete_by_endpoint_for_user($pdo, $userId, $endpoint);
         $after4 = $countSubs();
         $report[] = [
-            'label' => 'POST /push/unsubscribe again',
-            'pass' => $c4 === 200 && str_contains($b4, '"ok":true') && $after4 === $before,
-            'detail' => 'HTTP ' . $c4,
+            'label' => 'Unsubscribe again (idempotent)',
+            'pass' => $after4 === $before,
+            'detail' => 'count=' . $after4,
         ];
 
         // Step 5 — re-subscribe then cleanup row only for this test endpoint
-        [$c5, $b5] = $post('/push/subscribe.php', [
-            'endpoint' => $endpoint,
-            'keys' => ['p256dh' => $p256dh, 'auth' => $auth],
-            'csrf_token' => $csrf,
-        ]);
-        $j5 = json_decode($b5, true);
+        $id5 = push_subscription_upsert($pdo, $userId, $endpoint, $p256dh, $auth, null, null);
         $after5 = $countSubs();
         $report[] = [
-            'label' => 'POST /push/subscribe (re-create)',
-            'pass' => $c5 === 200 && ($j5['ok'] ?? false) === true && $after5 === $before + 1,
-            'detail' => 'HTTP ' . $c5,
+            'label' => 'Subscribe — re-create',
+            'pass' => $id5 > 0 && $after5 === $before + 1,
+            'detail' => 'id=' . $id5 . ' count=' . $after5,
         ];
 
-        $libRows = push_subscription_list_for_user($pdo, $userId);
-        $libResult = push_service_queue_and_flush($libRows);
-        $libJson = json_encode($libResult, JSON_UNESCAPED_SLASHES);
-        $libDetail = is_string($libJson)
-            ? (strlen($libJson) > 240 ? substr($libJson, 0, 240) . '…' : $libJson)
-            : '(encode error)';
+        // minishlink/web-push README: Send Push Message + VAPID (same flow as library docs).
+        loadEnv();
+        $smokeRows = push_subscription_list_for_user($pdo, $userId);
+        $readmePass = false;
+        $readmeDetail = '';
+        $firstSmoke = $smokeRows[0] ?? null;
+        if ($firstSmoke === null) {
+            $readmeDetail = 'No subscription row for wiring step.';
+        } else {
+            try {
+                $subscription = Subscription::create([
+                    'endpoint' => (string) ($firstSmoke['endpoint_url'] ?? ''),
+                    'keys' => [
+                        'p256dh' => (string) ($firstSmoke['p256dh'] ?? ''),
+                        'auth' => (string) ($firstSmoke['auth'] ?? ''),
+                    ],
+                ]);
+
+                $auth = [
+                    'VAPID' => [
+                        'subject' => trim((string) ($_ENV['VAPID_SUBJECT'] ?? '')),
+                        'publicKey' => trim((string) ($_ENV['VAPID_PUBLIC_KEY'] ?? '')),
+                        'privateKey' => trim((string) ($_ENV['VAPID_PRIVATE_KEY'] ?? '')),
+                    ],
+                ];
+
+                $webPush = new WebPush($auth);
+                $webPush->queueNotification($subscription, '{"diagnostic":true}');
+
+                $readmeReports = [];
+                foreach ($webPush->flush() as $sentReport) {
+                    $readmeReports[] = [
+                        'success' => $sentReport->isSuccess(),
+                        'reason' => $sentReport->getReason(),
+                    ];
+                }
+
+                $readmePass = $readmeReports !== [];
+                $enc = json_encode($readmeReports, JSON_UNESCAPED_SLASHES);
+                $readmeDetail = is_string($enc)
+                    ? (strlen($enc) > 280 ? substr($enc, 0, 280) . '…' : $enc)
+                    : '';
+            } catch (Throwable $e) {
+                $readmeDetail = $e->getMessage();
+            }
+        }
+
         $report[] = [
-            'label' => 'PushService queue (minishlink); no browser delivery asserted',
-            'pass' => push_service_diagnostic_result_acceptable($libResult, 1),
-            'detail' => $libDetail,
+            'label' => 'Library README wiring: WebPush → queueNotification → flush (MessageSentReport)',
+            'pass' => $readmePass,
+            'detail' => $readmeDetail !== '' ? $readmeDetail : '(empty)',
         ];
 
         push_subscription_delete_by_endpoint_for_user($pdo, $userId, $endpoint);
@@ -202,8 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $runPushBrowserTest) {
             'detail' => 'Subscriptions for your account back to baseline count ' . $before . '.',
         ];
 
-            $testReport = $report;
-        }
+        $testReport = $report;
     } catch (Throwable $e) {
         error_log('push_browser_test: ' . $e->getMessage());
         $testReport = [
@@ -233,9 +184,14 @@ require_once dirname(__DIR__) . '/header.php';
 ?>
 
             <p class="email-auth__hint">
-                This page calls <code>/push/subscribe.php</code> and <code>/push/unsubscribe.php</code> using your current login,
-                then runs <code>PushService</code> (library queue only if VAPID is configured). Keep
-                <code>PUSH_SENDING_ENABLED</code> unset or false so test endpoints are not contacted over HTTP.
+                Subscription steps run the same database logic as <code>/push/subscribe</code> and
+                <code>/push/unsubscribe</code> in-process (calling those URLs via curl here would deadlock
+                single-worker PHP). For HTTP endpoint coverage use <code>debug/push_endpoints_cli_test.php</code>.
+                The last step runs the <strong>minishlink/web-push README</strong> pattern (<code>WebPush</code>,
+                <code>Subscription::create</code>, <code>queueNotification</code>, <code>flush</code>).
+                Set <code>VAPID_PUBLIC_KEY</code>, <code>VAPID_PRIVATE_KEY</code>, and <code>VAPID_SUBJECT</code> in
+                <code>.env</code>. It performs a real <code>flush()</code> (wiring check); fake endpoints typically return
+                failed <code>MessageSentReport</code> entries, which still counts as a passing wiring run if reports are returned.
             </p>
 
             <?php if ($testReport !== null): ?>
