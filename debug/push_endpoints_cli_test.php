@@ -23,6 +23,10 @@ if (PHP_SAPI !== 'cli') {
     exit(1);
 }
 
+// Buffer stdout until after session bootstrap; otherwise echo before session_start() breaks
+// bootstrap_session() with "Headers already sent" (see debug/diag.php).
+ob_start();
+
 $root = dirname(__DIR__);
 
 require_once $root . '/vendor/autoload.php';
