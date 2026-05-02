@@ -92,8 +92,7 @@ function th_mcp_list_recent_photos_run(PDO $pdo, int $userId, array $arguments):
 
         $createdMysql = (string) ($row['created_at'] ?? '');
         try {
-            $createdIso = (new DateTimeImmutable($createdMysql))
-                ->setTimezone(new DateTimeZone('UTC'))
+            $createdIso = (new DateTimeImmutable($createdMysql, new DateTimeZone('UTC')))
                 ->format('Y-m-d\TH:i:s\Z');
         } catch (Throwable) {
             $createdIso = $createdMysql;

@@ -537,9 +537,10 @@ function th_mcp_export_iso_utc(string $mysqlDatetime): string
         return '';
     }
     try {
-        $dt = new DateTimeImmutable($mysqlDatetime);
+        // Naive MySQL DATETIME is UTC in storage; do not use PHP's default timezone for parsing.
+        $dt = new DateTimeImmutable($mysqlDatetime, new DateTimeZone('UTC'));
 
-        return $dt->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
+        return $dt->format('Y-m-d\TH:i:s\Z');
     } catch (Throwable) {
         return $mysqlDatetime;
     }

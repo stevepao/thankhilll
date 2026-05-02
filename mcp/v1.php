@@ -6,6 +6,9 @@
  */
 declare(strict_types=1);
 
+// Align PHP with app contract: stored DATETIME values are UTC (see includes/user_timezone.php).
+date_default_timezone_set('UTC');
+
 const TH_MCP_JSONRPC = '2.0';
 
 /** Flags for JSON-RPC bodies: never drop output due to invalid UTF-8 in nested tool text. */

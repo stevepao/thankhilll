@@ -165,7 +165,7 @@ function th_mcp_record_gratitude_transaction(
             $ins = $pdo->prepare(
                 <<<'SQL'
                 INSERT INTO notes (user_id, entry_date, visibility, created_at, updated_at)
-                VALUES (?, ?, 'private', NOW(), NOW())
+                VALUES (?, ?, 'private', UTC_TIMESTAMP(), UTC_TIMESTAMP())
                 SQL
             );
             $ins->execute([$userId, $entryDate]);
@@ -179,13 +179,13 @@ function th_mcp_record_gratitude_transaction(
         $hasText = $textRaw !== '';
         if ($hasText) {
             $tstmt = $pdo->prepare(
-                'INSERT INTO note_thoughts (note_id, body, is_private, created_at) VALUES (?, ?, 0, NOW())'
+                'INSERT INTO note_thoughts (note_id, body, is_private, created_at) VALUES (?, ?, 0, UTC_TIMESTAMP())'
             );
             $tstmt->execute([$targetNoteId, $textRaw]);
             $appendedThought = true;
         } elseif ($createdNewNote && $photoCount > 0) {
             $tstmt = $pdo->prepare(
-                'INSERT INTO note_thoughts (note_id, body, is_private, created_at) VALUES (?, ?, 0, NOW())'
+                'INSERT INTO note_thoughts (note_id, body, is_private, created_at) VALUES (?, ?, 0, UTC_TIMESTAMP())'
             );
             $tstmt->execute([$targetNoteId, '']);
         }
@@ -224,7 +224,7 @@ function th_mcp_record_gratitude_transaction(
         }
 
         $pdo->prepare(
-            'UPDATE notes SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?'
+            'UPDATE notes SET updated_at = UTC_TIMESTAMP() WHERE id = ? AND user_id = ?'
         )->execute([$targetNoteId, $userId]);
 
         $pdo->commit();
