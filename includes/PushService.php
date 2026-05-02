@@ -265,3 +265,99 @@ function push_service_send_for_user(PDO $pdo, int $userId, ?string $payloadJson 
 
     return push_service_queue_and_flush($rows, $payloadJson);
 }
+
+/**
+ * Best-effort Web Push when someone comments on the note owner’s thought (after comment commit).
+ * Never throws to callers — failures are logged.
+ */
+function push_service_notify_comment_author(PDO $pdo, int $commentId): void
+{
+    require_once __DIR__ . '/push_subscription_repository.php';
+    require_once __DIR__ . '/user_notification_prefs_repository.php';
+    require_once __DIR__ . '/app_url.php';
+
+    if ($commentId <= 0) {
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare(
+            <<<'SQL'
+            SELECT c.id AS comment_id,
+                   c.user_id AS commenter_id,
+                   t.note_id,
+                   n.user_id AS note_author_id,
+                   uc.display_name AS commenter_display_name
+            FROM thought_comments c
+            INNER JOIN note_thoughts t ON t.id = c.thought_id
+            INNER JOIN notes n ON n.id = t.note_id
+            INNER JOIN users uc ON uc.id = c.user_id
+            WHERE c.id = ?
+            LIMIT 1
+            SQL
+        );
+        $stmt->execute([$commentId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            return;
+        }
+
+        $commenterId = (int) $row['commenter_id'];
+        $authorId = (int) $row['note_author_id'];
+        $noteId = (int) $row['note_id'];
+
+        if ($commenterId === $authorId || $authorId <= 0) {
+            return;
+        }
+
+        $prefs = user_notification_prefs_get($pdo, $authorId);
+        if (!$prefs['push_comment_replies_enabled'] || !$prefs['push_enabled']) {
+            return;
+        }
+
+        $subRows = push_subscription_list_for_user($pdo, $authorId);
+        if ($subRows === []) {
+            return;
+        }
+
+        $name = trim((string) ($row['commenter_display_name'] ?? ''));
+        if ($name === '') {
+            $name = 'Someone';
+        }
+
+        $cid = (int) $row['comment_id'];
+        $url = app_absolute_url('/note.php?id=' . $noteId . '#comment-' . $cid);
+        $payload = json_encode([
+            'title' => 'New comment on your note',
+            'body' => $name . ' left a comment on your note',
+            'url' => $url,
+        ], JSON_UNESCAPED_SLASHES);
+
+        if (!is_string($payload)) {
+            return;
+        }
+
+        $result = push_service_queue_and_flush($subRows, $payload);
+
+        if (($result['skipped_flush'] ?? true) === true || empty($result['reports'])) {
+            return;
+        }
+
+        foreach ($result['reports'] as $rep) {
+            if (!empty($rep['success'])) {
+                continue;
+            }
+            $expired = !empty($rep['expired']);
+            $status = $rep['http_status'] ?? null;
+            $endpoint = (string) ($rep['endpoint'] ?? '');
+            if ($endpoint === '') {
+                continue;
+            }
+            if ($expired || $status === 404 || $status === 410) {
+                push_subscription_delete_by_endpoint_for_user($pdo, $authorId, $endpoint);
+            }
+        }
+    } catch (Throwable $e) {
+        error_log('push_service_notify_comment_author: ' . $e->getMessage());
+    }
+}

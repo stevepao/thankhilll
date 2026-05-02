@@ -1825,6 +1825,48 @@ body {
     font-style: italic;
 }
 
+.me-notifications__hint {
+    margin-top: 0.35rem;
+}
+
+.me-push-status {
+    margin: 0.65rem 0 0;
+    font-size: 0.88rem;
+    color: var(--muted);
+    min-height: 1.25rem;
+}
+
+.me-dialog {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    max-width: 22rem;
+    background: var(--surface);
+    color: var(--text);
+}
+
+.me-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.me-dialog__title {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.me-dialog__body {
+    margin: 0 0 1rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: var(--muted);
+}
+
+.me-dialog__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 /* Bottom navigation */
 .bottom-nav {
     position: fixed;

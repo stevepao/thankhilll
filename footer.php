@@ -63,7 +63,27 @@ if ($showNav) {
         </dialog>
         <script src="<?= e(asset_url('/image_lightbox.js')) ?>"></script>
         <?php if (current_user_id() !== null): ?>
-            <?php require_once __DIR__ . '/includes/csrf.php'; ?>
+            <?php
+            require_once __DIR__ . '/includes/csrf.php';
+            require_once __DIR__ . '/includes/user_notification_prefs_repository.php';
+            $thankhillFooterPrefs = user_notification_prefs_get(db(), (int) current_user_id());
+            ?>
+            <script type="application/json" id="thankhill-push-device-bootstrap"><?= json_encode(
+                [
+                    'csrf' => csrf_token(),
+                    'pushCommentReplies' => $thankhillFooterPrefs['push_comment_replies_enabled'],
+                ],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS
+            ) ?></script>
+            <dialog class="me-dialog" id="push-device-prompt-dialog" aria-labelledby="push-device-prompt-title">
+                <h3 id="push-device-prompt-title" class="me-dialog__title">Notifications are enabled on your account</h3>
+                <p class="me-dialog__body">Enable them on this device too?</p>
+                <div class="me-dialog__actions">
+                    <button type="button" class="btn btn--primary" id="push-device-prompt-enable">Enable notifications</button>
+                    <button type="button" class="btn btn--ghost" id="push-device-prompt-dismiss">Not now</button>
+                </div>
+            </dialog>
+            <script src="<?= e(asset_url('/push_device_prompt.js')) ?>" defer></script>
             <script>
                 (function () {
                     var csrf = <?= json_encode(csrf_token(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;

@@ -7,12 +7,14 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/user_preferences.php';
+require_once __DIR__ . '/includes/user_notification_prefs_repository.php';
 
 $userId = require_login();
 $pdo = db();
 
 $flashProfile = isset($_GET['saved']) && $_GET['saved'] === 'profile';
 $flashPrefs = isset($_GET['saved']) && $_GET['saved'] === 'prefs';
+$notifPrefs = user_notification_prefs_get($pdo, $userId);
 $deleteErr = isset($_GET['delete_err']) ? (string) $_GET['delete_err'] : '';
 $errorMessage = null;
 
@@ -42,14 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $notesScope = $_POST['notes_default_scope'] ?? '';
         $notesDefaultScope = ($notesScope === 'mine') ? 'mine' : 'all';
 
-        $dailyReminder = isset($_POST['daily_reminder_enabled'])
-            && (string) $_POST['daily_reminder_enabled'] === '1';
         $todayShared = isset($_POST['today_show_shared'])
             && (string) $_POST['today_show_shared'] === '1';
 
         user_preferences_merge_save($pdo, $userId, [
             'default_note_visibility' => $defaultNoteVisibility,
-            'daily_reminder_enabled' => $dailyReminder,
             'today_show_shared' => $todayShared,
             'notes_default_scope' => $notesDefaultScope,
         ]);
@@ -172,6 +171,43 @@ require_once __DIR__ . '/header.php';
                 </form>
             </section>
 
+            <section class="me-section" aria-labelledby="me-notifications-heading">
+                <h2 id="me-notifications-heading" class="me-section__heading">Notifications</h2>
+                <div
+                    id="me-notifications-root"
+                    class="me-notifications"
+                    data-csrf="<?= e(csrf_token()) ?>"
+                >
+                    <p class="me-muted">
+                        Push is optional. We only ask for browser permission when you turn this on.
+                    </p>
+                    <label class="me-check" for="me-push-comment-replies">
+                        <input
+                            type="checkbox"
+                            id="me-push-comment-replies"
+                            <?= $notifPrefs['push_comment_replies_enabled'] ? 'checked' : '' ?>
+                        >
+                        <span>Notify me when someone comments on my notes or thoughts</span>
+                    </label>
+                    <p class="me-muted me-notifications__hint">
+                        You’ll get a push notification when someone leaves a comment on something you wrote.
+                    </p>
+                    <p class="me-push-status" id="me-push-status" role="status" aria-live="polite"></p>
+
+                    <dialog id="me-push-prepermission-dialog" class="me-dialog" aria-labelledby="me-push-prepermission-title">
+                        <h3 id="me-push-prepermission-title" class="me-dialog__title">Enable notifications on this device?</h3>
+                        <p class="me-dialog__body">
+                            We can notify you when someone comments on something you wrote. This uses your browser’s notification system.
+                        </p>
+                        <div class="me-dialog__actions">
+                            <button type="button" class="btn btn--primary" id="me-push-prepermission-enable">Enable notifications</button>
+                            <button type="button" class="btn btn--ghost" id="me-push-prepermission-dismiss">Not now</button>
+                        </div>
+                    </dialog>
+                </div>
+                <script src="<?= e(asset_url('/me_notifications.js')) ?>" defer></script>
+            </section>
+
             <section class="me-section" aria-labelledby="me-prefs-heading">
                 <h2 id="me-prefs-heading" class="me-section__heading">Preferences</h2>
                 <form class="me-form" method="post" action="/me.php">
@@ -189,17 +225,6 @@ require_once __DIR__ . '/header.php';
                             Remember the groups I last shared with
                         </option>
                     </select>
-
-                    <input type="hidden" name="daily_reminder_enabled" value="0">
-                    <label class="me-check">
-                        <input
-                            type="checkbox"
-                            name="daily_reminder_enabled"
-                            value="1"
-                            <?= !empty($prefs['daily_reminder_enabled']) ? 'checked' : '' ?>
-                        >
-                        <span>Daily writing reminder (used when reminders are available)</span>
-                    </label>
 
                     <h3 class="me-section__subheading">Viewing</h3>
 

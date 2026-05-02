@@ -9,6 +9,7 @@ require_once dirname(__DIR__) . '/includes/csrf.php';
 require_once dirname(__DIR__) . '/includes/note_access.php';
 require_once dirname(__DIR__) . '/includes/thought_comments.php';
 require_once dirname(__DIR__) . '/includes/user_timezone.php';
+require_once dirname(__DIR__) . '/includes/PushService.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: /notes.php');
@@ -71,8 +72,11 @@ try {
         'INSERT INTO thought_comments (thought_id, user_id, body, created_at) VALUES (?, ?, ?, NOW())'
     );
     $ins->execute([$thoughtId, $userId, $validated['value']]);
+    $newCommentId = (int) $pdo->lastInsertId();
 
     $pdo->commit();
+
+    push_service_notify_comment_author($pdo, $newCommentId);
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
         $pdo->rollBack();
