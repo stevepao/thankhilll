@@ -163,6 +163,8 @@ switch ($rpcMethod) {
                     . ' tool=list_recent_photos msg=' . $e->getMessage()
                     . ' class=' . $e::class
                 );
+                error_log($e->getMessage());
+                error_log($e->getTraceAsString());
                 th_mcp_tool_result($id, '{"error":"list_recent_photos failed."}', true);
             }
         }

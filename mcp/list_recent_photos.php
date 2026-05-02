@@ -7,6 +7,9 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/db.php';
 require_once __DIR__ . '/media_signing.php';
 
+/** Same as MCP JSON bodies: substitute invalid UTF-8 so json_encode cannot throw on DB paths. */
+const TH_MCP_LIST_RECENT_PHOTOS_JSON = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE;
+
 /**
  * @return array{text:string,is_error:bool}
  */
@@ -18,7 +21,7 @@ function th_mcp_list_recent_photos_run(PDO $pdo, int $userId, array $arguments):
                 [
                     'error' => 'MCP_MEDIA_SIGNING_KEY is not configured; cannot generate photo URLs.',
                 ],
-                JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+                TH_MCP_LIST_RECENT_PHOTOS_JSON
             ),
             'is_error' => true,
         ];
@@ -48,14 +51,15 @@ function th_mcp_list_recent_photos_run(PDO $pdo, int $userId, array $arguments):
             return [
                 'text' => json_encode(
                     ['error' => 'Invalid since date/time.'],
-                    JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+                    TH_MCP_LIST_RECENT_PHOTOS_JSON
                 ),
                 'is_error' => true,
             ];
         }
     }
 
-    $params[] = $limit;
+    // Integer literal — PDO/MySQL native prepared statements often reject bound LIMIT placeholders.
+    $limitInt = max(1, min(50, (int) $limit));
 
     $sql = <<<SQL
         SELECT nm.id, nm.created_at, nm.file_path
@@ -64,7 +68,7 @@ function th_mcp_list_recent_photos_run(PDO $pdo, int $userId, array $arguments):
         WHERE n.user_id = ?
         {$sinceClause}
         ORDER BY nm.created_at DESC
-        LIMIT ?
+        LIMIT {$limitInt}
         SQL;
 
     $stmt = $pdo->prepare($sql);
@@ -101,7 +105,7 @@ function th_mcp_list_recent_photos_run(PDO $pdo, int $userId, array $arguments):
             return [
                 'text' => json_encode(
                     ['error' => 'Could not build signed URLs.'],
-                    JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+                    TH_MCP_LIST_RECENT_PHOTOS_JSON
                 ),
                 'is_error' => true,
             ];
@@ -117,7 +121,7 @@ function th_mcp_list_recent_photos_run(PDO $pdo, int $userId, array $arguments):
     }
 
     return [
-        'text' => json_encode($out, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+        'text' => json_encode($out, TH_MCP_LIST_RECENT_PHOTOS_JSON),
         'is_error' => false,
     ];
 }
