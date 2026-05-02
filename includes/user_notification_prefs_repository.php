@@ -7,6 +7,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/push_opt_out.php';
+require_once dirname(__DIR__) . '/db.php';
 
 /**
  * @return array{
@@ -100,6 +101,15 @@ function user_notification_prefs_save(
         $pushRemindersEnabled,
         $pushCommentRepliesEnabled
     );
+
+    try {
+        $sync = $pdo->prepare('UPDATE users SET daily_reminder_enabled = ? WHERE id = ?');
+        $sync->execute([$pushRemindersEnabled ? 1 : 0, $userId]);
+    } catch (PDOException $e) {
+        if (!pdo_error_is_unknown_column($e)) {
+            throw $e;
+        }
+    }
 }
 
 /**
