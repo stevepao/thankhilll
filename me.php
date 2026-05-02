@@ -173,6 +173,7 @@ require_once __DIR__ . '/header.php';
 
             <section class="me-section" aria-labelledby="me-notifications-heading">
                 <h2 id="me-notifications-heading" class="me-section__heading">Notifications</h2>
+                <p class="me-muted me-notifications__autosave">Changes here are saved automatically.</p>
                 <div
                     id="me-notifications-root"
                     class="me-notifications"
@@ -182,29 +183,33 @@ require_once __DIR__ . '/header.php';
                     <p class="me-muted">
                         Push is optional. We only ask for browser permission when you turn this on.
                     </p>
-                    <label class="me-check" for="me-push-gratitude-reminder">
-                        <input
-                            type="checkbox"
-                            id="me-push-gratitude-reminder"
-                            <?= $notifPrefs['push_reminders_enabled'] ? 'checked' : '' ?>
-                        >
-                        <span>Remind me to write a gratitude note</span>
-                    </label>
-                    <p class="me-muted me-notifications__hint">
-                        You’ll get one gentle reminder in the evening if you haven’t written yet.
-                    </p>
-                    <label class="me-check" for="me-push-comment-replies">
-                        <input
-                            type="checkbox"
-                            id="me-push-comment-replies"
-                            <?= $notifPrefs['push_comment_replies_enabled'] ? 'checked' : '' ?>
-                        >
-                        <span>Notify me when someone comments on my notes or thoughts</span>
-                    </label>
-                    <p class="me-muted me-notifications__hint">
-                        You’ll get a push notification when someone leaves a comment on something you wrote.
-                    </p>
-                    <p class="me-push-status" id="me-push-status" role="status" aria-live="polite"></p>
+                    <div class="me-notifications__item">
+                        <label class="me-check" for="me-push-gratitude-reminder">
+                            <input
+                                type="checkbox"
+                                id="me-push-gratitude-reminder"
+                                <?= $notifPrefs['push_reminders_enabled'] ? 'checked' : '' ?>
+                            >
+                            <span>Remind me to write a gratitude note</span>
+                        </label>
+                        <p class="me-muted me-notifications__hint">
+                            You’ll get one gentle reminder in the evening if you haven’t written yet.
+                        </p>
+                    </div>
+                    <div class="me-notifications__item">
+                        <label class="me-check" for="me-push-comment-replies">
+                            <input
+                                type="checkbox"
+                                id="me-push-comment-replies"
+                                <?= $notifPrefs['push_comment_replies_enabled'] ? 'checked' : '' ?>
+                            >
+                            <span>Notify me when someone comments on my notes or thoughts</span>
+                        </label>
+                        <p class="me-muted me-notifications__hint">
+                            You’ll get a push notification when someone leaves a comment on something you wrote.
+                        </p>
+                    </div>
+                    <p class="me-push-status me-notifications__status" id="me-push-status" role="status" aria-live="polite"></p>
 
                     <dialog id="me-gratitude-prepermission-dialog" class="me-dialog" aria-labelledby="me-gratitude-prepermission-title">
                         <h3 id="me-gratitude-prepermission-title" class="me-dialog__title">Enable notifications on this device?</h3>
