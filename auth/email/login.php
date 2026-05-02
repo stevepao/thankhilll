@@ -7,9 +7,17 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 2) . '/auth.php';
 require_once dirname(__DIR__, 2) . '/includes/csrf.php';
 require_once dirname(__DIR__, 2) . '/includes/email_auth.php';
+require_once dirname(__DIR__, 2) . '/includes/group_helpers.php';
+require_once dirname(__DIR__, 2) . '/includes/auth_redirect.php';
+
+bootstrap_session();
+
+if (isset($_GET['next']) && is_string($_GET['next']) && auth_redirect_uri_safe($_GET['next'])) {
+    $_SESSION['auth_redirect_after_login'] = $_GET['next'];
+}
 
 if (current_user_id() !== null) {
-    header('Location: /index.php');
+    header('Location: ' . invite_login_redirect_path());
     exit;
 }
 

@@ -5,13 +5,17 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/includes/group_helpers.php';
+require_once __DIR__ . '/includes/auth_redirect.php';
+
+bootstrap_session();
+
+if (isset($_GET['next']) && is_string($_GET['next']) && auth_redirect_uri_safe($_GET['next'])) {
+    $_SESSION['auth_redirect_after_login'] = $_GET['next'];
+}
 
 if (current_user_id() !== null) {
-    if (!empty($_SESSION['invite_pending_token'])) {
-        header('Location: /invite/accept.php');
-        exit;
-    }
-    header('Location: /index.php');
+    header('Location: ' . invite_login_redirect_path());
     exit;
 }
 

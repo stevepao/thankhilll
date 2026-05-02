@@ -7,6 +7,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/db.php';
 require_once __DIR__ . '/email_auth.php';
 require_once __DIR__ . '/session.php';
+require_once __DIR__ . '/auth_redirect.php';
 
 /** Absolute URL for same-origin paths (invite links). */
 function app_absolute_url(string $path): string
@@ -17,12 +18,23 @@ function app_absolute_url(string $path): string
     return $scheme . '://' . $host . $path;
 }
 
-/** Redirect target after login when finishing invite acceptance. */
+/** Redirect target after login when finishing invite acceptance or stored ?next= path. */
 function invite_login_redirect_path(): string
 {
     bootstrap_session();
 
-    return !empty($_SESSION['invite_pending_token']) ? '/invite/accept.php' : '/index.php';
+    if (!empty($_SESSION['invite_pending_token'])) {
+        return '/invite/accept.php';
+    }
+
+    $next = $_SESSION['auth_redirect_after_login'] ?? null;
+    if (is_string($next) && auth_redirect_uri_safe($next)) {
+        unset($_SESSION['auth_redirect_after_login']);
+
+        return $next;
+    }
+
+    return '/index.php';
 }
 
 /** Normalize invite email; returns null if invalid (caller treats as soft-fail). */

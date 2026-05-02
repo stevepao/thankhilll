@@ -106,5 +106,7 @@ email_otp_session_clear_pending_email();
 
 session_commit_login($userId);
 
+auth_refresh_token_issue($pdo, $userId);
+
 header('Location: ' . invite_login_redirect_path());
 exit;

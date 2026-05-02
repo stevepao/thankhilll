@@ -4,6 +4,9 @@
  *
  * Provider-agnostic: any login flow should call session_commit_login() after verifying credentials.
  * Security intent: strict cookies, fixation resistance (regenerate on login), idle timeout, UA binding.
+ * Idle expiry is enforced server-side (SESSION_IDLE_TIMEOUT_SECONDS). After idle expiry, an HttpOnly
+ * refresh cookie + DB row (see includes/auth_refresh_token.php) may establish a new session until that
+ * token’s absolute expiry — not an indefinite session.
  */
 declare(strict_types=1);
 

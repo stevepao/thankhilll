@@ -6,4 +6,4 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../auth.php';
 
-session_logout_and_redirect();
+auth_logout_and_redirect();
