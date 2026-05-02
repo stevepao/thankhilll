@@ -215,6 +215,7 @@ function mcp_access_token_revoke_by_hash(PDO $pdo, int $userId, string $tokenHas
  */
 function mcp_access_token_resolve_user_id(PDO $pdo, string $plaintextHex): ?int
 {
+    $plaintextHex = strtolower(trim($plaintextHex));
     if (preg_match('/^[a-f0-9]{64}$/', $plaintextHex) !== 1) {
         return null;
     }
