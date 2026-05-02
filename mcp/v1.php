@@ -11,6 +11,9 @@ const TH_MCP_JSONRPC = '2.0';
 /** Flags for JSON-RPC bodies: never drop output due to invalid UTF-8 in nested tool text. */
 const TH_MCP_JSON_ENCODE = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE;
 
+/** Same UTF-8 hardening without throw — safe for error_log and other non-RPC strings. */
+const TH_MCP_JSON_ENCODE_LOG = JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
+
 $projectRoot = dirname(__DIR__);
 
 th_mcp_load_env($projectRoot . '/.env');
@@ -139,14 +142,28 @@ switch ($rpcMethod) {
             try {
                 require_once __DIR__ . '/list_recent_photos.php';
                 $pdo = db();
-                $run = th_mcp_list_recent_photos_run($pdo, $mcpUserId, $toolArgs);
-                th_mcp_tool_result($id, $run['text'], $run['is_error']);
-            } catch (Throwable) {
-                th_mcp_tool_result(
-                    $id,
-                    '{"error":"list_recent_photos could not complete."}',
-                    true
+                $idLog = json_encode($id, TH_MCP_JSON_ENCODE_LOG);
+                error_log(
+                    'thankhill-mcp tools/call list_recent_photos: before run id=' . $idLog . ' tool=list_recent_photos'
                 );
+                $run = th_mcp_list_recent_photos_run($pdo, $mcpUserId, $toolArgs);
+                error_log(
+                    'thankhill-mcp tools/call list_recent_photos: after run id=' . $idLog . ' tool=list_recent_photos'
+                );
+                error_log(
+                    'thankhill-mcp tools/call list_recent_photos: before th_mcp_tool_result id='
+                    . $idLog
+                    . ' tool=list_recent_photos'
+                );
+                th_mcp_tool_result($id, $run['text'], $run['is_error']);
+            } catch (Throwable $e) {
+                $idLog = json_encode($id, TH_MCP_JSON_ENCODE_LOG);
+                error_log(
+                    'thankhill-mcp tools/call list_recent_photos: exception id=' . $idLog
+                    . ' tool=list_recent_photos msg=' . $e->getMessage()
+                    . ' class=' . $e::class
+                );
+                th_mcp_tool_result($id, '{"error":"list_recent_photos failed."}', true);
             }
         }
         if ($toolName === 'export_notes_timeline') {
