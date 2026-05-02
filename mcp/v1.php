@@ -8,6 +8,9 @@ declare(strict_types=1);
 
 const TH_MCP_JSONRPC = '2.0';
 
+/** Flags for JSON-RPC bodies: never drop output due to invalid UTF-8 in nested tool text. */
+const TH_MCP_JSON_ENCODE = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE;
+
 $projectRoot = dirname(__DIR__);
 
 th_mcp_load_env($projectRoot . '/.env');
@@ -29,7 +32,7 @@ if ($httpMethod === 'GET') {
             'version' => 'v1',
             'status' => 'ok',
         ],
-        JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        TH_MCP_JSON_ENCODE
     );
     exit;
 }
@@ -39,7 +42,7 @@ if ($httpMethod !== 'POST') {
     header('Content-Type: application/json; charset=UTF-8');
     header('Cache-Control: no-store');
     http_response_code(405);
-    echo json_encode(['error' => 'method_not_allowed'], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    echo json_encode(['error' => 'method_not_allowed'], TH_MCP_JSON_ENCODE);
     exit;
 }
 
@@ -48,7 +51,7 @@ if (!preg_match('#^application/json\b#i', $contentType)) {
     header('Content-Type: application/json; charset=UTF-8');
     header('Cache-Control: no-store');
     http_response_code(415);
-    echo json_encode(['error' => 'unsupported_media_type'], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    echo json_encode(['error' => 'unsupported_media_type'], TH_MCP_JSON_ENCODE);
     exit;
 }
 
@@ -133,10 +136,18 @@ switch ($rpcMethod) {
             th_mcp_tool_result($id, $run['text'], $run['is_error']);
         }
         if ($toolName === 'list_recent_photos') {
-            require_once __DIR__ . '/list_recent_photos.php';
-            $pdo = db();
-            $run = th_mcp_list_recent_photos_run($pdo, $mcpUserId, $toolArgs);
-            th_mcp_tool_result($id, $run['text'], $run['is_error']);
+            try {
+                require_once __DIR__ . '/list_recent_photos.php';
+                $pdo = db();
+                $run = th_mcp_list_recent_photos_run($pdo, $mcpUserId, $toolArgs);
+                th_mcp_tool_result($id, $run['text'], $run['is_error']);
+            } catch (Throwable) {
+                th_mcp_tool_result(
+                    $id,
+                    '{"error":"list_recent_photos could not complete."}',
+                    true
+                );
+            }
         }
         if ($toolName === 'export_notes_timeline') {
             require_once __DIR__ . '/export_notes_timeline.php';
@@ -166,7 +177,7 @@ function th_mcp_respond_401(): void
                 'message' => 'Unauthorized',
             ],
         ],
-        JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        TH_MCP_JSON_ENCODE
     );
     exit;
 }
@@ -186,7 +197,7 @@ function th_mcp_jsonrpc_success(string|int|float|null $id, array $result): void
             'id' => $id,
             'result' => $result,
         ],
-        JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        TH_MCP_JSON_ENCODE
     );
     exit;
 }
@@ -209,7 +220,7 @@ function th_mcp_jsonrpc_error_response(string|int|float|null $id, int $code, str
                 'message' => $message,
             ],
         ],
-        JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        TH_MCP_JSON_ENCODE
     );
     exit;
 }
