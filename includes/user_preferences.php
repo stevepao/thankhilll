@@ -12,7 +12,6 @@ function user_preferences_defaults(): array
     return [
         'default_note_visibility' => 'private',
         'last_used_group_ids' => [],
-        'daily_reminder_enabled' => false,
         'today_show_shared' => true,
         'notes_default_scope' => 'all',
     ];
@@ -44,8 +43,6 @@ function user_preferences_normalize(array $stored): array
         }
         $out['last_used_group_ids'] = array_values(array_slice(array_values($clean), 0, 32));
     }
-
-    $out['daily_reminder_enabled'] = !empty($stored['daily_reminder_enabled']);
 
     $out['today_show_shared'] = array_key_exists('today_show_shared', $stored)
         ? !empty($stored['today_show_shared'])
@@ -102,21 +99,6 @@ function user_preferences_merge_save(PDO $pdo, int $userId, array $patch): void
 {
     $current = user_preferences_load($pdo, $userId);
     user_preferences_save($pdo, $userId, array_merge($current, $patch));
-
-    if (!array_key_exists('daily_reminder_enabled', $patch)) {
-        return;
-    }
-
-    try {
-        $prefs = user_preferences_load($pdo, $userId);
-        $en = !empty($prefs['daily_reminder_enabled']);
-        $stmt = $pdo->prepare('UPDATE users SET daily_reminder_enabled = ? WHERE id = ?');
-        $stmt->execute([$en ? 1 : 0, $userId]);
-    } catch (PDOException $e) {
-        if (!pdo_error_is_unknown_column($e)) {
-            throw $e;
-        }
-    }
 }
 
 /** Drop a group id from last_used_group_ids (e.g. after the group is deleted). */

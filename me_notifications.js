@@ -1,29 +1,82 @@
 /**
- * Me tab: comment push preference + in-app permission flow (no prompt until user intent).
+ * Me tab: gratitude reminder + comment push preferences and permission flows.
  */
 (function () {
+    var STORAGE_CROSS_DEVICE_DISMISSED = 'thankhill_me_gratitude_cross_device_dismissed';
+
     var root = document.getElementById('me-notifications-root');
     if (!root) {
         return;
     }
 
     var csrf = root.getAttribute('data-csrf') || '';
-    var input = document.getElementById('me-push-comment-replies');
-    var preDialog = document.getElementById('me-push-prepermission-dialog');
-    var preEnable = document.getElementById('me-push-prepermission-enable');
-    var preDismiss = document.getElementById('me-push-prepermission-dismiss');
+    var inputGratitude = document.getElementById('me-push-gratitude-reminder');
+    var inputComments = document.getElementById('me-push-comment-replies');
     var statusEl = document.getElementById('me-push-status');
 
-    if (!input || !preDialog || !preEnable || !preDismiss) {
+    var gratitudeDialog = document.getElementById('me-gratitude-prepermission-dialog');
+    var gratitudeEnable = document.getElementById('me-gratitude-prepermission-enable');
+    var gratitudeDismiss = document.getElementById('me-gratitude-prepermission-dismiss');
+
+    var commentDialog = document.getElementById('me-push-prepermission-dialog');
+    var commentEnable = document.getElementById('me-push-prepermission-enable');
+    var commentDismiss = document.getElementById('me-push-prepermission-dismiss');
+
+    var crossDeviceDialog = document.getElementById('me-cross-device-push-dialog');
+    var crossDeviceEnable = document.getElementById('me-cross-device-enable');
+    var crossDeviceDismiss = document.getElementById('me-cross-device-dismiss');
+
+    if (
+        !inputGratitude ||
+        !inputComments ||
+        !gratitudeDialog ||
+        !gratitudeEnable ||
+        !gratitudeDismiss ||
+        !commentDialog ||
+        !commentEnable ||
+        !commentDismiss ||
+        !crossDeviceDialog ||
+        !crossDeviceEnable ||
+        !crossDeviceDismiss
+    ) {
         return;
     }
 
-    var previousChecked = input.checked;
+    var previousGratitude = inputGratitude.checked;
+    var previousComments = inputComments.checked;
 
     function setStatus(msg) {
         if (statusEl) {
             statusEl.textContent = msg || '';
         }
+    }
+
+    function setGratitudeAccountAttr(on) {
+        root.setAttribute('data-gratitude-reminder-account', on ? '1' : '0');
+    }
+
+    function saveNotifPrefs(patch) {
+        var body = { csrf_token: csrf };
+        if ('push_comment_replies_enabled' in patch) {
+            body.push_comment_replies_enabled = patch.push_comment_replies_enabled;
+        }
+        if ('push_reminders_enabled' in patch) {
+            body.push_reminders_enabled = patch.push_reminders_enabled;
+        }
+        return fetch('/me_notification_prefs.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrf,
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(body),
+        }).then(function (r) {
+            if (!r.ok) {
+                throw new Error('save');
+            }
+            return r.json();
+        });
     }
 
     function urlBase64ToUint8Array(base64String) {
@@ -35,23 +88,6 @@
             outputArray[i] = rawData.charCodeAt(i);
         }
         return outputArray;
-    }
-
-    function savePref(enabled) {
-        return fetch('/me_notification_prefs.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrf,
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({ push_comment_replies_enabled: enabled, csrf_token: csrf }),
-        }).then(function (r) {
-            if (!r.ok) {
-                throw new Error('save');
-            }
-            return r.json();
-        });
     }
 
     function fetchVapidKey() {
@@ -129,16 +165,136 @@
             });
     }
 
-    input.addEventListener('change', function () {
-        var want = input.checked;
-        if (want === previousChecked) {
+    function getPushSubscription() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            return Promise.resolve(null);
+        }
+        return navigator.serviceWorker.ready.then(function (reg) {
+            return reg.pushManager.getSubscription();
+        });
+    }
+
+    function permissionDeniedCalmMessage() {
+        setStatus(
+            'Notifications are turned off for this device. You can enable them anytime in your browser settings.'
+        );
+    }
+
+    /** Cross-device one-time prompt (Part D): gratitude enabled account, no subscription on this browser. */
+    function maybeShowCrossDevicePrompt() {
+        if (root.getAttribute('data-gratitude-reminder-account') !== '1') {
+            return;
+        }
+        try {
+            if (localStorage.getItem(STORAGE_CROSS_DEVICE_DISMISSED) === '1') {
+                return;
+            }
+        } catch (e) {
+            return;
+        }
+        getPushSubscription().then(function (sub) {
+            if (sub) {
+                return;
+            }
+            if (!crossDeviceDialog.showModal) {
+                return;
+            }
+            crossDeviceDialog.showModal();
+        });
+    }
+
+    inputGratitude.addEventListener('change', function () {
+        var want = inputGratitude.checked;
+        if (want === previousGratitude) {
             return;
         }
 
         if (!want) {
-            savePref(false)
+            saveNotifPrefs({ push_reminders_enabled: false })
                 .then(function () {
-                    previousChecked = false;
+                    previousGratitude = false;
+                    setGratitudeAccountAttr(false);
+                    setStatus('');
+                })
+                .catch(function () {
+                    inputGratitude.checked = true;
+                    previousGratitude = true;
+                    setStatus('Could not update your preference. Please try again.');
+                });
+            return;
+        }
+
+        saveNotifPrefs({ push_reminders_enabled: true })
+            .then(function () {
+                previousGratitude = true;
+                setGratitudeAccountAttr(true);
+                return getPushSubscription();
+            })
+            .then(function (sub) {
+                if (sub) {
+                    setStatus('Notifications are set up on this device.');
+                    return;
+                }
+                if (!('Notification' in window)) {
+                    setStatus('Your browser does not support notifications here.');
+                    return;
+                }
+                if (Notification.permission === 'granted') {
+                    return runSubscribeFlow();
+                }
+                if (Notification.permission === 'denied') {
+                    permissionDeniedCalmMessage();
+                    return;
+                }
+                if (!gratitudeDialog.showModal) {
+                    return runSubscribeFlow();
+                }
+                gratitudeDialog.showModal();
+            })
+            .catch(function () {
+                inputGratitude.checked = false;
+                previousGratitude = false;
+                setGratitudeAccountAttr(false);
+                setStatus('Could not update your preference. Please try again.');
+            });
+    });
+
+    gratitudeEnable.addEventListener('click', function () {
+        gratitudeDialog.close();
+        if (Notification.permission === 'default') {
+            Notification.requestPermission().then(function (perm) {
+                if (perm === 'granted') {
+                    runSubscribeFlow();
+                } else {
+                    permissionDeniedCalmMessage();
+                }
+            });
+        } else if (Notification.permission === 'granted') {
+            runSubscribeFlow();
+        } else {
+            permissionDeniedCalmMessage();
+        }
+    });
+
+    gratitudeDismiss.addEventListener('click', function () {
+        gratitudeDialog.close();
+        setStatus('You can turn on browser notifications anytime using the toggle above when you are ready.');
+    });
+
+    inputComments.addEventListener('change', function () {
+        var want = inputComments.checked;
+        if (want === previousComments) {
+            return;
+        }
+
+        if (!want) {
+            saveNotifPrefs({ push_comment_replies_enabled: false })
+                .then(function () {
+                    previousComments = false;
+                    if (inputGratitude.checked) {
+                        setStatus('Comment notifications are off.');
+                        return;
+                    }
                     if (!('serviceWorker' in navigator)) {
                         return;
                     }
@@ -157,65 +313,89 @@
                         });
                 })
                 .then(function () {
-                    setStatus('Comment notifications are off. We removed this device from your push list.');
+                    if (!inputGratitude.checked) {
+                        setStatus('Comment notifications are off. We removed this device from your push list.');
+                    }
                 })
                 .catch(function () {
-                    input.checked = true;
-                    previousChecked = true;
+                    inputComments.checked = true;
+                    previousComments = true;
                     setStatus('Could not update your preference. Please try again.');
                 });
             return;
         }
 
-        savePref(true)
+        saveNotifPrefs({ push_comment_replies_enabled: true })
             .then(function () {
-                previousChecked = true;
+                previousComments = true;
                 if (Notification.permission === 'granted') {
                     return runSubscribeFlow();
                 }
                 if (Notification.permission === 'denied') {
-                    setStatus(
-                        'Notifications are turned off for this device. You can enable them anytime in your browser settings.'
-                    );
+                    permissionDeniedCalmMessage();
                     return;
                 }
-                if (!preDialog.showModal) {
+                if (!commentDialog.showModal) {
                     return runSubscribeFlow();
                 }
-                preDialog.showModal();
+                commentDialog.showModal();
             })
             .catch(function () {
-                input.checked = false;
-                previousChecked = false;
+                inputComments.checked = false;
+                previousComments = false;
                 setStatus('Could not update your preference. Please try again.');
             });
     });
 
-    preEnable.addEventListener('click', function () {
-        preDialog.close();
+    commentEnable.addEventListener('click', function () {
+        commentDialog.close();
         if (Notification.permission === 'default') {
             Notification.requestPermission().then(function (perm) {
                 if (perm === 'granted') {
                     runSubscribeFlow();
                 } else {
-                    setStatus(
-                        'Notifications are turned off for this device. You can enable them anytime in your browser settings.'
-                    );
+                    permissionDeniedCalmMessage();
                 }
             });
         } else if (Notification.permission === 'granted') {
             runSubscribeFlow();
         } else {
-            setStatus(
-                'Notifications are turned off for this device. You can enable them anytime in your browser settings.'
-            );
+            permissionDeniedCalmMessage();
         }
     });
 
-    preDismiss.addEventListener('click', function () {
-        preDialog.close();
-        setStatus(
-            'You can turn on browser notifications anytime using the toggle above when you are ready.'
-        );
+    commentDismiss.addEventListener('click', function () {
+        commentDialog.close();
+        setStatus('You can turn on browser notifications anytime using the toggle above when you are ready.');
     });
+
+    crossDeviceEnable.addEventListener('click', function () {
+        crossDeviceDialog.close();
+        if (!('Notification' in window)) {
+            setStatus('Your browser does not support notifications here.');
+            return;
+        }
+        if (Notification.permission === 'default') {
+            Notification.requestPermission().then(function (perm) {
+                if (perm === 'granted') {
+                    runSubscribeFlow();
+                } else {
+                    permissionDeniedCalmMessage();
+                }
+            });
+        } else if (Notification.permission === 'granted') {
+            runSubscribeFlow();
+        } else {
+            permissionDeniedCalmMessage();
+        }
+    });
+
+    crossDeviceDismiss.addEventListener('click', function () {
+        crossDeviceDialog.close();
+        try {
+            localStorage.setItem(STORAGE_CROSS_DEVICE_DISMISSED, '1');
+        } catch (e) {}
+    });
+
+    maybeShowCrossDevicePrompt();
 })();

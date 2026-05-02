@@ -8,11 +8,3 @@ ALTER TABLE users
 UPDATE users u
 INNER JOIN user_notification_prefs p ON p.user_id = u.id AND p.push_reminders_enabled = 1
 SET u.daily_reminder_enabled = 1;
-
-UPDATE users
-SET daily_reminder_enabled = 1
-WHERE preferences_json IS NOT NULL
-  AND (
-    preferences_json LIKE '%"daily_reminder_enabled":true%'
-    OR preferences_json LIKE '%"daily_reminder_enabled": true%'
-  );

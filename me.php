@@ -177,9 +177,21 @@ require_once __DIR__ . '/header.php';
                     id="me-notifications-root"
                     class="me-notifications"
                     data-csrf="<?= e(csrf_token()) ?>"
+                    data-gratitude-reminder-account="<?= $notifPrefs['push_reminders_enabled'] ? '1' : '0' ?>"
                 >
                     <p class="me-muted">
                         Push is optional. We only ask for browser permission when you turn this on.
+                    </p>
+                    <label class="me-check" for="me-push-gratitude-reminder">
+                        <input
+                            type="checkbox"
+                            id="me-push-gratitude-reminder"
+                            <?= $notifPrefs['push_reminders_enabled'] ? 'checked' : '' ?>
+                        >
+                        <span>Remind me to write a gratitude note</span>
+                    </label>
+                    <p class="me-muted me-notifications__hint">
+                        You’ll get one gentle reminder in the evening if you haven’t written yet.
                     </p>
                     <label class="me-check" for="me-push-comment-replies">
                         <input
@@ -194,6 +206,18 @@ require_once __DIR__ . '/header.php';
                     </p>
                     <p class="me-push-status" id="me-push-status" role="status" aria-live="polite"></p>
 
+                    <dialog id="me-gratitude-prepermission-dialog" class="me-dialog" aria-labelledby="me-gratitude-prepermission-title">
+                        <h3 id="me-gratitude-prepermission-title" class="me-dialog__title">Enable notifications on this device?</h3>
+                        <p class="me-dialog__body">
+                            We can remind you to write something you're grateful for.
+                            This uses your browser’s notification system.
+                        </p>
+                        <div class="me-dialog__actions">
+                            <button type="button" class="btn btn--primary" id="me-gratitude-prepermission-enable">Enable notifications</button>
+                            <button type="button" class="btn btn--ghost" id="me-gratitude-prepermission-dismiss">Not now</button>
+                        </div>
+                    </dialog>
+
                     <dialog id="me-push-prepermission-dialog" class="me-dialog" aria-labelledby="me-push-prepermission-title">
                         <h3 id="me-push-prepermission-title" class="me-dialog__title">Enable notifications on this device?</h3>
                         <p class="me-dialog__body">
@@ -202,6 +226,15 @@ require_once __DIR__ . '/header.php';
                         <div class="me-dialog__actions">
                             <button type="button" class="btn btn--primary" id="me-push-prepermission-enable">Enable notifications</button>
                             <button type="button" class="btn btn--ghost" id="me-push-prepermission-dismiss">Not now</button>
+                        </div>
+                    </dialog>
+
+                    <dialog id="me-cross-device-push-dialog" class="me-dialog" aria-labelledby="me-cross-device-title">
+                        <h3 id="me-cross-device-title" class="me-dialog__title">Notifications are enabled on your account.</h3>
+                        <p class="me-dialog__body">Enable them on this device too?</p>
+                        <div class="me-dialog__actions">
+                            <button type="button" class="btn btn--primary" id="me-cross-device-enable">Enable notifications</button>
+                            <button type="button" class="btn btn--ghost" id="me-cross-device-dismiss">Not now</button>
                         </div>
                     </dialog>
                 </div>

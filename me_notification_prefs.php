@@ -1,6 +1,9 @@
 <?php
 /**
- * POST — Save comment-reply push preference (JSON). Used by Me tab toggle (fetch).
+ * POST — Save push notification prefs (JSON). Used by Me tab toggles (fetch).
+ *
+ * Accepts optional keys (merge with stored prefs): push_comment_replies_enabled,
+ * push_reminders_enabled (daily gratitude reminders). At least one key required per request.
  */
 declare(strict_types=1);
 
@@ -34,20 +37,41 @@ if (!is_array($data)) {
     exit;
 }
 
-$flag = $data['push_comment_replies_enabled'] ?? null;
-if (!is_bool($flag)) {
+if (!array_key_exists('push_comment_replies_enabled', $data) && !array_key_exists('push_reminders_enabled', $data)) {
     http_response_code(400);
-    echo json_encode(['ok' => false, 'error' => 'push_comment_replies_enabled']);
+    echo json_encode(['ok' => false, 'error' => 'missing_prefs']);
     exit;
 }
 
 $pdo = db();
 $prefs = user_notification_prefs_get($pdo, $userId);
+
+$comments = $prefs['push_comment_replies_enabled'];
+if (array_key_exists('push_comment_replies_enabled', $data)) {
+    $c = $data['push_comment_replies_enabled'];
+    if (!is_bool($c)) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'push_comment_replies_enabled']);
+        exit;
+    }
+    $comments = $c;
+}
+
 $reminders = $prefs['push_reminders_enabled'];
-$pushEnabled = $flag || $reminders;
+if (array_key_exists('push_reminders_enabled', $data)) {
+    $r = $data['push_reminders_enabled'];
+    if (!is_bool($r)) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'push_reminders_enabled']);
+        exit;
+    }
+    $reminders = $r;
+}
+
+$pushEnabled = $comments || $reminders;
 
 try {
-    user_notification_prefs_save($pdo, $userId, $pushEnabled, $reminders, $flag);
+    user_notification_prefs_save($pdo, $userId, $pushEnabled, $reminders, $comments);
 } catch (Throwable $e) {
     error_log('me_notification_prefs: ' . $e->getMessage());
     http_response_code(500);
@@ -57,6 +81,7 @@ try {
 
 echo json_encode([
     'ok' => true,
-    'push_comment_replies_enabled' => $flag,
+    'push_comment_replies_enabled' => $comments,
+    'push_reminders_enabled' => $reminders,
     'push_enabled' => $pushEnabled,
 ], JSON_UNESCAPED_SLASHES);
