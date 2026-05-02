@@ -2,6 +2,8 @@
 
 **Thankhill** is a mobile-first **gratitude journal** you use in the browser (and can install like an app). It is built and operated by **Hillwork, LLC** for adults **18 and older**.
 
+**Repository:** [github.com/stevepao/thankhilll](https://github.com/stevepao/thankhilll) (`git clone https://github.com/stevepao/thankhilll.git`)
+
 ---
 
 ## What you can do
@@ -35,6 +37,8 @@ Public pages (paths depend on your server rewrite rules):
 ## Alpha testing
 
 This README reflects the product **as of early development / alpha**. Features and wording may change. There is **no obligation** to retain data from alpha builds—plan accordingly for demos and feedback rounds.
+
+**Release notes:** see **`CHANGELOG.md`** (first packaged alpha: **v0.5.0**, 2026-05-01).
 
 ---
 
