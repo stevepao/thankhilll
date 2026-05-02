@@ -1,4 +1,10 @@
 # Pretty URL for privacy policy (requires AllowOverride / mod_rewrite).
+
+# Backup path for Authorization → PHP (some stacks ignore RewriteRule env alone).
+<IfModule mod_setenvif.c>
+    SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+</IfModule>
+
 <IfModule mod_rewrite.c>
     RewriteEngine On
     # PHP/CGI often does not receive Authorization unless forwarded into HTTP_AUTHORIZATION.

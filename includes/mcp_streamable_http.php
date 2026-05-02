@@ -76,10 +76,18 @@ function mcp_http_authorization_header_raw(): string
     $candidates = [
         $_SERVER['HTTP_AUTHORIZATION'] ?? null,
         $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null,
+        $_SERVER['HTTP_X_AUTHORIZATION'] ?? null,
     ];
     foreach ($candidates as $v) {
         if (is_string($v) && $v !== '') {
             return $v;
+        }
+    }
+
+    foreach (['HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION'] as $ev) {
+        $g = getenv($ev);
+        if (is_string($g) && $g !== '') {
+            return $g;
         }
     }
 
@@ -105,17 +113,20 @@ function mcp_http_authorization_header_raw(): string
     return '';
 }
 
-function mcp_http_parse_bearer(): ?string
+/**
+ * @return array{token: ?string, reason: ?string} reason set when token is null: missing_authorization | malformed_authorization
+ */
+function mcp_http_extract_bearer(): array
 {
     $h = mcp_http_authorization_header_raw();
     if ($h === '') {
-        return null;
+        return ['token' => null, 'reason' => 'missing_authorization'];
     }
     if (preg_match('/^\s*Bearer\s+(\S+)\s*$/i', $h, $m) !== 1) {
-        return null;
+        return ['token' => null, 'reason' => 'malformed_authorization'];
     }
 
-    return $m[1];
+    return ['token' => $m[1], 'reason' => null];
 }
 
 function mcp_http_content_length_too_large(): bool
@@ -310,7 +321,7 @@ function mcp_http_emit_no_content(array &$ctx): void
     mcp_http_send_response_headers();
 }
 
-function mcp_http_emit_auth_failure(array &$ctx): void
+function mcp_http_emit_auth_failure(array &$ctx, string $reason = 'invalid_token'): void
 {
     $ctx['http_status'] = 401;
     http_response_code(401);
@@ -318,7 +329,7 @@ function mcp_http_emit_auth_failure(array &$ctx): void
     header('Content-Type: application/json; charset=UTF-8');
     header('WWW-Authenticate: Bearer realm="Thankhill MCP"');
     echo json_encode(
-        mcp_http_jsonrpc_error(null, -32001, 'Unauthorized'),
+        mcp_http_jsonrpc_error(null, -32001, 'Unauthorized', ['reason' => $reason]),
         JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
     );
 }
@@ -351,9 +362,10 @@ function mcp_v1_main(): void
         ? $_SERVER['HTTP_ACCEPT']
         : '';
 
-    $token = mcp_http_parse_bearer();
+    $extract = mcp_http_extract_bearer();
+    $token = $extract['token'];
     if ($token === null || $token === '') {
-        mcp_http_emit_auth_failure($ctx);
+        mcp_http_emit_auth_failure($ctx, $extract['reason'] ?? 'missing_authorization');
 
         return;
     }
@@ -367,7 +379,7 @@ function mcp_v1_main(): void
     }
 
     if ($userId === null || $userId <= 0) {
-        mcp_http_emit_auth_failure($ctx);
+        mcp_http_emit_auth_failure($ctx, 'invalid_token');
 
         return;
     }
