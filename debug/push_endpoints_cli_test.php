@@ -90,10 +90,30 @@ function push_test_post_endpoint(string $baseUrl, string $path, array $payload, 
 // --- Align session storage with the HTTP server (must match php -d session.save_path=...)
 $sessEnv = getenv('THANKHILL_SESSION_SAVE_PATH');
 if (is_string($sessEnv) && $sessEnv !== '') {
-    if (!is_dir($sessEnv)) {
-        @mkdir($sessEnv, 0700, true);
-    }
     ini_set('session.save_path', $sessEnv);
+}
+
+/**
+ * @throws RuntimeException if session files cannot be stored (common cause of exit 255).
+ */
+function push_test_ensure_session_save_path_writable(): void
+{
+    $path = session_save_path();
+    if ($path === '') {
+        return;
+    }
+    if (!is_dir($path)) {
+        if (!mkdir($path, 0700, true) && !is_dir($path)) {
+            throw new RuntimeException(
+                'Cannot create session.save_path directory: ' . $path
+            );
+        }
+    }
+    if (!is_writable($path)) {
+        throw new RuntimeException(
+            'session.save_path is not writable (chmod or choose another directory): ' . $path
+        );
+    }
 }
 
 $_SERVER['HTTP_USER_AGENT'] = PUSH_TEST_UA;
@@ -141,6 +161,7 @@ if ($userId <= 0) {
 $exitCode = 1;
 try {
 
+push_test_ensure_session_save_path_writable();
 bootstrap_session();
 session_commit_login($userId);
 $csrf = csrf_token();
@@ -238,6 +259,10 @@ $exitCode = ($ok1 && $ok2 && $ok3 && $ok4 && $ok5 && $ok6) ? 0 : 1;
 if ($exitCode !== 0) {
     echo "\nFAIL: One or more steps failed.\n";
 }
+} catch (Throwable $e) {
+    fwrite(STDERR, 'FAIL (exception): ' . $e->getMessage() . "\n");
+    fwrite(STDERR, '  in ' . $e->getFile() . ':' . $e->getLine() . "\n");
+    $exitCode = 1;
 } finally {
     if (isset($userId) && $userId > 0) {
         try {
