@@ -3,4 +3,8 @@
     RewriteEngine On
     RewriteRule ^policy/?$ policy.php [L,QSA]
     RewriteRule ^terms/?$ terms.php [L,QSA]
+    RewriteRule ^internal/mcp/token/issue/?$ internal/mcp/token/issue.php [L,QSA]
+    RewriteRule ^internal/mcp/token/create/?$ internal/mcp/token/create.php [L,QSA]
+    RewriteRule ^internal/mcp/tokens/?$ internal/mcp/tokens.php [L,QSA]
+    RewriteRule ^internal/mcp/token/revoke/?$ internal/mcp/token/revoke.php [L,QSA]
 </IfModule>

@@ -81,7 +81,9 @@ This README reflects the product **as of early development / alpha**. Features a
 
 ### URL rewrites (production)
 
-The repo includes an **`.htaccess`** example mapping **`/policy`** → `policy.php` and **`/terms`** → `terms.php`. Configure the equivalent on **nginx** if you do not use Apache.
+The repo includes an **`.htaccess`** example mapping **`/policy`** → `policy.php`, **`/terms`** → `terms.php`, and internal MCP routes under **`/internal/mcp/`**. Configure the equivalent on **nginx** if you do not use Apache.
+
+**Internal MCP token API** (not linked in the UI): see **`internal/README.md`** after applying migration **`002_mcp_access_tokens.sql`** (`php bin/migrate.php`).
 
 ### Optional automation
 

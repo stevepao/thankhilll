@@ -2193,3 +2193,135 @@ body {
     color: var(--muted);
     text-align: center;
 }
+
+/* Internal MCP token issuance (/internal/mcp/token/issue) */
+.mcp-issue {
+    max-width: 36rem;
+    margin: 0 auto;
+    padding: 0 0 1.5rem;
+}
+
+.mcp-issue-panel {
+    margin-top: 1.25rem;
+    padding: 1rem 1.1rem;
+    background: var(--surface-elevated, #fff);
+    border: 1px solid var(--hairline, rgba(0, 0, 0, 0.08));
+    border-radius: 12px;
+}
+
+.mcp-issue-panel__title {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+}
+
+.mcp-issue-lede,
+.mcp-issue-help {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.mcp-issue-form.note-form {
+    margin-top: 0.5rem;
+}
+
+.mcp-issue-success-banner {
+    margin: 0 0 1rem;
+    padding: 0.85rem 1rem;
+    background: rgba(45, 106, 79, 0.12);
+    border: 1px solid rgba(45, 106, 79, 0.35);
+    border-radius: 10px;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+.mcp-issue-token-row {
+    margin-top: 0.75rem;
+}
+
+.mcp-issue-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+    color: var(--muted);
+}
+
+.mcp-issue-token-field {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.65rem 0.75rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.85rem;
+    border: 1px solid var(--hairline, rgba(0, 0, 0, 0.12));
+    border-radius: 8px;
+    background: var(--surface, #fafafa);
+}
+
+.mcp-issue-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.mcp-issue-op {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--hairline, rgba(0, 0, 0, 0.08));
+}
+
+.mcp-issue-op__label {
+    margin: 0 0 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.mcp-issue-op__hint {
+    margin: 0.5rem 0 0;
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.mcp-issue-op__hint a {
+    color: var(--accent);
+}
+
+.mcp-issue-footer-actions {
+    margin-top: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.mcp-issue-metadata__loading,
+.mcp-issue-metadata__empty {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.mcp-issue-meta-list {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+}
+
+.mcp-issue-meta-row {
+    padding: 0.65rem 0;
+    border-bottom: 1px solid var(--hairline, rgba(0, 0, 0, 0.06));
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+
+.mcp-issue-meta-row:last-child {
+    border-bottom: none;
+}
+
+.mcp-issue-meta-label {
+    color: var(--muted);
+    font-size: 0.85rem;
+}
