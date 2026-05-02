@@ -2311,6 +2311,11 @@ body {
 }
 
 .mcp-issue-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
     padding: 0.65rem 0;
     border-bottom: 1px solid var(--hairline, rgba(0, 0, 0, 0.06));
     font-size: 0.88rem;
@@ -2319,6 +2324,15 @@ body {
 
 .mcp-issue-meta-row:last-child {
     border-bottom: none;
+}
+
+.mcp-issue-meta-row__main {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.mcp-issue-meta-actions {
+    flex: 0 0 auto;
 }
 
 .mcp-issue-meta-label {

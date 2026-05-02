@@ -61,7 +61,7 @@ function mcp_access_token_issue(PDO $pdo, int $userId, ?string $label): array
 }
 
 /**
- * @return list<array{id:int,created_at:?string,expires_at:?string,revoked_at:?string,label:?string}>
+ * @return list<array{id:int,created_at:?string,expires_at:?string,revoked_at:?string,label:?string,description:?string}>
  */
 function mcp_access_tokens_list_for_user(PDO $pdo, int $userId): array
 {
@@ -109,12 +109,15 @@ function mcp_access_tokens_list_for_user(PDO $pdo, int $userId): array
         };
         $lab = $row['label'] ?? null;
 
+        $labelOut = is_string($lab) && $lab !== '' ? $lab : null;
+
         $out[] = [
             'id' => $id,
             'created_at' => $fmt($row['created_at'] ?? null),
             'expires_at' => $fmt($row['expires_at'] ?? null),
             'revoked_at' => $fmt($row['revoked_at'] ?? null),
-            'label' => is_string($lab) && $lab !== '' ? $lab : null,
+            'label' => $labelOut,
+            'description' => $labelOut,
         ];
     }
 
@@ -170,6 +173,43 @@ function mcp_access_token_revoke(PDO $pdo, int $userId, int $tokenId): array
 }
 
 /**
+ * Revoke by stored hash hex (same value as DB token_hash). Caller must own the row.
+ *
+ * @return array{ok: true, already_revoked?: true}|array{ok: false, error: 'not_found'}
+ */
+function mcp_access_token_revoke_by_hash(PDO $pdo, int $userId, string $tokenHashHex): array
+{
+    if ($userId <= 0 || preg_match('/^[a-f0-9]{64}$/', $tokenHashHex) !== 1) {
+        return ['ok' => false, 'error' => 'not_found'];
+    }
+
+    try {
+        $stmt = $pdo->prepare(
+            <<<'SQL'
+            SELECT id FROM mcp_access_tokens
+            WHERE token_hash = ? AND user_id = ?
+            LIMIT 1
+            SQL
+        );
+        $stmt->execute([$tokenHashHex, $userId]);
+        $col = $stmt->fetchColumn();
+    } catch (PDOException $e) {
+        if (pdo_error_is_unknown_table($e)) {
+            throw new RuntimeException('mcp_access_tokens table missing — run migration 002.', 0, $e);
+        }
+        throw $e;
+    }
+
+    if ($col === false) {
+        return ['ok' => false, 'error' => 'not_found'];
+    }
+
+    $id = (int) $col;
+
+    return $id > 0 ? mcp_access_token_revoke($pdo, $userId, $id) : ['ok' => false, 'error' => 'not_found'];
+}
+
+/**
  * Resolve plaintext bearer token (64-char hex) to user id, or null if invalid/expired/revoked.
  * Call this from MCP gateway middleware before acting as the user.
  */
@@ -215,25 +255,59 @@ function mcp_access_token_resolve_user_id(PDO $pdo, string $plaintextHex): ?int
 }
 
 /**
+ * Public MCP HTTP gateway base URL (future endpoint root): `{APP_BASE_URL}/mcp/v1`.
+ */
+function mcp_gateway_endpoint_url(): string
+{
+    $base = trim(env_var('APP_BASE_URL'));
+    if ($base !== '') {
+        return rtrim($base, '/') . '/mcp/v1';
+    }
+
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443')
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])
+            && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
+    $scheme = $https ? 'https' : 'http';
+    $host = isset($_SERVER['HTTP_HOST']) && is_string($_SERVER['HTTP_HOST'])
+        ? $_SERVER['HTTP_HOST']
+        : 'localhost';
+
+    return $scheme . '://' . $host . '/mcp/v1';
+}
+
+/**
  * Base64-encoded 1Password save request for @1password/save-button (UTF-8 JSON, same as encodeOPSaveRequest).
  *
  * @see https://developer.1password.com/docs/web/add-1password-button-website/
  */
-function mcp_access_token_onepassword_save_request_base64(string $plaintextToken, string $expiresAtIso, ?string $label): string
-{
+function mcp_access_token_onepassword_save_request_base64(
+    string $plaintextToken,
+    string $expiresAtIso,
+    ?string $label,
+    ?string $contactEmail,
+    string $mcpGatewayUrl
+): string {
     $notes = '**Thankhill** MCP bearer token.' . "\n\n"
+        . '- MCP gateway: `' . $mcpGatewayUrl . '`' . "\n"
         . '- Expires: `' . $expiresAtIso . '`' . "\n"
         . '- Shown once at creation; revoke from the issuance page token list if leaked.' . "\n";
     if ($label !== null && trim($label) !== '') {
         $notes .= '- Label: ' . trim($label) . "\n";
     }
 
+    $fields = [
+        ['autocomplete' => 'url', 'value' => $mcpGatewayUrl],
+    ];
+    $emailTrim = $contactEmail !== null ? trim($contactEmail) : '';
+    if ($emailTrim !== '' && filter_var($emailTrim, FILTER_VALIDATE_EMAIL) !== false) {
+        $fields[] = ['autocomplete' => 'email', 'value' => strtolower($emailTrim)];
+    }
+    $fields[] = ['autocomplete' => 'current-password', 'value' => $plaintextToken];
+
     $saveRequest = [
         'title' => 'Thankhill MCP Access Token',
-        'fields' => [
-            ['autocomplete' => 'username', 'value' => 'Thankhill MCP'],
-            ['autocomplete' => 'current-password', 'value' => $plaintextToken],
-        ],
+        'fields' => $fields,
         'notes' => $notes,
     ];
 

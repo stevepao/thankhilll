@@ -386,6 +386,34 @@ function group_invitation_decline_for_user(PDO $pdo, int $userId, int $inviteId)
     return $upd->rowCount() === 1;
 }
 
+/**
+ * Email to embed in 1Password (etc.): Google identities use oauth_contact_email; otherwise login / OTP email.
+ */
+function user_onepassword_contact_email(PDO $pdo, int $userId): ?string
+{
+    if ($userId <= 0) {
+        return null;
+    }
+
+    $stmt = $pdo->prepare(
+        <<<'SQL'
+        SELECT oauth_contact_email_normalized FROM auth_identities
+        WHERE user_id = ? AND provider = 'google'
+          AND oauth_contact_email_normalized IS NOT NULL AND oauth_contact_email_normalized <> ''
+        ORDER BY last_used_at DESC, id DESC
+        LIMIT 1
+        SQL
+    );
+    $stmt->execute([$userId]);
+    $googleContact = $stmt->fetchColumn();
+    if (is_string($googleContact) && $googleContact !== ''
+        && filter_var($googleContact, FILTER_VALIDATE_EMAIL) !== false) {
+        return strtolower(trim($googleContact));
+    }
+
+    return user_notification_email($pdo, $userId);
+}
+
 /** Best-effort address to notify a user (login email or email OTP identity). */
 function user_notification_email(PDO $pdo, int $userId): ?string
 {

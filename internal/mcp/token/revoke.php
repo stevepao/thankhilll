@@ -29,23 +29,32 @@ $decoded = json_decode(is_string($rawBody) ? $rawBody : '', true);
 csrf_verify_decoded_json_or_header_or_abort(is_array($decoded) ? $decoded : null);
 
 $tokenIdRaw = is_array($decoded) ? ($decoded['token_id'] ?? null) : null;
-if (!is_numeric($tokenIdRaw)) {
+$tokenHashRaw = is_array($decoded) ? ($decoded['token_hash'] ?? null) : null;
+
+$hasId = is_numeric($tokenIdRaw) && (int) $tokenIdRaw > 0;
+$tokenHashNorm = is_string($tokenHashRaw) ? strtolower(trim($tokenHashRaw)) : '';
+$hasHash = $tokenHashNorm !== '' && preg_match('/^[a-f0-9]{64}$/', $tokenHashNorm) === 1;
+
+if ($hasId && $hasHash) {
     http_response_code(400);
     header('Content-Type: application/json; charset=UTF-8');
-    echo json_encode(['ok' => false, 'error' => 'invalid_token_id'], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['ok' => false, 'error' => 'ambiguous_identifier'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-$tokenId = (int) $tokenIdRaw;
-if ($tokenId <= 0) {
+if (!$hasId && !$hasHash) {
     http_response_code(400);
     header('Content-Type: application/json; charset=UTF-8');
-    echo json_encode(['ok' => false, 'error' => 'invalid_token_id'], JSON_UNESCAPED_UNICODE);
+    echo json_encode(['ok' => false, 'error' => 'invalid_token_identifier'], JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 try {
-    $result = mcp_access_token_revoke(db(), $userId, $tokenId);
+    if ($hasId) {
+        $result = mcp_access_token_revoke(db(), $userId, (int) $tokenIdRaw);
+    } else {
+        $result = mcp_access_token_revoke_by_hash(db(), $userId, $tokenHashNorm);
+    }
 } catch (RuntimeException $e) {
     if (str_contains($e->getMessage(), 'mcp_access_tokens table missing')) {
         http_response_code(503);

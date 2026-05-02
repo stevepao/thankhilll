@@ -8,6 +8,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__, 3) . '/auth.php';
 require_once dirname(__DIR__, 3) . '/includes/csrf.php';
 require_once dirname(__DIR__, 3) . '/includes/mcp_access_token.php';
+require_once dirname(__DIR__, 3) . '/includes/group_helpers.php';
 require_once dirname(__DIR__, 3) . '/includes/escape.php';
 
 bootstrap_session();
@@ -46,7 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $plaintext = $issued['token'];
-    $opSaveB64 = mcp_access_token_onepassword_save_request_base64($plaintext, $issued['expires_at'], $label);
+    $contactEmail = user_onepassword_contact_email(db(), $userId);
+    $opSaveB64 = mcp_access_token_onepassword_save_request_base64(
+        $plaintext,
+        $issued['expires_at'],
+        $label,
+        $contactEmail,
+        mcp_gateway_endpoint_url()
+    );
 
     $pageTitle = 'MCP token issued';
     $showNav = false;
@@ -220,7 +228,10 @@ require_once dirname(__DIR__, 3) . '/header.php';
 
                 <section class="mcp-issue-panel" aria-labelledby="mcp-issue-existing-heading">
                     <h2 id="mcp-issue-existing-heading" class="mcp-issue-panel__title">Existing tokens (metadata only)</h2>
-                    <p class="mcp-issue-help">Secrets are never listed here—only ids and timestamps.</p>
+                    <p class="mcp-issue-help">
+                        Secrets are never listed here—only ids and timestamps. You can revoke an active token below;
+                        it stops working for MCP immediately.
+                    </p>
                     <div id="mcp-token-metadata-mount" class="mcp-issue-metadata">
                         <p class="mcp-issue-metadata__loading" id="mcp-metadata-loading">Loading…</p>
                     </div>
@@ -240,49 +251,142 @@ require_once dirname(__DIR__, 3) . '/header.php';
                                 .replace(/"/g, '&quot;');
                         }
 
+                        function thankhillCsrf() {
+                            var el = document.getElementById('thankhill-push-device-bootstrap');
+                            if (!el || !el.textContent) {
+                                return '';
+                            }
+                            try {
+                                var o = JSON.parse(el.textContent.trim());
+                                return o && o.csrf ? String(o.csrf) : '';
+                            } catch (e) {
+                                return '';
+                            }
+                        }
+
                         var mount = document.getElementById('mcp-token-metadata-mount');
                         var loading = document.getElementById('mcp-metadata-loading');
-                        if (!mount) return;
+                        if (!mount) {
+                            return;
+                        }
 
-                        fetch('/internal/mcp/tokens', { credentials: 'same-origin' })
-                            .then(function (r) {
-                                return r.json();
-                            })
-                            .then(function (data) {
-                                if (loading) loading.remove();
-                                if (!data || !data.ok || !Array.isArray(data.tokens)) {
-                                    mount.innerHTML = '<p class="mcp-issue-metadata__empty">Could not load tokens.</p>';
-                                    return;
-                                }
-                                if (data.tokens.length === 0) {
-                                    mount.innerHTML = '<p class="mcp-issue-metadata__empty">No tokens yet.</p>';
-                                    return;
-                                }
-                                var rows = data.tokens
-                                    .map(function (t) {
-                                        var rev = t.revoked_at ? 'Revoked ' + t.revoked_at : 'Active';
-                                        var lab = t.label ? '<br><span class="mcp-issue-meta-label">' + escapeHtml(t.label) + '</span>' : '';
-                                        return (
-                                            '<li class="mcp-issue-meta-row">' +
-                                            '<strong>#' +
-                                            t.id +
-                                            '</strong> · created ' +
-                                            escapeHtml(t.created_at || '') +
-                                            ' · expires ' +
-                                            escapeHtml(t.expires_at || '') +
-                                            '<br>' +
-                                            escapeHtml(rev) +
-                                            lab +
-                                            '</li>'
-                                        );
-                                    })
-                                    .join('');
-                                mount.innerHTML = '<ul class="mcp-issue-meta-list">' + rows + '</ul>';
-                            })
-                            .catch(function () {
-                                if (loading) loading.remove();
+                        function renderTokens(data) {
+                            if (loading) {
+                                loading.remove();
+                                loading = null;
+                            }
+                            if (!data || !data.ok || !Array.isArray(data.tokens)) {
                                 mount.innerHTML = '<p class="mcp-issue-metadata__empty">Could not load tokens.</p>';
-                            });
+                                return;
+                            }
+                            if (data.tokens.length === 0) {
+                                mount.innerHTML = '<p class="mcp-issue-metadata__empty">No tokens yet.</p>';
+                                return;
+                            }
+                            var rows = data.tokens
+                                .map(function (t) {
+                                    var rev = t.revoked_at
+                                        ? 'Revoked ' + escapeHtml(t.revoked_at)
+                                        : 'Active';
+                                    var labText = t.label || t.description || '';
+                                    var lab = labText
+                                        ? '<br><span class="mcp-issue-meta-label">' + escapeHtml(labText) + '</span>'
+                                        : '';
+                                    var revokeBtn = '';
+                                    if (!t.revoked_at) {
+                                        revokeBtn =
+                                            '<div class="mcp-issue-meta-actions">' +
+                                            '<button type="button" class="btn btn--ghost btn--small mcp-issue-revoke" data-token-id="' +
+                                            escapeHtml(String(t.id)) +
+                                            '">Revoke</button>' +
+                                            '</div>';
+                                    }
+                                    return (
+                                        '<li class="mcp-issue-meta-row">' +
+                                        '<div class="mcp-issue-meta-row__main">' +
+                                        '<strong>#' +
+                                        t.id +
+                                        '</strong> · created ' +
+                                        escapeHtml(t.created_at || '') +
+                                        ' · expires ' +
+                                        escapeHtml(t.expires_at || '') +
+                                        '<br>' +
+                                        rev +
+                                        lab +
+                                        '</div>' +
+                                        revokeBtn +
+                                        '</li>'
+                                    );
+                                })
+                                .join('');
+                            mount.innerHTML = '<ul class="mcp-issue-meta-list">' + rows + '</ul>';
+                        }
+
+                        function loadTokens() {
+                            fetch('/internal/mcp/tokens', { credentials: 'same-origin' })
+                                .then(function (r) {
+                                    return r.json();
+                                })
+                                .then(renderTokens)
+                                .catch(function () {
+                                    if (loading) {
+                                        loading.remove();
+                                        loading = null;
+                                    }
+                                    mount.innerHTML = '<p class="mcp-issue-metadata__empty">Could not load tokens.</p>';
+                                });
+                        }
+
+                        mount.addEventListener('click', function (ev) {
+                            var btn = ev.target && ev.target.closest && ev.target.closest('.mcp-issue-revoke');
+                            if (!btn || !mount.contains(btn)) {
+                                return;
+                            }
+                            var tid = btn.getAttribute('data-token-id');
+                            if (!tid) {
+                                return;
+                            }
+                            if (
+                                !window.confirm(
+                                    'Revoke this token? MCP clients using it will stop working immediately.'
+                                )
+                            ) {
+                                return;
+                            }
+                            btn.disabled = true;
+                            var csrf = thankhillCsrf();
+                            fetch('/internal/mcp/token/revoke', {
+                                method: 'POST',
+                                credentials: 'same-origin',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-Token': csrf,
+                                },
+                                body: JSON.stringify({
+                                    token_id: parseInt(tid, 10),
+                                    csrf_token: csrf,
+                                }),
+                            })
+                                .then(function (r) {
+                                    return r.json().then(function (body) {
+                                        return { ok: r.ok, body: body };
+                                    });
+                                })
+                                .then(function (res) {
+                                    if (!res.ok || !res.body || !res.body.ok) {
+                                        btn.disabled = false;
+                                        window.alert('Revoke failed. Refresh the page and try again.');
+                                        return;
+                                    }
+                                    loadTokens();
+                                })
+                                .catch(function () {
+                                    btn.disabled = false;
+                                    window.alert('Revoke failed. Check your connection.');
+                                });
+                        });
+
+                        loadTokens();
                     })();
                 </script>
             </article>
