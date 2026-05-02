@@ -3,6 +3,8 @@
 These routes are **not** linked from the product UI. They exist for operators,
 integrations, and tooling.
 
+The **MCP Streamable HTTP adapter** lives at **`POST /mcp/v1`** and **`GET /mcp/v1`** (minimal SSE comment line, no full stream yet). It uses **`Authorization: Bearer`** with user-issued MCP tokens from below—not browser sessions. Requires TLS (see **`mcp_streamable_http.php`**: **`MCP_ALLOWED_ORIGINS`**, **`MCP_PUBLIC_HOST`**).
+
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` / `POST` | `/internal/mcp/token/issue` | **Browser UI** to issue a token once (masked field, copy, [Save in 1Password](https://developer.1password.com/docs/web/add-1password-button-website/) including gateway URL `APP_BASE_URL` + `/mcp/v1` and contact email); **POST** uses form CSRF. Not linked from product navigation. |

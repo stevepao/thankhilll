@@ -19,6 +19,11 @@ require_once __DIR__ . '/includes/auth_refresh_token.php';
  */
 function current_user_id(): ?int
 {
+    $mcpUid = $GLOBALS['THANKHILL_MCP_HTTP_USER_ID'] ?? null;
+    if (is_int($mcpUid) && $mcpUid > 0) {
+        return $mcpUid;
+    }
+
     bootstrap_session();
 
     $value = $_SESSION['user_id'] ?? null;
