@@ -256,13 +256,14 @@ function mcp_access_token_resolve_user_id(PDO $pdo, string $plaintextHex): ?int
 }
 
 /**
- * Public MCP HTTP gateway base URL (future endpoint root): `{APP_BASE_URL}/mcp/v1`.
+ * Public MCP HTTP gateway URL (canonical): `{APP_BASE_URL}/mcp/v1.php`.
+ * Use the concrete `.php` path so shared hosts do not negotiate extensionless URLs.
  */
 function mcp_gateway_endpoint_url(): string
 {
     $base = trim(env_var('APP_BASE_URL'));
     if ($base !== '') {
-        return rtrim($base, '/') . '/mcp/v1';
+        return rtrim($base, '/') . '/mcp/v1.php';
     }
 
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
@@ -274,7 +275,7 @@ function mcp_gateway_endpoint_url(): string
         ? $_SERVER['HTTP_HOST']
         : 'localhost';
 
-    return $scheme . '://' . $host . '/mcp/v1';
+    return $scheme . '://' . $host . '/mcp/v1.php';
 }
 
 /**

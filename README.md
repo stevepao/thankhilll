@@ -84,11 +84,11 @@ This README reflects the product **as of early development / alpha**. Features a
 Root **`.htaccess`** is intentionally minimal:
 
 1. **`Authorization`** passthrough into **`HTTP_AUTHORIZATION`** (PHP FastCGI/CGI).
-2. Internal rewrite **`/mcp/v1`** (optional trailing slash) → **`mcp/v1.php`** — browser URL stays **`/mcp/v1`**.
+2. Optional legacy rewrite **`/mcp/v1`** → **`mcp/v1.php`** (extensionless URL — not recommended on some shared hosts).
 
-There are **no** other rewrite rules in this file (no mapped **`public/`**, **`internal/`**, etc.). Use direct **`*.php`** URLs or your host’s routing for legal pages, internal tools, and anything else. Configure the equivalent **`Authorization`** + **`/mcp/v1`** mapping on **nginx** if you do not use Apache.
+There are **no** other rewrite rules in this file (no mapped **`public/`**, **`internal/`**, etc.). Use direct **`*.php`** URLs or your host’s routing for legal pages, internal tools, and anything else.
 
-**MCP v1** — **`GET`** and **`POST`** to **`/mcp/v1`** both hit **`mcp/v1.php`** via the rule above. The script is currently a **routing placeholder** (plain-text confirmation). Token issuance for future MCP auth: **`internal/README.md`** and migration **`002_mcp_access_tokens.sql`** (`php bin/migrate.php`).
+**MCP v1 (canonical)** — Configure MCP clients with path **`/mcp/v1.php`** on your host (production: **`https://thank.hillwork.net/mcp/v1.php`**). The concrete **`.php`** URL avoids extensionless routing, content negotiation, and parking-vhost fallbacks on hosts such as IONOS. Implementation: **`mcp/v1.php`** (JSON-RPC handshake, Bearer tokens). Token issuance: **`internal/README.md`** and migration **`002_mcp_access_tokens.sql`** (`php bin/migrate.php`).
 
 ### Optional automation
 
@@ -105,7 +105,7 @@ There are **no** other rewrite rules in this file (no mapped **`public/`**, **`i
 | `me.php` | Profile, preferences, notifications, account deletion |
 | `login.php`, `auth/` | Sign-in flows |
 | `policy.php`, `terms.php` | Legal pages |
-| `mcp/v1.php` | MCP v1 endpoint file (`/mcp/v1` → rewrite); placeholder until MCP behavior is implemented |
+| `mcp/v1.php` | MCP JSON-RPC endpoint (**canonical URL** `/mcp/v1.php`); Bearer auth |
 | `includes/` | Shared libraries (sessions, auth refresh tokens, push, mailer, MCP token helpers for internal routes, …) |
 | `migrations/` | SQL migrations applied by `bin/migrate.php` |
 

@@ -3,11 +3,11 @@
 These routes are **not** linked from the product UI. They exist for operators,
 integrations, and tooling.
 
-The MCP URL **`/mcp/v1`** is rewritten (root **`.htaccess`**) to **`mcp/v1.php`**. That file is currently a **placeholder** that confirms the route is hit; MCP protocol behavior and bearer validation are **not** implemented there yet. Issued tokens below are stored for when you wire **`mcp/v1.php`** to **`mcp_access_tokens`** (same semantics as **`mcp_access_token_resolve_user_id()`** in **`includes/mcp_access_token.php`**).
+**Canonical MCP URL:** **`/mcp/v1.php`** (e.g. **`https://thank.hillwork.net/mcp/v1.php`**). Use this concrete path in clients; do not rely on extensionless **`/mcp/v1`** on shared hosting. **`mcp/v1.php`** implements JSON-RPC (`initialize`, `notifications/initialized`, `tools/list`) and bearer validation via **`mcp_access_tokens`** (same lookup semantics as **`mcp_access_token_resolve_user_id()`** in **`includes/mcp_access_token.php`**).
 
 | Method | Path (real script) | Purpose |
 |--------|-------------------|---------|
-| `GET` / `POST` | `/internal/mcp/token/issue.php` | **Browser UI** to issue a token once (masked field, copy, [Save in 1Password](https://developer.1password.com/docs/web/add-1password-button-website/) including gateway URL `APP_BASE_URL` + `/mcp/v1` and contact email); **POST** uses form CSRF. Not linked from product navigation. |
+| `GET` / `POST` | `/internal/mcp/token/issue.php` | **Browser UI** to issue a token once (masked field, copy, [Save in 1Password](https://developer.1password.com/docs/web/add-1password-button-website/) including gateway URL `APP_BASE_URL` + `/mcp/v1.php` and contact email); **POST** uses form CSRF. Not linked from product navigation. |
 | `POST` | `/internal/mcp/token/create.php` | Issue an MCP bearer token for the signed-in user (**CSRF** required). JSON/API-friendly. |
 | `GET` | `/internal/mcp/tokens.php` | List that user’s tokens (`id`, `created_at`, `expires_at`, `revoked_at`, `label`, `description`; never returns secret). |
 | `POST` | `/internal/mcp/token/revoke.php` | Revoke one token (**CSRF** required): send **`token_id`** *or* **`token_hash`** (64-char hex stored hash), not both. Soft-revokes (`revoked_at`); row kept. |

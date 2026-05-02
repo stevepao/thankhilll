@@ -1,6 +1,8 @@
 <?php
 /**
  * MCP v1 — minimal JSON-RPC (JSON-RPC 2.0) + Bearer token auth.
+ *
+ * Canonical URL path: /mcp/v1.php (avoid extensionless /mcp/v1 on shared hosting).
  */
 declare(strict_types=1);
 
