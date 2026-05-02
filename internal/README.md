@@ -3,7 +3,7 @@
 These routes are **not** linked from the product UI. They exist for operators,
 integrations, and tooling.
 
-The **MCP Streamable HTTP adapter** lives at **`POST /mcp/v1`** and **`GET /mcp/v1`** (minimal SSE comment line, no full stream yet). It uses **`Authorization: Bearer`** with user-issued MCP tokens from below—not browser sessions. Transport checks are intentionally permissive so shared hosts and CLI clients work; security relies on the bearer token (`includes/mcp_streamable_http.php`).
+The **public MCP endpoint** is **`POST /mcp/v1`** only, served by **`public/mcp-v1.php`** (single file, no app includes). It requires **HTTPS**, **`Authorization: Bearer`** with user-issued MCP tokens from below—not browser sessions—and **`Content-Type: application/json`**. It does **not** implement SSE, **`GET`**, or **`Accept`** checks. Supported JSON-RPC methods: **`initialize`**, **`notifications/initialized`** (notification, **204**), **`tools/list`** (empty **`tools`**); anything else returns **`-32601`**. Invalid or missing bearer credentials yield **401** with **`WWW-Authenticate: Bearer`**.
 
 | Method | Path | Purpose |
 |--------|------|---------|
@@ -14,7 +14,7 @@ The **MCP Streamable HTTP adapter** lives at **`POST /mcp/v1`** and **`GET /mcp/
 
 Configure your web server to map these paths to the matching **`internal/mcp/**/*.php`** scripts if you do not use the root **`.htaccess`** rewrites (including **`internal/mcp/token/issue.php`** for **`/internal/mcp/token/issue`**).
 
-MCP gateways should authenticate requests with **`mcp_access_token_resolve_user_id()`** in **`includes/mcp_access_token.php`** (returns `null` for expired, revoked, or unknown tokens—revocation takes effect on the next lookup).
+**`public/mcp-v1.php`** validates bearer tokens against **`mcp_access_tokens`** with the same rules as **`mcp_access_token_resolve_user_id()`** in **`includes/mcp_access_token.php`** (returns `null` for expired, revoked, or unknown tokens—revocation takes effect on the next lookup). Other integrations can call that helper in PHP when they need to resolve a token outside this endpoint.
 
 ### Calling `POST /internal/mcp/token/create`
 

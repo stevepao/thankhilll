@@ -81,9 +81,9 @@ This README reflects the product **as of early development / alpha**. Features a
 
 ### URL rewrites (production)
 
-The repo includes an **`.htaccess`** example mapping **`/policy`** → `policy.php`, **`/terms`** → `terms.php`, **`/mcp/v1`** → **`mcp/v1.php`** (Streamable HTTP MCP adapter; Bearer auth), and internal MCP routes under **`/internal/mcp/`**. The **`mcp/.htaccess`** file turns off **MultiViews** for that folder so **`/mcp/v1`** is not handled as content negotiation (which otherwise yields **406** on some Apache hosts). Configure the equivalent on **nginx** if you do not use Apache.
+The repo includes an **`.htaccess`** example mapping **`/policy`** → `policy.php`, **`/terms`** → `terms.php`, **`/mcp/v1`** → **`public/mcp-v1.php`** (minimal JSON-RPC MCP over HTTP), and internal MCP routes under **`/internal/mcp/`**. Configure the equivalent on **nginx** if you do not use Apache.
 
-**Internal MCP token API** (not linked in the UI): see **`internal/README.md`** after applying migration **`002_mcp_access_tokens.sql`** (`php bin/migrate.php`). Issue tokens there, then call **`POST /mcp/v1`** or **`/mcp/v1.php`** with **`Authorization: Bearer …`** (opaque MCP token). **`POST`** expects **`Content-Type: application/json`**; **`Accept`** may be empty or include **`application/json`**. **`GET`** returns a minimal **`text/event-stream`** body (`: ok`). Details in **`includes/mcp_streamable_http.php`**.
+**MCP HTTP endpoint** — **`POST /mcp/v1`** only (implemented in **`public/mcp-v1.php`**, no includes). Requires **HTTPS**, **`Authorization: Bearer …`** (opaque token from below), and **`Content-Type: application/json`**. Responds with **`401`** + **`WWW-Authenticate: Bearer`** when auth fails. Handles JSON-RPC **`initialize`**, **`notifications/initialized`** (**204**), **`tools/list`** (empty), and returns **`-32601`** for other methods. There is **no** SSE, **no** `GET`, and **no** `Accept`-header filtering (so clients are not rejected with **406** for `Accept`). **Internal MCP token API** (not linked in the UI): see **`internal/README.md`** after applying migration **`002_mcp_access_tokens.sql`** (`php bin/migrate.php`).
 
 ### Optional automation
 
@@ -100,7 +100,8 @@ The repo includes an **`.htaccess`** example mapping **`/policy`** → `policy.p
 | `me.php` | Profile, preferences, notifications, account deletion |
 | `login.php`, `auth/` | Sign-in flows |
 | `policy.php`, `terms.php` | Legal pages |
-| `includes/` | Shared libraries (sessions, auth refresh tokens, push, mailer, …) |
+| `public/mcp-v1.php` | MCP JSON-RPC endpoint (`POST /mcp/v1`); self-contained (Bearer + DB token lookup) |
+| `includes/` | Shared libraries (sessions, auth refresh tokens, push, mailer, MCP token helpers for internal routes, …) |
 | `migrations/` | SQL migrations applied by `bin/migrate.php` |
 
 ---
