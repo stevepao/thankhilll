@@ -3,7 +3,7 @@
 These routes are **not** linked from the product UI. They exist for operators,
 integrations, and tooling.
 
-The **MCP Streamable HTTP adapter** lives at **`POST /mcp/v1`** and **`GET /mcp/v1`** (minimal SSE comment line, no full stream yet). It uses **`Authorization: Bearer`** with user-issued MCP tokens from below—not browser sessions. Requires TLS (see **`mcp_streamable_http.php`**: **`MCP_ALLOWED_ORIGINS`**, **`MCP_PUBLIC_HOST`**).
+The **MCP Streamable HTTP adapter** lives at **`POST /mcp/v1`** and **`GET /mcp/v1`** (minimal SSE comment line, no full stream yet). It uses **`Authorization: Bearer`** with user-issued MCP tokens from below—not browser sessions. Transport checks are intentionally permissive so shared hosts and CLI clients work; security relies on the bearer token (`includes/mcp_streamable_http.php`).
 
 | Method | Path | Purpose |
 |--------|------|---------|

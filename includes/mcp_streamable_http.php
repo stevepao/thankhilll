@@ -2,6 +2,10 @@
 /**
  * MCP Streamable HTTP transport — POST JSON-RPC + minimal GET SSE at /mcp/v1.
  *
+ * Transport is intentionally permissive (HTTP/HTTPS, optional Origin/Accept) so the
+ * endpoint works behind typical shared hosts and CLI clients. Authentication is still
+ * required via Bearer MCP token on every request.
+ *
  * @see https://modelcontextprotocol.io/specification/2025-03-26/basic/transports
  */
 declare(strict_types=1);
@@ -17,72 +21,9 @@ const MCP_HTTP_MAX_BODY_BYTES = 262144;
 /** Protocol versions this server speaks for initialize negotiation. */
 const THANKHILL_MCP_SUPPORTED_PROTOCOL_VERSIONS = ['2025-03-26', '2024-11-05'];
 
-function mcp_http_request_is_https(): bool
+function mcp_http_send_response_headers(): void
 {
-    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
-        return true;
-    }
-    if (!empty($_SERVER['SERVER_PORT']) && (string) $_SERVER['SERVER_PORT'] === '443') {
-        return true;
-    }
-
-    $forwardedProto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '';
-    if (is_string($forwardedProto) && $forwardedProto !== '') {
-        $first = strtolower(trim(explode(',', $forwardedProto)[0]));
-
-        return $first === 'https';
-    }
-
-    $forwardedSsl = $_SERVER['HTTP_X_FORWARDED_SSL'] ?? '';
-    if (is_string($forwardedSsl) && strtolower($forwardedSsl) === 'on') {
-        return true;
-    }
-
-    return false;
-}
-
-function mcp_http_send_security_headers(): void
-{
-    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     header('Cache-Control: no-store');
-}
-
-/**
- * Origins allowed when the client sends Origin (DNS rebinding mitigation). Env only — no implicit fallback.
- *
- * @return list<string>
- */
-function mcp_http_origin_allowlist(): array
-{
-    $list = [];
-    foreach (explode(',', env_var('MCP_ALLOWED_ORIGINS')) as $o) {
-        $t = trim($o);
-        if ($t !== '') {
-            $list[] = rtrim($t, '/');
-        }
-    }
-
-    return array_values(array_unique($list));
-}
-
-function mcp_http_public_host_expected(): string
-{
-    return strtolower(trim(env_var('MCP_PUBLIC_HOST')));
-}
-
-/** When Origin is absent, Host must match MCP_PUBLIC_HOST (case-insensitive, full HTTP_HOST incl. port). */
-function mcp_http_host_matches_public(): bool
-{
-    $expected = mcp_http_public_host_expected();
-    if ($expected === '') {
-        return false;
-    }
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    if (!is_string($host) || $host === '') {
-        return false;
-    }
-
-    return strtolower($host) === $expected;
 }
 
 /**
@@ -106,36 +47,19 @@ function mcp_http_access_log_register(array &$ctx): void
     });
 }
 
-/** Origin present: reject literal null; allowlist only. Origin absent: Host must match MCP_PUBLIC_HOST. */
-function mcp_http_validate_origin_transport(): bool
-{
-    $originHeader = $_SERVER['HTTP_ORIGIN'] ?? null;
-    $originPresent = is_string($originHeader) && $originHeader !== '';
-
-    if ($originPresent) {
-        $o = trim($originHeader);
-        if (strcasecmp($o, 'null') === 0) {
-            return false;
-        }
-        $allow = mcp_http_origin_allowlist();
-        if ($allow === [] || !in_array($o, $allow, true)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    return mcp_http_host_matches_public();
-}
-
+/** Lenient: empty Accept passes; otherwise require substring (MCP clients vary behind proxies). */
 function mcp_http_accept_ok_for_post(string $accept): bool
 {
-    return stripos($accept, 'application/json') !== false;
+    $accept = trim($accept);
+
+    return $accept === '' || stripos($accept, 'application/json') !== false;
 }
 
 function mcp_http_accept_ok_for_get(string $accept): bool
 {
-    return stripos($accept, 'text/event-stream') !== false;
+    $accept = trim($accept);
+
+    return $accept === '' || stripos($accept, 'text/event-stream') !== false;
 }
 
 function mcp_http_content_type_json(string $contentType): bool
@@ -283,7 +207,6 @@ function mcp_http_jsonrpc_error(mixed $id, int $code, string $message, mixed $da
 
 function mcp_http_handle_notification(array $msg, int $userId): void
 {
-    // Handshake notifications accepted; no logging of method params/body per policy.
 }
 
 function mcp_http_batch_has_initialize(mixed $decoded): bool
@@ -337,7 +260,7 @@ function mcp_http_emit_json(array &$ctx, int $httpStatus, array $body): void
 {
     $ctx['http_status'] = $httpStatus;
     http_response_code($httpStatus);
-    mcp_http_send_security_headers();
+    mcp_http_send_response_headers();
     header('Content-Type: application/json; charset=UTF-8');
     echo json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 }
@@ -346,14 +269,14 @@ function mcp_http_emit_no_content(array &$ctx): void
 {
     $ctx['http_status'] = 204;
     http_response_code(204);
-    mcp_http_send_security_headers();
+    mcp_http_send_response_headers();
 }
 
 function mcp_http_emit_auth_failure(array &$ctx): void
 {
     $ctx['http_status'] = 401;
     http_response_code(401);
-    mcp_http_send_security_headers();
+    mcp_http_send_response_headers();
     header('Content-Type: application/json; charset=UTF-8');
     header('WWW-Authenticate: Bearer realm="Thankhill MCP"');
     echo json_encode(
@@ -366,7 +289,7 @@ function mcp_http_emit_get_sse_stub(array &$ctx): void
 {
     $ctx['http_status'] = 200;
     http_response_code(200);
-    mcp_http_send_security_headers();
+    mcp_http_send_response_headers();
     header('Content-Type: text/event-stream; charset=utf-8');
     echo ": ok\n\n";
 }
@@ -384,19 +307,6 @@ function mcp_v1_main(): void
         'http_status' => 0,
     ];
     mcp_http_access_log_register($ctx);
-
-    if (!mcp_http_request_is_https()) {
-        $ctx['http_status'] = 403;
-        http_response_code(403);
-        mcp_http_send_security_headers();
-        header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode(
-            mcp_http_jsonrpc_error(null, -32003, 'Forbidden'),
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
-        );
-
-        return;
-    }
 
     $httpMethod = $ctx['http_method'];
     $accept = isset($_SERVER['HTTP_ACCEPT']) && is_string($_SERVER['HTTP_ACCEPT'])
@@ -424,19 +334,6 @@ function mcp_v1_main(): void
         return;
     }
 
-    if (!mcp_http_validate_origin_transport()) {
-        $ctx['http_status'] = 403;
-        http_response_code(403);
-        mcp_http_send_security_headers();
-        header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode(
-            mcp_http_jsonrpc_error(null, -32003, 'Forbidden'),
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
-        );
-
-        return;
-    }
-
     $ctx['user_id'] = $userId;
     $GLOBALS[THANKHILL_MCP_HTTP_USER_GLOBAL_KEY] = $userId;
 
@@ -454,7 +351,7 @@ function mcp_v1_main(): void
     if ($httpMethod !== 'POST') {
         $ctx['http_status'] = 405;
         http_response_code(405);
-        mcp_http_send_security_headers();
+        mcp_http_send_response_headers();
         header('Content-Type: application/json; charset=UTF-8');
         header('Allow: POST, GET');
         echo json_encode(
@@ -528,7 +425,7 @@ function mcp_v1_main(): void
         $responses = mcp_http_dispatch_batch($decoded, $userId);
         $ctx['http_status'] = 200;
         http_response_code(200);
-        mcp_http_send_security_headers();
+        mcp_http_send_response_headers();
         header('Content-Type: application/json; charset=UTF-8');
         echo json_encode($responses, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
 
