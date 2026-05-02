@@ -3,7 +3,9 @@
 /**
  * push_endpoints_cli_test.php — CLI integration test for POST /push/subscribe and /push/unsubscribe.
  *
- * Requires a running HTTP server that shares this PHP's session.save_path (see below).
+ * Requires HTTP reachable at THANKHILL_BASE_URL where **web** PHP uses the **same**
+ * session.save_path as this CLI (THANKHILL_SESSION_SAVE_PATH). Otherwise Cookie PHPSESSID
+ * points at files the web worker never reads → 401 unauthenticated.
  * Does not send push notifications.
  *
  * Usage:
@@ -169,10 +171,23 @@ push_test_ensure_session_save_path_writable();
 bootstrap_session();
 session_commit_login($userId);
 $csrf = csrf_token();
-$cookieHeader = session_name() . '=' . session_id();
+$sessionName = session_name();
+$sessionIdValue = session_id();
+$cookieHeader = $sessionName . '=' . $sessionIdValue;
+$savePathForFile = session_save_path();
 session_write_close();
 
-echo "[setup] Test user_id={$userId}, CSRF obtained, session cookie prepared.\n\n";
+$sessDataFile = $savePathForFile !== ''
+    ? rtrim($savePathForFile, '/') . '/sess_' . $sessionIdValue
+    : '(session.save_path empty in CLI — using PHP default temp dir)';
+$sessOk = $savePathForFile !== '' && is_file(
+    rtrim($savePathForFile, '/') . '/sess_' . $sessionIdValue
+);
+
+echo "[setup] Test user_id={$userId}, CSRF obtained, session cookie prepared.\n";
+echo '[diag] CLI wrote session data file: ' . $sessDataFile . "\n";
+echo '[diag] That file exists on disk: ' . ($sessOk ? 'yes' : 'no') . "\n";
+echo "[diag] Web PHP must use this same session.save_path or requests stay logged out (401).\n\n";
 
 $endpoint = 'https://fcm.googleapis.com/fcm/send/cli-test-' . bin2hex(random_bytes(16));
 $p256dh = 'BOpush_test_p256dh_' . rtrim(strtr(base64_encode(random_bytes(65)), '+/', '-_'), '=');
@@ -203,11 +218,14 @@ echo "[count] push_subscriptions for user: {$n}\n\n";
 
 if (!$ok1 || $n !== 1) {
     if ($code1 === 401) {
-        echo "HINT: Got 401 — start PHP with the SAME session.save_path as this script.\n";
-        echo "      Example:\n";
-        echo "        mkdir -p /tmp/thankhill_sess && export THANKHILL_SESSION_SAVE_PATH=/tmp/thankhill_sess\n";
-        echo "        php -d session.save_path=/tmp/thankhill_sess -S 127.0.0.1:8080 -t {$root}\n";
-        echo "        THANKHILL_SESSION_SAVE_PATH=/tmp/thankhill_sess php debug/push_endpoints_cli_test.php\n";
+        echo "HINT: 401 unauthenticated — Apache/php-fpm did not load the CLI session.\n";
+        echo "      curl sends Cookie: {$cookieHeader}\n";
+        echo "      The web worker must read the same sess_* file. Configure **web** PHP to use\n";
+        echo "      the identical session.save_path as CLI, e.g. site-root .user.ini:\n";
+        echo "        session.save_path = \"" . ($savePathForFile !== '' ? $savePathForFile : '/absolute/path/to/shared/sessions') . "\"\n";
+        echo "      Ensure that directory is readable/writable by **both** your SSH user and the\n";
+        echo "      web server user (www-data, apache, …). chmod/chgrp as needed.\n";
+        echo "      Local dev only: php -d session.save_path=… -S 127.0.0.1:8080 -t {$root}\n";
     }
 }
 
