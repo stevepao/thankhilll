@@ -1342,6 +1342,17 @@ body {
     color: var(--accent);
 }
 
+.login-footnote {
+    margin: 1.25rem 0 0;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.login-footnote a {
+    color: var(--accent);
+}
+
 .note-list {
     list-style: none;
     margin: 0;
@@ -1959,4 +1970,102 @@ body {
         width: auto;
         min-width: 8rem;
     }
+}
+
+/* Static legal / policy pages */
+.policy-doc {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 0 1rem 2rem;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: var(--text);
+}
+
+.policy-doc__meta {
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.policy-doc__rule {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.25rem 0;
+}
+
+.policy-doc__h2 {
+    font-size: 1.1rem;
+    margin: 1.35rem 0 0.5rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.policy-doc__h3 {
+    font-size: 1rem;
+    margin: 1rem 0 0.4rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.policy-doc ul {
+    margin: 0.35rem 0 0.75rem;
+    padding-left: 1.25rem;
+}
+
+.policy-doc li {
+    margin-bottom: 0.35rem;
+}
+
+.policy-doc__table-wrap {
+    overflow-x: auto;
+    margin: 0.75rem 0 1rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.policy-doc__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.35rem;
+}
+
+.policy-doc__table th,
+.policy-doc__table td {
+    padding: 0.45rem 0.55rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border);
+}
+
+.policy-doc__table thead th {
+    background: var(--bg);
+    font-weight: 600;
+}
+
+.policy-doc__table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.policy-doc code {
+    font-size: 0.88em;
+    background: var(--bg);
+    padding: 0.08rem 0.28rem;
+    border-radius: 0.2rem;
+}
+
+.policy-doc a {
+    color: var(--accent);
+}
+
+.policy-doc__legal-note {
+    margin-top: 1rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+}
+
+.policy-doc__footer-note {
+    font-size: 0.9rem;
+    color: var(--muted);
 }

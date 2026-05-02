@@ -1,0 +1,5 @@
+# Pretty URL for privacy policy (requires AllowOverride / mod_rewrite).
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^policy/?$ policy.php [L,QSA]
+</IfModule>
