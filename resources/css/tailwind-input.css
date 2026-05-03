@@ -121,6 +121,11 @@ body.th-app-shell .top-bar {
   box-shadow: none !important;
 }
 
+/* Browse grid owns height; don’t cap thumbnails like compact Today-daily strips */
+.tn-th-scope .today-note-photos--browse .today-note-photos__img {
+  max-height: none !important;
+}
+
 .tn-th-scope .notes-library__date,
 .tn-th-scope .notes-library__author,
 .tn-th-scope .notes-library__groups {

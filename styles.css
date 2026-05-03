@@ -21,10 +21,14 @@
     --safe-bottom: env(safe-area-inset-bottom, 0);
     /* Matches Notes inner shell (`tn-max-w-2xl`); use for signed-in main column */
     --app-readable-max: 42rem;
-    /* Shared note photo previews (Today tiles + Notes strip) */
+    /* Thumbs in edit UI / legacy strips */
     --note-photo-preview-max-h: 11rem;
     --note-photo-preview-fit: contain;
     --note-photo-preview-radius: 0.4rem;
+    /* Notes list + Today shared (`note_library_card` → `.today-note-photos--browse`) */
+    --note-photo-browse-gap: 0.75rem;
+    --note-photo-browse-aspect: 4 / 3;
+    --note-photo-browse-min-h: 12rem;
 }
 
 html {
@@ -1548,6 +1552,48 @@ body {
 
 .today-note-photos--notes {
     margin: 0.35rem 0 0.5rem;
+}
+
+/*
+ * Browse previews — Notes page + Today “Shared with you” (note_library_card only).
+ * Today — Yours uses `today-note-photos--daily` only; keep that compact separately.
+ */
+.today-note-photos.today-note-photos--browse {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--note-photo-browse-gap);
+    align-items: stretch;
+    flex-wrap: unset !important;
+}
+
+@media (min-width: 768px) {
+    .today-note-photos.today-note-photos--browse {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.today-note-photos--browse .today-note-photos__item--browse {
+    flex: unset !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    aspect-ratio: var(--note-photo-browse-aspect);
+    min-height: var(--note-photo-browse-min-h);
+    border-radius: 0.65rem;
+    overflow: hidden;
+}
+
+.today-note-photos--browse .photo-lightbox-trigger {
+    height: 100%;
+    min-height: inherit;
+    border-radius: inherit;
+}
+
+.today-note-photos--browse .today-note-photos__img {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    object-fit: cover;
+    border-radius: inherit;
 }
 
 /* Today inline photos */
