@@ -50,10 +50,10 @@ function note_library_card_render(
         ? 'today-note-photos__item today-note-photos__item--browse tn-overflow-hidden tn-rounded-xl tn-min-w-0 tn-m-0'
         : 'today-note-photos__item today-note-photos__item--browse';
     $photoBtn = $tw
-        ? 'photo-lightbox-trigger tn-flex tn-h-full tn-w-full tn-items-center tn-justify-center tn-p-0 tn-m-0 tn-overflow-hidden tn-rounded-xl'
+        ? 'photo-lightbox-trigger tn-flex tn-w-full tn-items-center tn-justify-center tn-p-0 tn-m-0 tn-rounded-xl tn-bg-slate-100'
         : 'photo-lightbox-trigger';
     $photoImg = $tw
-        ? 'today-note-photos__img tn-h-full tn-w-full tn-min-h-0 tn-object-cover tn-rounded-xl tn-border-0 tn-bg-slate-100'
+        ? 'today-note-photos__img tn-w-full tn-h-auto tn-max-h-none tn-object-contain tn-rounded-lg tn-border-0 tn-bg-transparent'
         : 'today-note-photos__img';
     $articleCls = $tw ? 'notes-library__article tn-space-y-3' : 'notes-library__article';
     $postHeadCls = $tw

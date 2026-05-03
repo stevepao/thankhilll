@@ -26,9 +26,8 @@
     --note-photo-preview-fit: contain;
     --note-photo-preview-radius: 0.4rem;
     /* Notes list + Today shared (`note_library_card` → `.today-note-photos--browse`) */
-    --note-photo-browse-gap: 0.75rem;
-    --note-photo-browse-aspect: 4 / 3;
-    --note-photo-browse-min-h: 12rem;
+    --note-photo-browse-gap: 1.125rem;
+    --note-photo-browse-row-gap: 1.25rem;
 }
 
 html {
@@ -1561,8 +1560,9 @@ body {
 .today-note-photos.today-note-photos--browse {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--note-photo-browse-gap);
-    align-items: stretch;
+    column-gap: var(--note-photo-browse-gap);
+    row-gap: var(--note-photo-browse-row-gap);
+    align-items: start;
     flex-wrap: unset !important;
 }
 
@@ -1576,24 +1576,29 @@ body {
     flex: unset !important;
     min-width: 0 !important;
     max-width: none !important;
-    aspect-ratio: var(--note-photo-browse-aspect);
-    min-height: var(--note-photo-browse-min-h);
     border-radius: 0.65rem;
     overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface);
 }
 
 .today-note-photos--browse .photo-lightbox-trigger {
-    height: 100%;
-    min-height: inherit;
+    width: 100%;
+    height: auto;
+    min-height: 5rem;
+    padding: 0.35rem;
     border-radius: inherit;
+    box-sizing: border-box;
 }
 
 .today-note-photos--browse .today-note-photos__img {
+    display: block;
     width: 100%;
-    height: 100%;
+    height: auto;
     max-height: none;
-    object-fit: cover;
-    border-radius: inherit;
+    object-fit: contain;
+    object-position: center;
+    border-radius: 0.45rem;
 }
 
 /* Today inline photos */
