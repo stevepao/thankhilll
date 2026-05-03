@@ -232,7 +232,7 @@ require_once __DIR__ . '/header.php';
                     <p class="notes-empty tn-text-center tn-text-slate-500 tn-text-base tn-leading-relaxed tn-py-16 tn-px-4">No notes yet.</p>
                 <?php endif; ?>
             <?php else: ?>
-                <ul class="notes-library tn-flex tn-flex-col tn-gap-16 md:tn-gap-20 tn-list-none tn-m-0 tn-p-0">
+                <ul class="notes-library tn-flex tn-flex-col tn-gap-10 md:tn-gap-12 tn-list-none tn-m-0 tn-p-0">
                     <?php foreach ($notes as $note): ?>
                         <?php
                         $nid = (int) $note['id'];

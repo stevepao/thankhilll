@@ -61,10 +61,9 @@ body.notes-page-modern .top-bar {
   border: none;
 }
 
+/* Kill legacy card border only; surface/bg comes from tn-* on the same element */
 .tn-notes-scope .notes-library__card {
   border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
 }
 
 /* Legacy photo thumb border inside Notes */

@@ -42,7 +42,7 @@ function note_reading_render_thought_block(
         ? 'thought-block__body note-detail__thought-body tn-m-0 tn-max-w-none tn-text-[1.0625rem] md:tn-text-lg tn-leading-[1.65] tn-text-slate-800 tn-font-normal'
         : 'thought-block__body note-detail__thought-body';
     $metaCls = $tw
-        ? 'thought-block__meta tn-flex tn-flex-wrap tn-items-center tn-gap-x-4 tn-gap-y-2 tn-pt-5 tn-mt-0'
+        ? 'thought-block__meta tn-flex tn-flex-wrap tn-items-center tn-gap-x-3 tn-gap-y-2 tn-pt-4 tn-mt-1 tn-w-full'
         : 'thought-block__meta';
     $rxCls = $tw ? 'thought-reactions tn-gap-2 tn-opacity-95' : 'thought-reactions';
     $timeCls = $tw
