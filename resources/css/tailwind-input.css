@@ -192,3 +192,12 @@ body.th-app-shell .top-bar {
   text-decoration: underline !important;
   color: var(--tn-accent) !important;
 }
+
+/* Today — Yours focal card: step behind Tailwind utilities on timestamps */
+.today-daily-card--reflection .thought-block__meta time,
+.today-daily-card--reflection .note-detail__thought-time {
+  font-size: 0.6875rem !important;
+  font-weight: 400 !important;
+  color: rgb(100 116 139 / 0.88) !important;
+}
+

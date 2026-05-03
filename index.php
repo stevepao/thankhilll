@@ -705,9 +705,6 @@ require_once __DIR__ . '/header.php';
             <?php if ($noteUpdatedFlash): ?>
                 <p class="flash" role="status">Sharing and photos updated.</p>
             <?php endif; ?>
-            <?php if ($thoughtAddedFlash): ?>
-                <p class="flash" role="status">Thought added.</p>
-            <?php endif; ?>
             <?php if ($thoughtUpdatedFlash): ?>
                 <p class="flash" role="status">Thought updated.</p>
             <?php endif; ?>
@@ -814,7 +811,7 @@ require_once __DIR__ . '/header.php';
                                 || count($primaryPhotosList) > 0
                                 || $errorContext === 'note_meta';
                             ?>
-                            <article class="today-daily-card" aria-labelledby="today-daily-card-label">
+                            <article class="today-daily-card today-daily-card--reflection" aria-labelledby="today-daily-card-label">
                                 <p id="today-daily-card-label" class="today-daily-card__label">Today’s reflection</p>
 
                                 <div class="today-daily-card__content">
@@ -880,6 +877,7 @@ require_once __DIR__ . '/header.php';
                                                                 <span>Just for me</span>
                                                             </label>
                                                             <p class="today-helper today-helper--privacy">Not shared with groups.</p>
+                                                            <p class="today-privacy-reassurance">Only you’ll see this moment.</p>
                                                         </div>
                                                         <div class="today-thought-edit-actions">
                                                             <button type="submit" class="btn btn--primary">Save</button>
@@ -920,6 +918,9 @@ require_once __DIR__ . '/header.php';
                                 </div>
 
                                 <div class="today-quick-add-thought">
+                                    <?php if ($thoughtAddedFlash): ?>
+                                        <p class="today-micro-confirm" role="status">Moment saved.</p>
+                                    <?php endif; ?>
                                     <?php if ($errorContext === 'add_thought' && $validationError !== null): ?>
                                         <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
                                     <?php endif; ?>
@@ -928,13 +929,21 @@ require_once __DIR__ . '/header.php';
                                         <input type="hidden" name="today_action" value="add_thought">
                                         <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
                                         <label class="today-add-thought__caption" for="add-thought-body">Add another moment</label>
-                                        <textarea
-                                            id="add-thought-body"
-                                            name="thought_body"
-                                            class="note-form__textarea today-invite-textarea"
-                                            rows="3"
-                                            placeholder="Add another thought…"
-                                        ><?= e($addThoughtBodyValue) ?></textarea>
+                                        <div class="today-invite-wrap">
+                                            <span class="today-invite-wrap__glyph" aria-hidden="true">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                                                    <path d="M12 20h9"/>
+                                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                                </svg>
+                                            </span>
+                                            <textarea
+                                                id="add-thought-body"
+                                                name="thought_body"
+                                                class="today-invite-textarea"
+                                                rows="3"
+                                                placeholder="Add another thought…"
+                                            ><?= e($addThoughtBodyValue) ?></textarea>
+                                        </div>
                                         <div class="today-privacy-row">
                                             <label class="share-check today-thought-private-check">
                                                 <input
@@ -946,6 +955,7 @@ require_once __DIR__ . '/header.php';
                                                 <span>Just for me</span>
                                             </label>
                                             <p class="today-helper today-helper--privacy">Not shared with groups.</p>
+                                            <p class="today-privacy-reassurance">Only you’ll see this moment.</p>
                                         </div>
                                         <button type="submit" class="btn btn--primary today-add-thought__submit">Add moment</button>
                                     </form>
@@ -960,11 +970,17 @@ require_once __DIR__ . '/header.php';
                                         <?php if ($editMaxNewUploads > 0): ?>
                                             <button
                                                 type="button"
-                                                class="btn btn--ghost today-quick-photo__pick"
+                                                class="btn btn-today-secondary today-quick-photo__pick"
                                                 id="today-edit-photo-trigger"
                                                 aria-describedby="today-quick-photo-help today-edit-photo-status"
                                             >
-                                                📷 Add photo
+                                                <span class="today-action-icon" aria-hidden="true">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                                        <circle cx="12" cy="13" r="4"/>
+                                                    </svg>
+                                                </span>
+                                                Add photo
                                             </button>
                                             <p id="today-quick-photo-help" class="today-helper today-quick-photo__hint">JPEG or PNG — resized on your device before upload.</p>
                                             <input
