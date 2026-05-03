@@ -77,6 +77,17 @@ if ($headerUser !== null) {
                 <h1 class="top-bar__title<?= $topBarTitleClassEffective !== '' ? ' ' . e($topBarTitleClassEffective) : '' ?>"><?= e($pageTitle) ?></h1>
                 <?php if ($headerUser !== null): ?>
                     <div class="top-bar__auth">
+                        <button
+                            type="button"
+                            class="top-bar__tips-btn"
+                            data-th-setup-tips-open
+                            aria-haspopup="dialog"
+                            aria-controls="thankhill-setup-tips-dialog"
+                            title="Tips—install Thankhill and notifications"
+                        >
+                            <span class="top-bar__tips-icon" aria-hidden="true">ⓘ</span>
+                            <span class="visually-hidden">Tips and setup</span>
+                        </button>
                         <span class="top-bar__user"><?= e($headerUser['display_name'] ?? '') ?></span>
                         <a href="/auth/logout.php">Log out</a>
                     </div>

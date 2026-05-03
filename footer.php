@@ -83,6 +83,8 @@ if ($showNav) {
                     <button type="button" class="btn btn--ghost" id="push-device-prompt-dismiss">Not now</button>
                 </div>
             </dialog>
+            <?php require_once __DIR__ . '/includes/setup_tips_dialog.php'; ?>
+            <script src="<?= e(asset_url('/setup_tips.js')) ?>" defer></script>
             <script src="<?= e(asset_url('/push_device_prompt.js')) ?>" defer></script>
             <script>
                 (function () {
