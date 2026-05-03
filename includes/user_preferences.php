@@ -10,7 +10,7 @@ require_once dirname(__DIR__) . '/db.php';
 function user_preferences_defaults(): array
 {
     return [
-        'default_note_visibility' => 'private',
+        'default_note_visibility' => 'last_used_groups',
         'last_used_group_ids' => [],
         'today_show_shared' => true,
         'notes_default_scope' => 'all',

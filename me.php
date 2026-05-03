@@ -256,11 +256,11 @@ require_once __DIR__ . '/header.php';
 
                     <label class="note-form__label" for="default_note_visibility">New notes on Today</label>
                     <select class="notes-filters__select me-form__select" id="default_note_visibility" name="default_note_visibility">
-                        <option value="private" <?= ($prefs['default_note_visibility'] ?? '') === 'private' ? 'selected' : '' ?>>
-                            Start private (choose sharing each time)
-                        </option>
                         <option value="last_used_groups" <?= ($prefs['default_note_visibility'] ?? '') === 'last_used_groups' ? 'selected' : '' ?>>
                             Remember the groups I last shared with
+                        </option>
+                        <option value="private" <?= ($prefs['default_note_visibility'] ?? '') === 'private' ? 'selected' : '' ?>>
+                            Start private (choose sharing each time)
                         </option>
                     </select>
 
