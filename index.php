@@ -869,8 +869,7 @@ require_once __DIR__ . '/header.php';
                                                             rows="5"
                                                             required
                                                         ><?= e($editBodyVal) ?></textarea>
-                                                        <details class="today-fold today-fold--privacy">
-                                                            <summary class="today-fold__summary">Privacy for this moment</summary>
+                                                        <div class="today-privacy-row">
                                                             <label class="share-check today-thought-private-check">
                                                                 <input
                                                                     type="checkbox"
@@ -880,8 +879,8 @@ require_once __DIR__ . '/header.php';
                                                                 >
                                                                 <span>Just for me</span>
                                                             </label>
-                                                            <p class="share-fieldset__hint today-thought-private-hint">Only you see private moments, even when this day is shared.</p>
-                                                        </details>
+                                                            <p class="today-helper today-helper--privacy">Not shared with groups.</p>
+                                                        </div>
                                                         <div class="today-thought-edit-actions">
                                                             <button type="submit" class="btn btn--primary">Save</button>
                                                             <button type="button" class="btn btn--ghost" data-thought-edit-cancel="<?= $tid ?>">Cancel</button>
@@ -932,12 +931,11 @@ require_once __DIR__ . '/header.php';
                                         <textarea
                                             id="add-thought-body"
                                             name="thought_body"
-                                            class="note-form__textarea"
+                                            class="note-form__textarea today-invite-textarea"
                                             rows="3"
-                                            placeholder="A few more words…"
+                                            placeholder="Add another thought…"
                                         ><?= e($addThoughtBodyValue) ?></textarea>
-                                        <details class="today-fold today-fold--privacy">
-                                            <summary class="today-fold__summary">Privacy for this moment</summary>
+                                        <div class="today-privacy-row">
                                             <label class="share-check today-thought-private-check">
                                                 <input
                                                     type="checkbox"
@@ -947,9 +945,9 @@ require_once __DIR__ . '/header.php';
                                                 >
                                                 <span>Just for me</span>
                                             </label>
-                                            <p class="share-fieldset__hint today-thought-private-hint">Private moments are never shown to people you share this day with.</p>
-                                        </details>
-                                        <button type="submit" class="btn btn--ghost today-add-thought__submit">Add moment</button>
+                                            <p class="today-helper today-helper--privacy">Not shared with groups.</p>
+                                        </div>
+                                        <button type="submit" class="btn btn--primary today-add-thought__submit">Add moment</button>
                                     </form>
                                 </div>
 
@@ -960,33 +958,38 @@ require_once __DIR__ . '/header.php';
 
                                     <div class="today-quick-photo">
                                         <?php if ($editMaxNewUploads > 0): ?>
-                                            <label class="today-quick-photo__label" for="today-edit-photo-picker">Add a photo</label>
-                                            <p class="today-quick-photo__hint share-fieldset__hint">JPEG or PNG — resized before upload.</p>
-                                            <div class="today-quick-photo__row">
-                                                <input
-                                                    type="file"
-                                                    id="today-edit-photo-picker"
-                                                    class="note-form__input today-quick-photo__input"
-                                                    multiple
-                                                    accept="image/jpeg,image/png"
-                                                    aria-describedby="today-edit-photo-status"
-                                                >
-                                                <input
-                                                    type="file"
-                                                    name="photos_edit[]"
-                                                    id="today-edit-photos-staged"
-                                                    class="visually-hidden"
-                                                    multiple
-                                                    accept="image/jpeg,image/png"
-                                                    tabindex="-1"
-                                                    aria-hidden="true"
-                                                >
-                                                <button type="submit" class="btn btn--ghost btn--small today-quick-photo__submit">Add photo</button>
-                                            </div>
+                                            <button
+                                                type="button"
+                                                class="btn btn--ghost today-quick-photo__pick"
+                                                id="today-edit-photo-trigger"
+                                                aria-describedby="today-quick-photo-help today-edit-photo-status"
+                                            >
+                                                📷 Add photo
+                                            </button>
+                                            <p id="today-quick-photo-help" class="today-helper today-quick-photo__hint">JPEG or PNG — resized on your device before upload.</p>
+                                            <input
+                                                type="file"
+                                                id="today-edit-photo-picker"
+                                                class="visually-hidden"
+                                                multiple
+                                                accept="image/jpeg,image/png"
+                                                aria-describedby="today-quick-photo-help today-edit-photo-status"
+                                                tabindex="-1"
+                                            >
+                                            <input
+                                                type="file"
+                                                name="photos_edit[]"
+                                                id="today-edit-photos-staged"
+                                                class="visually-hidden"
+                                                multiple
+                                                accept="image/jpeg,image/png"
+                                                tabindex="-1"
+                                                aria-hidden="true"
+                                            >
                                             <p id="today-edit-photo-status" class="today-photo-status today-quick-photo__status" aria-live="polite"></p>
                                             <p id="today-edit-photo-error" class="flash flash--error today-photo-error" role="alert" hidden></p>
                                         <?php else: ?>
-                                            <p class="today-quick-photo__cap share-fieldset__hint">Photo limit reached — remove one under <strong>Sharing &amp; photos</strong> (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
+                                            <p class="today-quick-photo__cap today-helper">Photo limit reached — remove one under <strong>Sharing &amp; photos</strong> (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
                                         <?php endif; ?>
                                     </div>
 
@@ -1204,6 +1207,20 @@ require_once __DIR__ . '/header.php';
                         errorId: 'today-edit-photo-error',
                         maxNewFiles: <?= (int) $editMaxNewUploads ?>,
                     });
+
+                    var todayEditForm = document.getElementById('today-edit-form');
+                    var todayEditPicker = document.getElementById('today-edit-photo-picker');
+                    var todayEditPhotoTrigger = document.getElementById('today-edit-photo-trigger');
+                    if (todayEditForm && todayEditPicker && todayEditPhotoTrigger) {
+                        todayEditPhotoTrigger.addEventListener('click', function () {
+                            todayEditPicker.click();
+                        });
+                        todayEditPicker.addEventListener('change', function () {
+                            if (todayEditPicker.files.length) {
+                                todayEditForm.requestSubmit();
+                            }
+                        });
+                    }
 
                     function closeAllThoughtEdits() {
                         document.querySelectorAll('.today-thought').forEach(function (li) {

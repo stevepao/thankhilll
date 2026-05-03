@@ -392,28 +392,13 @@ body {
     margin-top: 0.85rem;
 }
 
-.today-quick-photo__label {
-    display: block;
-    margin: 0 0 0.25rem;
-    font-size: 0.85rem;
+.today-quick-photo__pick {
+    align-self: flex-start;
     font-weight: 500;
-    color: var(--text);
 }
 
 .today-quick-photo__hint {
-    margin: 0 0 0.4rem;
-}
-
-.today-quick-photo__row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.today-quick-photo__input {
-    flex: 1 1 12rem;
-    min-width: 0;
+    margin: 0.35rem 0 0;
 }
 
 .today-quick-photo__status {
@@ -422,6 +407,58 @@ body {
 
 .today-quick-photo__cap {
     margin: 0;
+}
+
+.today-invite-textarea {
+    display: block;
+    width: 100%;
+    margin: 0 0 0.5rem;
+    padding: 0.65rem 0.75rem;
+    font-size: 1.0625rem;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--accent-soft);
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    resize: vertical;
+    min-height: 4.5rem;
+}
+
+.today-invite-textarea::placeholder {
+    color: var(--muted);
+    opacity: 0.9;
+}
+
+.today-invite-textarea:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-color: var(--accent);
+    background: var(--surface);
+}
+
+.today-privacy-row {
+    margin: 0.35rem 0 0;
+    padding: 0;
+}
+
+.today-helper {
+    margin: 0.2rem 0 0;
+    padding: 0;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.35;
+    color: var(--muted);
+}
+
+.today-helper--privacy {
+    margin-left: 1.65rem;
+}
+
+.today-daily-card .share-fieldset__hint,
+.today-daily-card .today-edit-note-hint {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--muted);
 }
 
 .today-fold {
@@ -448,6 +485,8 @@ body {
 
 .today-manage-details__summary {
     font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
 }
 
 .today-manage-details__body {
@@ -514,9 +553,11 @@ body {
 
 .today-add-thought__caption {
     display: block;
-    margin: 0 0 0.4rem;
-    font-size: 0.8rem;
-    font-weight: 500;
+    margin: 0 0 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     color: var(--muted);
 }
 
@@ -526,7 +567,7 @@ body {
     align-items: stretch;
 }
 
-.today-add-thought__form .note-form__textarea {
+.today-add-thought__form .today-invite-textarea {
     margin-bottom: 0.35rem;
 }
 
