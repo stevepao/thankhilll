@@ -57,9 +57,11 @@ This README reflects the product **as of early development / alpha**. Features a
    composer install
    ```
 
-   **Notes screen Tailwind CSS** — `notes.php` loads `/public/tailwind.css`. Keep **Composer-only on production**: deploy with **`public/tailwind.css`** included (committed or baked into your release artifact). **Do not install Node/npm on the app server** for Tailwind; it is build tooling only.
+   **Tailwind CSS** — Every page loads `/public/tailwind.css` (after `styles.css`). **`header.php`** applies the signed-in shell to `<body>` (**`tn-bg-tn-bg`**, **`tn-antialiased`**, **`th-app-shell`**) and the frosted sticky bar (**`tn-bg-white/75`**, **`tn-backdrop-blur-sm`**) plus title typography—the same treatment Notes used before it became global. Unsigned routes keep the warm **`styles.css`** `--bg` and default top bar.
 
-   Regenerate that file on your machine or CI after editing Tailwind markup (`notes.php`, `includes/note_library_card.php`, etc.) or theme tokens (`tailwind.config.js`, `resources/css/tailwind-input.css`):
+   Keep **Composer-only on production**: deploy with **`public/tailwind.css`** included (committed or baked into your release artifact). **Do not install Node/npm on the app server** for Tailwind; it is build tooling only.
+
+   Regenerate that file on your machine or CI after editing Tailwind markup in **`*.php`** or theme tokens (`tailwind.config.js`, `resources/css/tailwind-input.css`):
 
    ```bash
    npm install

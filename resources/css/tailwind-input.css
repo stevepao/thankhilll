@@ -1,8 +1,58 @@
 /**
- * Tailwind entry for Notes list only (preflight off; prefixes tn-).
+ * Tailwind entry (preflight off; prefix tn-).
+ * Global density + hierarchy contract: .tn-th-* components + .tn-th-scope on logged-in <main>.
  * Rebuild: npm run build:css → public/tailwind.css
  */
 @tailwind components;
+
+@layer components {
+  /**
+   * Vertical rhythm between sibling list rows (not inside a card).
+   */
+  .tn-th-stack {
+    @apply tn-flex tn-flex-col tn-gap-4 tn-list-none tn-m-0 tn-p-0 md:tn-gap-5;
+  }
+
+  /**
+   * Single surface pattern: subtle bg, rounded, comfortable inner padding, light shadow — no thick border.
+   */
+  .tn-th-item {
+    @apply tn-rounded-xl tn-border-0 tn-bg-white tn-px-4 tn-py-4 sm:tn-px-5 sm:tn-py-4 tn-shadow-tn;
+  }
+
+  /** Wrap for date / scope / author */
+  .tn-th-item-head {
+    @apply tn-mb-0 tn-pb-0;
+  }
+
+  .tn-th-meta-row {
+    @apply tn-flex tn-flex-wrap tn-items-baseline tn-gap-x-2 tn-gap-y-0.5 tn-min-w-0 tn-mb-1.5;
+  }
+
+  .tn-th-meta-muted {
+    @apply tn-text-xs tn-font-medium tn-text-slate-500;
+  }
+
+  .tn-th-meta-accent {
+    @apply tn-text-xs tn-font-semibold tn-text-slate-600 tn-tracking-tight;
+  }
+
+  /** Primary readable body copy */
+  .tn-th-body {
+    @apply tn-text-base tn-leading-relaxed tn-text-tn-ink tn-font-normal;
+  }
+
+  /** Secondary actions / permalink row */
+  .tn-th-item-footer {
+    @apply tn-border-t tn-border-slate-100/90 tn-pt-3 tn-mt-3;
+  }
+
+  /** Reactions + timestamp under thought body */
+  .tn-th-thought-meta {
+    @apply tn-flex tn-flex-wrap tn-items-center tn-gap-x-2 tn-gap-y-1 tn-pt-2.5 tn-mt-1 tn-w-full;
+  }
+}
+
 @tailwind utilities;
 
 :root {
@@ -20,83 +70,80 @@
   max-width: none;
 }
 
-/* Notes page only: soften header chrome (body class set from notes.php). */
-body.notes-page-modern .top-bar__user {
+/* Signed-in shell: match Notes header chrome (body.th-app-shell from header.php). */
+body.th-app-shell .top-bar__user {
   color: rgb(100 116 139);
   font-size: 0.875rem;
 }
 
-body.notes-page-modern .top-bar__auth a {
+body.th-app-shell .top-bar__auth a {
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--tn-accent);
   text-decoration: none;
 }
 
-body.notes-page-modern .top-bar__auth a:hover {
+body.th-app-shell .top-bar__auth a:hover {
   text-decoration: underline;
 }
 
-body.notes-page-modern .top-bar {
+body.th-app-shell .top-bar {
   border-bottom: none !important;
   box-shadow: none !important;
 }
 
 /**
- * Notes-only legacy reset: strip boxy borders/dividers/beige chrome inside the
- * Tailwind-driven subtree so tn-* utilities define the look.
+ * Logged-in shell: strip boxy borders / beige chrome inside Tailwind-driven surfaces
+ * so tn-* utilities define hierarchy (reactions, comments, filters).
  */
-.tn-notes-scope .notes-filters {
+.tn-th-scope .notes-filters {
   margin: 0;
   padding: 0;
   border-bottom: none;
 }
 
-.tn-notes-scope .notes-filters__label {
+.tn-th-scope .notes-filters__label {
   text-transform: none;
   letter-spacing: normal;
 }
 
-.tn-notes-scope .notes-filters__select {
+.tn-th-scope .notes-filters__select {
   border: none;
 }
 
-/* Kill legacy card border only; surface/bg comes from tn-* on the same element */
-.tn-notes-scope .notes-library__card {
+/* Kill legacy card border only; surface comes from tn-th-item on the same element */
+.tn-th-scope .notes-library__card {
   border: none !important;
 }
 
-/* Legacy photo thumb border inside Notes */
-.tn-notes-scope .today-note-photos__img {
+.tn-th-scope .today-note-photos__img {
   border: none !important;
   box-shadow: none !important;
 }
 
-.tn-notes-scope .notes-library__date,
-.tn-notes-scope .notes-library__author,
-.tn-notes-scope .notes-library__groups {
+.tn-th-scope .notes-library__date,
+.tn-th-scope .notes-library__author,
+.tn-th-scope .notes-library__groups {
   border: none;
   box-shadow: none;
 }
 
-.tn-notes-scope .notes-library__article .note-detail__thoughts {
+.tn-th-scope .notes-library__article .note-detail__thoughts {
   margin-top: 0;
   margin-bottom: 0;
 }
 
-.tn-notes-scope .note-detail__thought {
+.tn-th-scope .note-detail__thought {
   border-left: none !important;
   padding-left: 0 !important;
 }
 
-/* Reading surface: let Tailwind font/size win over legacy .note-detail__thought-body */
-.tn-notes-scope .note-detail__thought-body {
+.tn-th-scope .note-detail__thought-body {
   font-size: inherit;
   line-height: inherit;
 }
 
-/* Secondary actions: text-first, no pill blocks */
-.tn-notes-scope .thought-reaction-pill {
+.tn-th-scope .thought-reaction-pill {
   border: none !important;
   background-color: transparent !important;
   box-shadow: none !important;
@@ -105,25 +152,25 @@ body.notes-page-modern .top-bar {
   padding: 0.15rem 0.35rem !important;
 }
 
-.tn-notes-scope .thought-reaction-pill.is-active {
+.tn-th-scope .thought-reaction-pill.is-active {
   background-color: transparent !important;
   color: var(--tn-accent) !important;
   font-weight: 600 !important;
 }
 
-.tn-notes-scope .thought-reaction-add {
+.tn-th-scope .thought-reaction-add {
   border: none !important;
   background-color: transparent !important;
   box-shadow: none !important;
   color: rgb(100 116 139) !important;
 }
 
-.tn-notes-scope .thought-comments__item {
+.tn-th-scope .thought-comments__item {
   border: none !important;
 }
 
-.tn-notes-scope .thought-comments__form .thought-comments__textarea,
-.tn-notes-scope .thought-comments__form .note-form__textarea {
+.tn-th-scope .thought-comments__form .thought-comments__textarea,
+.tn-th-scope .thought-comments__form .note-form__textarea {
   border: none !important;
   border-radius: 0 !important;
   background-color: transparent !important;
@@ -132,7 +179,7 @@ body.notes-page-modern .top-bar {
   padding-right: 0 !important;
 }
 
-.tn-notes-scope .thought-comments__submit.btn {
+.tn-th-scope .thought-comments__submit.btn {
   border: none !important;
   box-shadow: none !important;
   background-color: transparent !important;
@@ -140,7 +187,7 @@ body.notes-page-modern .top-bar {
   padding-left: 0 !important;
 }
 
-.tn-notes-scope .thought-comments__submit.btn:hover {
+.tn-th-scope .thought-comments__submit.btn:hover {
   background-color: transparent !important;
   text-decoration: underline !important;
   color: var(--tn-accent) !important;

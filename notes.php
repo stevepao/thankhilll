@@ -174,18 +174,14 @@ $hasActiveFilters = ($dateExplicit && $dateFilter !== '')
 $pageTitle = 'Notes';
 $currentNav = 'notes';
 
-$extraStylesheets = ['/public/tailwind.css'];
-$bodyClass = 'tn-bg-tn-bg tn-antialiased notes-page-modern';
 $mainClass = 'main tn-notes-shell';
-$topBarTitleClass = 'tn-text-xl tn-font-semibold tn-tracking-tight tn-text-slate-800';
-$topBarExtraClass = 'tn-bg-white/75 tn-backdrop-blur-sm';
 
 require_once __DIR__ . '/header.php';
 ?>
 
-            <div class="tn-notes-scope tn-max-w-2xl tn-w-full tn-mx-auto tn-px-4 tn-py-5 sm:tn-px-8 tn-space-y-8 tn-min-h-0">
+            <div class="tn-max-w-2xl tn-w-full tn-mx-auto tn-px-4 tn-py-5 sm:tn-px-8 tn-space-y-6 tn-min-h-0">
             <form
-                class="notes-filters tn-flex tn-flex-col tn-gap-3 sm:tn-flex-row sm:tn-flex-wrap sm:tn-items-center sm:tn-gap-x-8 sm:tn-gap-y-2 tn-pb-6"
+                class="notes-filters tn-flex tn-flex-col tn-gap-3 sm:tn-flex-row sm:tn-flex-wrap sm:tn-items-center sm:tn-gap-x-8 sm:tn-gap-y-2 tn-pb-5"
                 method="get"
                 action="/notes.php"
                 aria-label="Filter notes"
@@ -232,7 +228,7 @@ require_once __DIR__ . '/header.php';
                     <p class="notes-empty tn-text-center tn-text-slate-500 tn-text-sm tn-leading-relaxed tn-py-10 tn-px-4">No notes yet.</p>
                 <?php endif; ?>
             <?php else: ?>
-                <ul class="notes-library tn-flex tn-flex-col tn-gap-5 md:tn-gap-6 tn-list-none tn-m-0 tn-p-0">
+                <ul class="notes-library tn-th-stack">
                     <?php foreach ($notes as $note): ?>
                         <?php
                         $nid = (int) $note['id'];

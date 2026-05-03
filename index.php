@@ -850,7 +850,7 @@ require_once __DIR__ . '/header.php';
                                                     true,
                                                     $userTimezone,
                                                     ['can_edit' => $canEditThought],
-                                                    false,
+                                                    true,
                                                 );
                                                 ?>
                                             </div>
@@ -1074,7 +1074,7 @@ require_once __DIR__ . '/header.php';
                     <?php if (count($sharedToday) === 0): ?>
                         <p class="today-quiet">Nothing shared yet today.</p>
                     <?php else: ?>
-                        <ul class="notes-library">
+                        <ul class="notes-library tn-th-stack">
                             <?php foreach ($sharedToday as $sn): ?>
                                 <?php
                                 $snId = (int) $sn['id'];
@@ -1088,6 +1088,7 @@ require_once __DIR__ . '/header.php';
                                     $sharedNoteSharedMap[$snId] ?? false,
                                     '/index.php',
                                     $userTimezone,
+                                    true,
                                 );
                                 ?>
                             <?php endforeach; ?>

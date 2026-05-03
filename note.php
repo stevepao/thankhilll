@@ -100,10 +100,13 @@ require_once __DIR__ . '/header.php';
             <?php endif; ?>
 
             <article class="note-detail">
-                <time class="note-detail__date" datetime="<?= e((string) $note['entry_date']) ?>"><?= e($dateLabel) ?></time>
-                <?php if (!$isMine): ?>
-                    <p class="note-detail__author"><?= e($authorLabel) ?></p>
-                <?php endif; ?>
+                <header class="tn-th-meta-row tn-mb-2">
+                    <time class="note-detail__date tn-th-meta-accent" datetime="<?= e((string) $note['entry_date']) ?>"><?= e($dateLabel) ?></time>
+                    <?php if (!$isMine): ?>
+                        <span class="tn-text-slate-300 tn-select-none" aria-hidden="true">·</span>
+                        <span class="note-detail__author tn-th-meta-muted tn-m-0"><?= e($authorLabel) ?></span>
+                    <?php endif; ?>
+                </header>
 
                 <?php
                 note_reading_render_thoughts_list(
@@ -116,6 +119,7 @@ require_once __DIR__ . '/header.php';
                     '/note.php?id=' . $noteId,
                     $viewerTz,
                     false,
+                    true,
                 );
                 ?>
 

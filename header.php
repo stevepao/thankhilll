@@ -14,17 +14,28 @@ require_once __DIR__ . '/includes/assets.php';
 
 $pageTitle = $pageTitle ?? 'Gratitude';
 $metaDescription = $metaDescription ?? null;
-/** @var list<string> $extraStylesheets Site-root CSS paths after styles.css (e.g. Notes Tailwind bundle). */
+/** @var list<string> $extraStylesheets Extra CSS paths after Tailwind (site-root paths). */
 $extraStylesheets = $extraStylesheets ?? [];
-/** @var string Optional classes on <body> (e.g. Notes page background). */
+/** @var string Optional extra classes on <body> (page-specific; logged-in canvas classes are appended in header). */
 $bodyClass = isset($bodyClass) ? trim((string) $bodyClass) : '';
 /** @var string Classes for <main> (default keeps legacy layout). */
 $mainClass = isset($mainClass) ? trim((string) $mainClass) : 'main';
-/** @var string Extra classes on the top header bar. */
+/** @var string Extra classes on the top header bar (merged with signed-in chrome below). */
 $topBarExtraClass = isset($topBarExtraClass) ? trim((string) $topBarExtraClass) : '';
-/** @var string Extra classes on the top-bar page title heading (optional; Notes uses Tailwind). */
+/** @var string Extra classes on the top-bar page title heading (merged when signed in). */
 $topBarTitleClass = isset($topBarTitleClass) ? trim((string) $topBarTitleClass) : '';
 $headerUser = currentUser();
+$mainClassEffective = trim($mainClass . ($headerUser !== null ? ' tn-th-scope' : ''));
+/** Slate canvas, antialiasing, and frosted top bar — same as Notes, for every signed-in route. */
+$bodyClassEffective = trim(
+    $bodyClass . ($headerUser !== null ? ' tn-bg-tn-bg tn-antialiased th-app-shell' : ''),
+);
+$topBarExtraClassEffective = trim(
+    $topBarExtraClass . ($headerUser !== null ? ' tn-bg-white/75 tn-backdrop-blur-sm' : ''),
+);
+$topBarTitleClassEffective = trim(
+    $topBarTitleClass . ($headerUser !== null ? ' tn-text-xl tn-font-semibold tn-tracking-tight tn-text-slate-800' : ''),
+);
 $htmlUserTzAttr = '';
 if ($headerUser !== null) {
     require_once __DIR__ . '/includes/user_timezone.php';
@@ -48,6 +59,7 @@ if ($headerUser !== null) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="stylesheet" href="<?= e(asset_url('/styles.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset_url('/public/tailwind.css')) ?>">
     <?php foreach ($extraStylesheets as $sheetHref): ?>
         <?php
         $sheetHref = trim((string) $sheetHref);
@@ -58,11 +70,11 @@ if ($headerUser !== null) {
         <link rel="stylesheet" href="<?= e(asset_url($sheetHref)) ?>">
     <?php endforeach; ?>
 </head>
-<body<?= $bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '' ?>>
+<body<?= $bodyClassEffective !== '' ? ' class="' . e($bodyClassEffective) . '"' : '' ?>>
     <div class="app">
-        <header class="top-bar<?= $topBarExtraClass !== '' ? ' ' . e($topBarExtraClass) : '' ?>">
+        <header class="top-bar<?= $topBarExtraClassEffective !== '' ? ' ' . e($topBarExtraClassEffective) : '' ?>">
             <div class="top-bar__row">
-                <h1 class="top-bar__title<?= $topBarTitleClass !== '' ? ' ' . e($topBarTitleClass) : '' ?>"><?= e($pageTitle) ?></h1>
+                <h1 class="top-bar__title<?= $topBarTitleClassEffective !== '' ? ' ' . e($topBarTitleClassEffective) : '' ?>"><?= e($pageTitle) ?></h1>
                 <?php if ($headerUser !== null): ?>
                     <div class="top-bar__auth">
                         <span class="top-bar__user"><?= e($headerUser['display_name'] ?? '') ?></span>
@@ -75,4 +87,4 @@ if ($headerUser !== null) {
                 <?php endif; ?>
             </div>
         </header>
-        <main class="<?= e($mainClass) ?>">
+        <main class="<?= e($mainClassEffective) ?>">

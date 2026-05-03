@@ -37,12 +37,12 @@ function note_reading_render_thought_block(
     $userId = $viewerUserId;
     $canEditTodayThought = !empty($todayExtras['can_edit']);
     $tw = $notesTailwindUi;
-    $blockCls = $tw ? 'thought-block tn-space-y-3' : 'thought-block';
+    $blockCls = $tw ? 'thought-block tn-space-y-2.5' : 'thought-block';
     $bodyCls = $tw
-        ? 'thought-block__body note-detail__thought-body tn-m-0 tn-max-w-none tn-text-base md:tn-text-[1.0625rem] tn-leading-[1.65] tn-text-slate-800 tn-font-normal'
+        ? 'thought-block__body note-detail__thought-body tn-th-body tn-m-0 tn-max-w-none md:tn-text-[1.0625rem]'
         : 'thought-block__body note-detail__thought-body';
     $metaCls = $tw
-        ? 'thought-block__meta tn-flex tn-flex-wrap tn-items-center tn-gap-x-2 tn-gap-y-1 tn-pt-3 tn-mt-0.5 tn-w-full'
+        ? 'thought-block__meta tn-th-thought-meta'
         : 'thought-block__meta';
     $rxCls = $tw ? 'thought-reactions tn-gap-2 tn-opacity-95' : 'thought-reactions';
     $timeCls = $tw
@@ -130,7 +130,7 @@ function note_reading_render_thoughts_list(
 ): void {
     $tw = $notesTailwindUi;
     $listCls = $tw
-        ? 'note-detail__thoughts tn-m-0 tn-list-none tn-space-y-7 md:tn-space-y-8 tn-p-0 tn-max-w-none'
+        ? 'note-detail__thoughts tn-m-0 tn-list-none tn-space-y-5 md:tn-space-y-6 tn-p-0 tn-max-w-none'
         : 'note-detail__thoughts';
     $itemCls = $tw
         ? 'note-detail__thought tn-m-0 tn-pl-0 tn-border-0 tn-pt-2 first:tn-pt-0'

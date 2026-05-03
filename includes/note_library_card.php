@@ -40,7 +40,7 @@ function note_library_card_render(
     $dateLabel = $ts ? date('M j, Y', $ts) : '';
     $tw = $notesTailwindUi;
     $cardLi = $tw
-        ? 'notes-library__card tn-notes-post tn-rounded-xl tn-border-0 tn-bg-white tn-p-5 md:tn-p-6 tn-space-y-4 tn-shadow-sm'
+        ? 'notes-library__card tn-th-item tn-space-y-3'
         : 'notes-library__card';
     $photoUl = $tw
         ? 'today-note-photos today-note-photos--notes notes-library__card-photos tn-grid tn-grid-cols-2 md:tn-grid-cols-3 tn-gap-2 tn-list-none tn-m-0 tn-p-0 tn-w-full'
@@ -54,30 +54,30 @@ function note_library_card_render(
     $photoImg = $tw
         ? 'today-note-photos__img tn-h-full tn-w-full tn-min-h-0 tn-object-cover tn-rounded-lg tn-border-0 tn-bg-slate-100'
         : 'today-note-photos__img';
-    $articleCls = $tw ? 'notes-library__article tn-space-y-4' : 'notes-library__article';
+    $articleCls = $tw ? 'notes-library__article tn-space-y-3' : 'notes-library__article';
     $postHeadCls = $tw
-        ? 'notes-library__header tn-notes-post__head tn-pb-3 tn-mb-0'
+        ? 'notes-library__header tn-th-item-head'
         : 'notes-library__header';
     $headerCls = $tw ? 'notes-library__header tn-space-y-2 tn-mb-0 tn-pb-0' : 'notes-library__header';
     $dateCls = 'notes-library__date';
     $authorCls = $tw
-        ? 'notes-library__author tn-text-xs tn-font-medium tn-text-slate-500 tn-m-0 tn-mt-1 tn-leading-snug'
+        ? 'notes-library__author tn-th-meta-muted tn-m-0 tn-mt-1 tn-leading-snug'
         : 'notes-library__author';
     $groupsCls = 'notes-library__groups';
-    $permalinkP = $tw ? 'notes-library__permalink tn-m-0 tn-pt-5 tn-mt-4 tn-border-t tn-border-slate-100/90' : 'notes-library__permalink';
+    $permalinkP = $tw ? 'notes-library__permalink tn-th-item-footer tn-m-0' : 'notes-library__permalink';
     $permalinkA = $tw ? ' tn-text-xs tn-font-medium tn-text-slate-400 tn-no-underline hover:tn-text-tn-accent hover:tn-underline' : '';
     ?>
                         <li class="<?= e($cardLi) ?>">
                             <?php if ($tw): ?>
                                 <header class="<?= e($postHeadCls) ?>">
-                                    <div class="tn-flex tn-flex-wrap tn-items-baseline tn-gap-x-2 tn-gap-y-0.5 tn-min-w-0">
+                                    <div class="tn-th-meta-row">
                                         <time
-                                            class="notes-library__date tn-text-xs tn-font-semibold tn-text-slate-700 tn-tracking-tight tn-shrink-0"
+                                            class="notes-library__date tn-th-meta-accent tn-shrink-0"
                                             datetime="<?= e((string) $noteRow['entry_date']) ?>"
                                         ><?= e($dateLabel) ?></time>
                                         <?php if ($groupsLabel !== ''): ?>
                                             <span class="tn-text-slate-300 tn-select-none" aria-hidden="true">·</span>
-                                            <span class="<?= e($groupsCls) ?> tn-text-xs tn-font-medium tn-text-slate-500 tn-min-w-0">Shared in <?= e($groupsLabel) ?></span>
+                                            <span class="<?= e($groupsCls) ?> tn-th-meta-muted tn-min-w-0">Shared in <?= e($groupsLabel) ?></span>
                                         <?php endif; ?>
                                     </div>
                                     <?php if (!$isMine): ?>

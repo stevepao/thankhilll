@@ -4,13 +4,7 @@ module.exports = {
   corePlugins: {
     preflight: false,
   },
-  content: [
-    './notes.php',
-    './header.php',
-    './includes/note_library_card.php',
-    './includes/note_reading_thoughts.php',
-    './includes/thought_comments_section.php',
-  ],
+  content: ['./**/*.php'],
   theme: {
     extend: {
       colors: {

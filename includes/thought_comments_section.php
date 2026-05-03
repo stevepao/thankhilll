@@ -30,9 +30,9 @@ if (!$canPostComment && $comments === []) {
     return;
 }
 ?>
-                    <div class="thought-comments<?= $notesTailwindUi ? ' tn-mt-5 tn-space-y-4' : '' ?>" id="thought-comments-<?= (int) $thoughtId ?>">
+                    <div class="thought-comments<?= $notesTailwindUi ? ' tn-mt-4 tn-space-y-3' : '' ?>" id="thought-comments-<?= (int) $thoughtId ?>">
                         <?php if ($comments !== []): ?>
-                            <ul class="thought-comments__list<?= $notesTailwindUi ? ' tn-m-0 tn-list-none tn-space-y-4 tn-p-0' : '' ?>">
+                            <ul class="thought-comments__list<?= $notesTailwindUi ? ' tn-m-0 tn-list-none tn-space-y-3 tn-p-0' : '' ?>">
                                 <?php foreach ($comments as $c): ?>
                                     <?php
                                     $cid = (int) $c['id'];

@@ -45,7 +45,7 @@ require_once __DIR__ . '/header.php';
             <?php if (count($pendingInvites) > 0): ?>
                 <section class="detail-section group-invites-pending" aria-labelledby="pending-invites-heading">
                     <h2 id="pending-invites-heading" class="detail-section__title">Pending invitations</h2>
-                    <ul class="group-invites-pending__list">
+                    <ul class="group-invites-pending__list tn-th-stack">
                         <?php foreach ($pendingInvites as $inv): ?>
                             <?php
                             $expTs = strtotime((string) $inv['expires_at']);
@@ -88,7 +88,7 @@ require_once __DIR__ . '/header.php';
                     <section class="detail-section" aria-labelledby="your-groups-heading">
                         <h2 id="your-groups-heading" class="detail-section__title">Your groups</h2>
                 <?php endif; ?>
-                        <ul class="group-list">
+                        <ul class="group-list tn-th-stack">
                             <?php foreach ($groups as $g): ?>
                                 <?php
                                 $gid = (int) $g['id'];

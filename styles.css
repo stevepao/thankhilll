@@ -319,18 +319,18 @@ body {
 
 /* Today — composer first, calm sections below (not a feed) */
 .today-section {
-    margin-top: 2rem;
-    padding-top: 1.5rem;
+    margin-top: 1.35rem;
+    padding-top: 1rem;
     border-top: 1px solid var(--border);
 }
 
 .today-section__heading {
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--muted);
-    margin: 0 0 0.75rem;
+    margin: 0 0 0.5rem;
 }
 
 .today-quiet {
@@ -346,7 +346,7 @@ body {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.65rem;
+    gap: 1rem;
 }
 
 .today-quiet--below-composer {
@@ -354,7 +354,7 @@ body {
 }
 
 .today-page-lede {
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.875rem;
 }
 
 .today-yours-entry {
@@ -390,14 +390,15 @@ body {
 
 .today-daily-card {
     margin: 0;
-    padding: 1.25rem 1.25rem 1.35rem;
+    padding: 1rem 1rem 1.15rem;
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 0.85rem;
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.045);
 }
 
 .today-daily-card__label {
-    margin: 0 0 1rem;
+    margin: 0 0 0.65rem;
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -411,7 +412,7 @@ body {
 }
 
 .today-daily-card__gallery {
-    margin-top: 1.35rem;
+    margin-top: 1rem;
 }
 
 .today-note-photos--daily {
@@ -426,7 +427,7 @@ body {
 
 .today-note-photos--daily .today-note-photos__img {
     width: 100%;
-    max-height: 12rem;
+    max-height: 8.5rem;
     object-fit: cover;
 }
 
@@ -1060,7 +1061,7 @@ body {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.85rem;
+    gap: 1rem;
 }
 
 .notes-library__card {
@@ -1573,21 +1574,22 @@ body {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.65rem;
 }
 
 .group-card {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: 0.75rem;
     overflow: hidden;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.045);
 }
 
 .group-card__link {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    padding: 1rem;
+    padding: 0.875rem 1rem;
     text-decoration: none;
     color: inherit;
 }
@@ -1625,7 +1627,7 @@ body {
 }
 
 .group-card__meta {
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
     color: var(--muted);
 }
 
@@ -1635,17 +1637,18 @@ body {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.65rem;
 }
 
 .group-invites-pending__card {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    padding: 1rem;
+    gap: 0.65rem;
+    padding: 0.875rem 1rem;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: none;
     border-radius: 0.75rem;
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.045);
 }
 
 @media (min-width: 36rem) {
@@ -1664,9 +1667,9 @@ body {
 
 .group-invites-pending__meta {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.8125rem;
     color: var(--muted);
-    margin-top: 0.25rem;
+    margin-top: 0.2rem;
 }
 
 .group-invites-pending__actions {
@@ -1681,7 +1684,7 @@ body {
 }
 
 .detail-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.125rem;
 }
 
 .detail-section__title {
@@ -1736,9 +1739,9 @@ body {
 
 .member-list__item,
 .invite-list__item {
-    padding: 0.35rem 0;
+    padding: 0.28rem 0;
     border-bottom: 1px solid var(--border);
-    font-size: 0.95rem;
+    font-size: 0.9375rem;
 }
 
 .member-list__item:last-child,
@@ -1765,8 +1768,8 @@ body {
 }
 
 .member-list__meta {
-    margin: 0.25rem 0 0;
-    font-size: 0.82rem;
+    margin: 0.2rem 0 0;
+    font-size: 0.8125rem;
     color: var(--muted);
     line-height: 1.35;
 }
