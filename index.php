@@ -693,10 +693,6 @@ $thoughtDeletedFlash = isset($_GET['thought_deleted']);
 $commentAddedFlash = isset($_GET['comment_added']);
 $commentDeletedFlash = isset($_GET['comment_deleted']);
 $commentErrFlash = isset($_GET['comment_err']);
-$todayYoursEditingModeInitial = $editSticky
-    || $errorContext === 'thought_edit'
-    || $errorContext === 'add_thought';
-
 $showTopErrorBanner = $validationError !== null
     && ($errorContext === null || $errorContext === 'create_first');
 
@@ -801,7 +797,7 @@ require_once __DIR__ . '/header.php';
             </form>
             <?php else: ?>
                 <p class="today-quiet today-quiet--below-composer today-page-lede">
-                    Your entry for today is below — thoughts and photos first, then sharing and actions.
+                    Add a moment or a photo anytime; sharing and photo removals stay under <strong class="today-lede-strong">Sharing &amp; photos</strong>.
                 </p>
             <?php endif; ?>
 
@@ -811,11 +807,13 @@ require_once __DIR__ . '/header.php';
                     <p class="today-quiet">No entry saved yet today.</p>
                 <?php else: ?>
                     <ul class="today-yours-list">
-                        <li
-                            class="today-yours-entry <?= $todayYoursEditingModeInitial ? 'today-yours-entry--editing' : 'today-yours-entry--reading' ?>"
-                            id="today-yours-own-entry"
-                        >
+                        <li class="today-yours-entry" id="today-yours-own-entry">
                             <?php if ($canEditTodayNoteMeta): ?>
+                            <?php
+                            $showTodayManageDetails = count($shareGroups) > 0
+                                || count($primaryPhotosList) > 0
+                                || $errorContext === 'note_meta';
+                            ?>
                             <article class="today-daily-card" aria-labelledby="today-daily-card-label">
                                 <p id="today-daily-card-label" class="today-daily-card__label">Today’s reflection</p>
 
@@ -871,16 +869,19 @@ require_once __DIR__ . '/header.php';
                                                             rows="5"
                                                             required
                                                         ><?= e($editBodyVal) ?></textarea>
-                                                        <label class="share-check today-thought-private-check">
-                                                            <input
-                                                                type="checkbox"
-                                                                name="thought_is_private"
-                                                                value="1"
-                                                                <?= $editIsPrivate ? 'checked' : '' ?>
-                                                            >
-                                                            <span>Just for me</span>
-                                                        </label>
-                                                        <p class="share-fieldset__hint today-thought-private-hint">Only you see private moments, even when this day is shared.</p>
+                                                        <details class="today-fold today-fold--privacy">
+                                                            <summary class="today-fold__summary">Privacy for this moment</summary>
+                                                            <label class="share-check today-thought-private-check">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    name="thought_is_private"
+                                                                    value="1"
+                                                                    <?= $editIsPrivate ? 'checked' : '' ?>
+                                                                >
+                                                                <span>Just for me</span>
+                                                            </label>
+                                                            <p class="share-fieldset__hint today-thought-private-hint">Only you see private moments, even when this day is shared.</p>
+                                                        </details>
                                                         <div class="today-thought-edit-actions">
                                                             <button type="submit" class="btn btn--primary">Save</button>
                                                             <button type="button" class="btn btn--ghost" data-thought-edit-cancel="<?= $tid ?>">Cancel</button>
@@ -919,132 +920,24 @@ require_once __DIR__ . '/header.php';
                                     <?php endif; ?>
                                 </div>
 
-                                <div id="today-note-meta-readonly" class="today-daily-card__context today-note-meta-readonly" <?= $todayYoursEditingModeInitial ? 'hidden' : '' ?>>
-                                    <?php if (count($todayPrimarySharedNames) > 0): ?>
-                                        <p class="today-daily-card__sharing today-yours-meta">
-                                            Shared with <?= e(implode(', ', $todayPrimarySharedNames)) ?>
-                                        </p>
-                                    <?php else: ?>
-                                        <p class="today-daily-card__sharing today-yours-meta today-yours-meta--private">Private — not shared with groups</p>
+                                <div class="today-quick-add-thought">
+                                    <?php if ($errorContext === 'add_thought' && $validationError !== null): ?>
+                                        <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
                                     <?php endif; ?>
-
-                                    <div class="today-daily-card__primary-actions">
-                                        <button type="button" class="btn btn--primary" id="today-yours-edit-btn">Edit</button>
-                                    </div>
-                                </div>
-                            </article>
-
-                                <div id="today-yours-editor" class="today-yours-editor" <?= $todayYoursEditingModeInitial ? '' : 'hidden' ?>>
-                                    <p class="today-yours-editor-status share-fieldset__hint" role="status">You are editing.</p>
-                                    <div id="today-note-meta-edit" class="today-note-meta-edit-panel today-yours-panel today-yours-panel--edit">
-                                        <form id="today-edit-form" class="note-form note-form--compact" method="post" action="/index.php" enctype="multipart/form-data">
+                                    <form class="note-form note-form--compact today-add-thought__form" method="post" action="/index.php">
                                         <?php csrf_hidden_field(); ?>
-                                        <input type="hidden" name="today_action" value="update_note">
+                                        <input type="hidden" name="today_action" value="add_thought">
                                         <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
-                                        <p class="today-edit-note-hint">Sharing and photos apply to your whole entry for today.</p>
-                                        <?php if ($errorContext === 'note_meta' && $validationError !== null): ?>
-                                            <p class="flash flash--error today-edit-inline-error" role="alert"><?= e((string) $validationError) ?></p>
-                                        <?php endif; ?>
-
-                                        <?php if (count($shareGroups) > 0): ?>
-                                            <fieldset class="share-fieldset">
-                                                <legend class="share-fieldset__legend">Share with…</legend>
-                                                <p class="share-fieldset__hint">Optional. Leave unchecked to keep this day private.</p>
-                                                <?php foreach ($shareGroups as $g): ?>
-                                                    <label class="share-check">
-                                                        <input
-                                                            type="checkbox"
-                                                            name="group_ids[]"
-                                                            value="<?= (int) $g['id'] ?>"
-                                                            <?= isset($editGroupCheckedMap[(int) $g['id']]) ? 'checked' : '' ?>
-                                                        >
-                                                        <span><?= e($g['name']) ?></span>
-                                                    </label>
-                                                <?php endforeach; ?>
-                                            </fieldset>
-                                        <?php endif; ?>
-
-                                        <?php if (count($primaryPhotosList) > 0): ?>
-                                            <fieldset class="share-fieldset today-edit-media-fieldset">
-                                                <legend class="share-fieldset__legend">Photos</legend>
-                                                <p class="share-fieldset__hint">Uncheck photos you want to remove.</p>
-                                                <ul class="today-edit-existing-photos">
-                                                    <?php foreach ($primaryPhotosList as $eph): ?>
-                                                        <?php $mid = (int) $eph['id']; ?>
-                                                        <li class="today-edit-existing-photos__item">
-                                                            <label class="today-edit-existing-photos__label">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    name="keep_media_ids[]"
-                                                                    value="<?= $mid ?>"
-                                                                    <?= (!$editSticky || isset($editStickyKeepMediaIds[$mid])) ? 'checked' : '' ?>
-                                                                >
-                                                                <img
-                                                                    src="/media/note_photo.php?id=<?= $mid ?>"
-                                                                    alt=""
-                                                                    class="today-edit-existing-photos__thumb"
-                                                                    loading="lazy"
-                                                                    width="<?= (int) $eph['width'] ?>"
-                                                                    height="<?= (int) $eph['height'] ?>"
-                                                                >
-                                                                <span class="today-edit-existing-photos__hint">Included</span>
-                                                            </label>
-                                                        </li>
-                                                    <?php endforeach; ?>
-                                                </ul>
-                                            </fieldset>
-                                        <?php endif; ?>
-
-                                        <?php if ($editMaxNewUploads > 0): ?>
-                                            <label class="note-form__label" for="today-edit-photo-picker">Add photos (optional)</label>
-                                            <p class="share-fieldset__hint">JPEG or PNG. Images are resized on your device before upload.</p>
-                                            <input
-                                                type="file"
-                                                id="today-edit-photo-picker"
-                                                class="note-form__input"
-                                                multiple
-                                                accept="image/jpeg,image/png"
-                                                aria-describedby="today-edit-photo-status"
-                                            >
-                                            <input
-                                                type="file"
-                                                name="photos_edit[]"
-                                                id="today-edit-photos-staged"
-                                                class="visually-hidden"
-                                                multiple
-                                                accept="image/jpeg,image/png"
-                                                tabindex="-1"
-                                                aria-hidden="true"
-                                            >
-                                            <p id="today-edit-photo-status" class="today-photo-status" aria-live="polite"></p>
-                                            <p id="today-edit-photo-error" class="flash flash--error today-photo-error" role="alert" hidden></p>
-                                        <?php else: ?>
-                                            <p class="share-fieldset__hint today-edit-photo-cap-hint">Uncheck a photo above to remove it and make room (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
-                                        <?php endif; ?>
-
-                                        <div class="today-edit-actions">
-                                            <button type="submit" class="btn btn--primary">Save</button>
-                                            <button type="button" class="btn btn--ghost" id="today-yours-cancel-edit">Cancel</button>
-                                        </div>
-                                        </form>
-                                    </div>
-
-                                    <div class="today-daily-card__secondary today-add-thought">
-                                        <?php if ($errorContext === 'add_thought' && $validationError !== null): ?>
-                                            <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
-                                        <?php endif; ?>
-                                        <form class="note-form note-form--compact today-add-thought__form" method="post" action="/index.php">
-                                            <?php csrf_hidden_field(); ?>
-                                            <input type="hidden" name="today_action" value="add_thought">
-                                            <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
-                                            <label class="today-add-thought__caption" for="add-thought-body">Add another moment</label>
-                                            <textarea
-                                                id="add-thought-body"
-                                                name="thought_body"
-                                                class="note-form__textarea"
-                                                rows="3"
-                                                placeholder="A few more words…"
-                                                ><?= e($addThoughtBodyValue) ?></textarea>
+                                        <label class="today-add-thought__caption" for="add-thought-body">Add another moment</label>
+                                        <textarea
+                                            id="add-thought-body"
+                                            name="thought_body"
+                                            class="note-form__textarea"
+                                            rows="3"
+                                            placeholder="A few more words…"
+                                        ><?= e($addThoughtBodyValue) ?></textarea>
+                                        <details class="today-fold today-fold--privacy">
+                                            <summary class="today-fold__summary">Privacy for this moment</summary>
                                             <label class="share-check today-thought-private-check">
                                                 <input
                                                     type="checkbox"
@@ -1055,10 +948,129 @@ require_once __DIR__ . '/header.php';
                                                 <span>Just for me</span>
                                             </label>
                                             <p class="share-fieldset__hint today-thought-private-hint">Private moments are never shown to people you share this day with.</p>
-                                            <button type="submit" class="btn btn--ghost today-add-thought__submit">Add moment</button>
-                                        </form>
-                                    </div>
+                                        </details>
+                                        <button type="submit" class="btn btn--ghost today-add-thought__submit">Add moment</button>
+                                    </form>
                                 </div>
+
+                                <form id="today-edit-form" class="today-note-update-form note-form note-form--compact" method="post" action="/index.php" enctype="multipart/form-data">
+                                    <?php csrf_hidden_field(); ?>
+                                    <input type="hidden" name="today_action" value="update_note">
+                                    <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
+
+                                    <div class="today-quick-photo">
+                                        <?php if ($editMaxNewUploads > 0): ?>
+                                            <label class="today-quick-photo__label" for="today-edit-photo-picker">Add a photo</label>
+                                            <p class="today-quick-photo__hint share-fieldset__hint">JPEG or PNG — resized before upload.</p>
+                                            <div class="today-quick-photo__row">
+                                                <input
+                                                    type="file"
+                                                    id="today-edit-photo-picker"
+                                                    class="note-form__input today-quick-photo__input"
+                                                    multiple
+                                                    accept="image/jpeg,image/png"
+                                                    aria-describedby="today-edit-photo-status"
+                                                >
+                                                <input
+                                                    type="file"
+                                                    name="photos_edit[]"
+                                                    id="today-edit-photos-staged"
+                                                    class="visually-hidden"
+                                                    multiple
+                                                    accept="image/jpeg,image/png"
+                                                    tabindex="-1"
+                                                    aria-hidden="true"
+                                                >
+                                                <button type="submit" class="btn btn--ghost btn--small today-quick-photo__submit">Add photo</button>
+                                            </div>
+                                            <p id="today-edit-photo-status" class="today-photo-status today-quick-photo__status" aria-live="polite"></p>
+                                            <p id="today-edit-photo-error" class="flash flash--error today-photo-error" role="alert" hidden></p>
+                                        <?php else: ?>
+                                            <p class="today-quick-photo__cap share-fieldset__hint">Photo limit reached — remove one under <strong>Sharing &amp; photos</strong> (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <?php if ($showTodayManageDetails): ?>
+                                        <details class="today-fold today-manage-details"<?= $errorContext === 'note_meta' ? ' open' : '' ?>>
+                                            <summary class="today-fold__summary today-manage-details__summary">Sharing &amp; photos</summary>
+                                            <div class="today-manage-details__body">
+                                                <p class="today-edit-note-hint share-fieldset__hint">Sharing applies to your whole entry for today. Uncheck a photo to remove it.</p>
+                                                <?php if ($errorContext === 'note_meta' && $validationError !== null): ?>
+                                                    <p class="flash flash--error today-edit-inline-error" role="alert"><?= e((string) $validationError) ?></p>
+                                                <?php endif; ?>
+
+                                                <?php if (count($shareGroups) > 0): ?>
+                                                    <fieldset class="share-fieldset">
+                                                        <legend class="share-fieldset__legend">Share with…</legend>
+                                                        <p class="share-fieldset__hint">Optional. Leave unchecked to keep this day private.</p>
+                                                        <?php foreach ($shareGroups as $g): ?>
+                                                            <label class="share-check">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    name="group_ids[]"
+                                                                    value="<?= (int) $g['id'] ?>"
+                                                                    <?= isset($editGroupCheckedMap[(int) $g['id']]) ? 'checked' : '' ?>
+                                                                >
+                                                                <span><?= e($g['name']) ?></span>
+                                                            </label>
+                                                        <?php endforeach; ?>
+                                                    </fieldset>
+                                                <?php endif; ?>
+
+                                                <?php if (count($primaryPhotosList) > 0): ?>
+                                                    <fieldset class="share-fieldset today-edit-media-fieldset">
+                                                        <legend class="share-fieldset__legend">Photos on this entry</legend>
+                                                        <p class="share-fieldset__hint">Uncheck photos you want to remove.</p>
+                                                        <ul class="today-edit-existing-photos">
+                                                            <?php foreach ($primaryPhotosList as $eph): ?>
+                                                                <?php $mid = (int) $eph['id']; ?>
+                                                                <li class="today-edit-existing-photos__item">
+                                                                    <label class="today-edit-existing-photos__label">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            name="keep_media_ids[]"
+                                                                            value="<?= $mid ?>"
+                                                                            <?= (!$editSticky || isset($editStickyKeepMediaIds[$mid])) ? 'checked' : '' ?>
+                                                                        >
+                                                                        <img
+                                                                            src="/media/note_photo.php?id=<?= $mid ?>"
+                                                                            alt=""
+                                                                            class="today-edit-existing-photos__thumb"
+                                                                            loading="lazy"
+                                                                            width="<?= (int) $eph['width'] ?>"
+                                                                            height="<?= (int) $eph['height'] ?>"
+                                                                        >
+                                                                        <span class="today-edit-existing-photos__hint">Included</span>
+                                                                    </label>
+                                                                </li>
+                                                            <?php endforeach; ?>
+                                                        </ul>
+                                                    </fieldset>
+                                                <?php endif; ?>
+
+                                                <?php if ($editMaxNewUploads <= 0 && count($primaryPhotosList) > 0): ?>
+                                                    <p class="share-fieldset__hint today-edit-photo-cap-hint">Remove a photo above to make room for new ones.</p>
+                                                <?php endif; ?>
+
+                                                <div class="today-edit-actions">
+                                                    <button type="submit" class="btn btn--primary">Save sharing &amp; photos</button>
+                                                    <button type="button" class="btn btn--ghost" id="today-yours-cancel-edit">Cancel</button>
+                                                </div>
+                                            </div>
+                                        </details>
+                                    <?php endif; ?>
+                                </form>
+
+                                <div class="today-daily-card__context today-note-meta-footer">
+                                    <?php if (count($todayPrimarySharedNames) > 0): ?>
+                                        <p class="today-daily-card__sharing today-yours-meta">
+                                            Shared with <?= e(implode(', ', $todayPrimarySharedNames)) ?>
+                                        </p>
+                                    <?php else: ?>
+                                        <p class="today-daily-card__sharing today-yours-meta today-yours-meta--private">Private — not shared with groups</p>
+                                    <?php endif; ?>
+                                </div>
+                            </article>
                             <?php else: ?>
                                 <?php /* Should not happen for own today note */ ?>
                                 <p class="today-quiet">This entry isn’t available.</p>
@@ -1204,21 +1216,7 @@ require_once __DIR__ . '/header.php';
                         });
                     }
 
-                    var ownEntry = document.getElementById('today-yours-own-entry');
-                    var readonlyPanel = document.getElementById('today-note-meta-readonly');
-                    var editorShell = document.getElementById('today-yours-editor');
-                    var editBtn = document.getElementById('today-yours-edit-btn');
                     var cancelBtn = document.getElementById('today-yours-cancel-edit');
-
-                    if (editBtn && readonlyPanel && editorShell && ownEntry) {
-                        editBtn.addEventListener('click', function () {
-                            closeAllThoughtEdits();
-                            ownEntry.classList.remove('today-yours-entry--reading');
-                            ownEntry.classList.add('today-yours-entry--editing');
-                            readonlyPanel.hidden = true;
-                            editorShell.hidden = false;
-                        });
-                    }
 
                     if (cancelBtn) {
                         cancelBtn.addEventListener('click', function () {

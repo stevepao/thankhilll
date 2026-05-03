@@ -19,6 +19,8 @@
     --border: #e5e0d8;
     --nav-h: 3.5rem;
     --safe-bottom: env(safe-area-inset-bottom, 0);
+    /* Matches Notes inner shell (`tn-max-w-2xl`); use for signed-in main column */
+    --app-readable-max: 42rem;
     /* Shared note photo previews (Today tiles + Notes strip) */
     --note-photo-preview-max-h: 11rem;
     --note-photo-preview-fit: contain;
@@ -89,9 +91,21 @@ body {
 .main {
     flex: 1;
     padding: 1rem;
-    max-width: 40rem;
+    max-width: var(--app-readable-max);
     margin: 0 auto;
     width: 100%;
+}
+
+/*
+ * Signed-in app routes (body.th-app-shell): same readable column as Notes list —
+ * max-width matches `tn-max-w-2xl`; horizontal padding matches Notes `px-4 sm:px-8`.
+ * Notes itself uses `.tn-notes-shell` (full-bleed main + inner shell); excluded here.
+ */
+@media (min-width: 640px) {
+    body.th-app-shell .main:not(.tn-notes-shell) {
+        padding-left: 2rem;
+        padding-right: 2rem;
+    }
 }
 
 /* Today form */
@@ -357,35 +371,93 @@ body {
     margin-bottom: 0.875rem;
 }
 
+.today-lede-strong {
+    font-weight: 600;
+    color: var(--muted);
+}
+
 .today-yours-entry {
     margin: 0;
     padding: 0;
     list-style: none;
 }
 
-/* Reading vs editing: never show note-edit chrome while reading */
-.today-yours-entry--reading .today-yours-thought-actions {
-    display: none !important;
+.today-quick-add-thought {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
 }
 
-.today-yours-entry--reading .today-thought-edit {
-    display: none !important;
-}
-
-.today-yours-entry--editing .today-daily-card__gallery {
-    display: none !important;
-}
-
-.today-yours-editor {
+.today-note-update-form {
     margin-top: 0.85rem;
 }
 
-.today-yours-editor-status {
-    margin: 0 0 0.65rem;
+.today-quick-photo__label {
+    display: block;
+    margin: 0 0 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text);
 }
 
-.today-yours-editor .today-note-meta-edit-panel {
-    margin-top: 0;
+.today-quick-photo__hint {
+    margin: 0 0 0.4rem;
+}
+
+.today-quick-photo__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.today-quick-photo__input {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.today-quick-photo__status {
+    margin-top: 0.35rem;
+}
+
+.today-quick-photo__cap {
+    margin: 0;
+}
+
+.today-fold {
+    margin-top: 0.35rem;
+}
+
+.today-fold__summary {
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--muted);
+    list-style: none;
+}
+
+.today-fold__summary::-webkit-details-marker {
+    display: none;
+}
+
+.today-manage-details {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
+}
+
+.today-manage-details__summary {
+    font-size: 0.85rem;
+}
+
+.today-manage-details__body {
+    padding-top: 0.35rem;
+}
+
+.today-note-meta-footer {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
 }
 
 .today-daily-card {
@@ -432,21 +504,12 @@ body {
 }
 
 .today-daily-card__context {
-    margin: 1.75rem 0 0;
+    margin: 0;
     padding: 0;
 }
 
 .today-daily-card__sharing {
     margin: 0;
-}
-
-.today-daily-card__primary-actions {
-    margin-top: 1rem;
-}
-
-.today-daily-card__secondary {
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
 }
 
 .today-add-thought__caption {
@@ -472,24 +535,6 @@ body {
     align-self: flex-start;
 }
 
-.today-note-meta-edit-panel {
-    margin-top: 1rem;
-    padding: 1rem 1.25rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 0.85rem;
-}
-
-.today-yours-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-}
-
-.today-yours-panel--edit {
-    padding-top: 0.15rem;
-}
-
 .today-yours-meta {
     margin: 0;
     font-size: 0.82rem;
@@ -499,13 +544,6 @@ body {
 
 .today-yours-meta--private {
     font-style: italic;
-}
-
-.today-yours-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-top: 0.25rem;
 }
 
 .note-form--compact .note-form__label:first-of-type {
