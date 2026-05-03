@@ -12,3 +12,7 @@
 # User-uploaded note photos (keep directory via .gitkeep)
 /storage/note_media/*
 !/storage/note_media/.gitkeep
+
+# Generated data-export ZIPs (keep .htaccess only)
+/storage/exports/*
+!/storage/exports/.htaccess

@@ -5,7 +5,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/includes/app_url.php';
 require_once __DIR__ . '/includes/csrf.php';
+require_once __DIR__ . '/includes/user_export.php';
 require_once __DIR__ . '/includes/user_preferences.php';
 require_once __DIR__ . '/includes/user_notification_prefs_repository.php';
 
@@ -14,6 +16,9 @@ $pdo = db();
 
 $flashProfile = isset($_GET['saved']) && $_GET['saved'] === 'profile';
 $flashPrefs = isset($_GET['saved']) && $_GET['saved'] === 'prefs';
+$flashExportRequested = isset($_GET['export_requested']) && $_GET['export_requested'] === '1';
+$flashExportBusy = isset($_GET['export_busy']) && $_GET['export_busy'] === '1';
+$flashExportErr = isset($_GET['export_err']) && $_GET['export_err'] === '1';
 $notifPrefs = user_notification_prefs_get($pdo, $userId);
 $deleteErr = isset($_GET['delete_err']) ? (string) $_GET['delete_err'] : '';
 $errorMessage = null;
@@ -55,7 +60,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         header('Location: /me.php?saved=prefs');
         exit;
+    } elseif ($save === 'data_export') {
+        if (!user_export_table_exists($pdo)) {
+            header('Location: ' . app_absolute_url('/me.php?export_err=1'));
+            exit;
+        }
+        $res = user_export_enqueue($pdo, $userId);
+        if (!$res['ok']) {
+            $msg = (string) ($res['error'] ?? '');
+            if ($msg !== '' && str_contains($msg, 'already have')) {
+                header('Location: ' . app_absolute_url('/me.php?export_busy=1'));
+            } else {
+                header('Location: ' . app_absolute_url('/me.php?export_err=1'));
+            }
+            exit;
+        }
+        header('Location: ' . app_absolute_url('/me.php?export_requested=1'));
+        exit;
     }
+}
+
+$exportsTableOk = user_export_table_exists($pdo);
+$exportRows = [];
+if ($exportsTableOk) {
+    $exportRows = user_export_list_for_user($pdo, $userId, 12);
 }
 
 $stmt = $pdo->prepare(
@@ -129,6 +157,16 @@ require_once __DIR__ . '/header.php';
                 <p class="flash flash--error" role="alert">Confirm every step to delete your account.</p>
             <?php elseif ($deleteErr === 'failed'): ?>
                 <p class="flash flash--error" role="alert">Your account could not be deleted. Try again or contact support.</p>
+            <?php endif; ?>
+
+            <?php if ($flashExportRequested): ?>
+                <p class="flash" role="status">Export requested. Preparation can take a few minutes or longer—you’ll get an email when it’s ready (check Me here anytime).</p>
+            <?php endif; ?>
+            <?php if ($flashExportBusy): ?>
+                <p class="flash flash--error" role="alert">You already have an export in progress. Please wait until it finishes.</p>
+            <?php endif; ?>
+            <?php if ($flashExportErr): ?>
+                <p class="flash flash--error" role="alert">That export request couldn’t be recorded. Try again, or ask your host whether data export is enabled.</p>
             <?php endif; ?>
 
             <section class="me-section" aria-labelledby="me-profile-heading">
@@ -291,12 +329,65 @@ require_once __DIR__ . '/header.php';
                 </form>
             </section>
 
+            <section class="me-section" aria-labelledby="me-your-data-heading">
+                <h2 id="me-your-data-heading" class="me-section__heading">Your data</h2>
+                <p class="me-muted">
+                    Request a ZIP of your notes, photos you uploaded, and activity we associate with your account.
+                    Export preparation can take a few minutes or longer on busy hosts—we’ll email you when it’s ready, and you can always check here while signed in.
+                </p>
+                <?php if (!$exportsTableOk): ?>
+                    <p class="me-muted">This feature isn’t available until your database is updated (run migrations).</p>
+                <?php else: ?>
+                    <form class="me-form" method="post" action="/me.php">
+                        <?php csrf_hidden_field(); ?>
+                        <input type="hidden" name="save" value="data_export">
+                        <button type="submit" class="btn btn--ghost me-form__submit">Request data export</button>
+                    </form>
+                    <?php if (count($exportRows) > 0): ?>
+                        <h3 class="me-section__subheading">Recent exports</h3>
+                        <ul class="me-export-list">
+                            <?php foreach ($exportRows as $er): ?>
+                                <?php
+                                if (!is_array($er)) {
+                                    continue;
+                                }
+                                $eid = (int) ($er['id'] ?? 0);
+                                $st = (string) ($er['status'] ?? '');
+                                $reqRaw = (string) ($er['requested_at'] ?? '');
+                                $reqTs = strtotime($reqRaw);
+                                $reqLabel = $reqTs ? gmdate('Y-m-d H:i', $reqTs) . ' UTC' : $reqRaw;
+                                $errMsg = isset($er['error_message']) && is_string($er['error_message']) ? trim($er['error_message']) : '';
+                                $shortErr = $errMsg !== '' ? (mb_strlen($errMsg) > 160 ? mb_substr($errMsg, 0, 157) . '…' : $errMsg) : '';
+                                $statusLabel = match ($st) {
+                                    'queued' => 'Queued — waiting to start',
+                                    'running' => 'Running — preparing files',
+                                    'ready' => 'Ready — download below',
+                                    'failed' => 'Failed',
+                                    default => $st,
+                                };
+                                ?>
+                                <li class="me-export-list__item">
+                                    <div class="me-export-list__meta">
+                                        <span class="me-export-list__status"><?= e($statusLabel) ?></span>
+                                        <span class="me-export-list__time">Requested <?= e($reqLabel) ?></span>
+                                    </div>
+                                    <?php if ($st === 'ready'): ?>
+                                        <a class="btn btn--primary me-export-list__download" href="<?= e(app_absolute_url('/me_export_download.php?export_id=' . $eid)) ?>">Download ZIP</a>
+                                    <?php elseif ($st === 'failed' && $shortErr !== ''): ?>
+                                        <p class="me-muted me-export-list__err"><?= e($shortErr) ?></p>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </section>
+
             <section class="me-section" aria-labelledby="me-account-heading">
                 <h2 id="me-account-heading" class="me-section__heading">Account &amp; data</h2>
                 <?php if ($accountSince !== ''): ?>
                     <p class="me-muted">Member since <?= e($accountSince) ?>.</p>
                 <?php endif; ?>
-                <p class="me-muted">Export your data: <em>coming soon</em>.</p>
                 <p>
                     <a class="btn btn--primary" href="/auth/logout.php">Sign out</a>
                 </p>

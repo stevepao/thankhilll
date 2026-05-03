@@ -2391,6 +2391,47 @@ body {
     color: var(--text);
 }
 
+.me-export-list {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.me-export-list__item {
+    margin: 0;
+    padding: 0.65rem 0 0;
+    border-top: 1px solid var(--border);
+}
+
+.me-export-list__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.me-export-list__status {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.me-export-list__time {
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+.me-export-list__download {
+    margin-top: 0.45rem;
+}
+
+.me-export-list__err {
+    margin: 0.35rem 0 0;
+    font-size: 0.82rem;
+}
+
 .me-section__subheading {
     font-size: 0.95rem;
     font-weight: 600;
