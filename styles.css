@@ -382,81 +382,159 @@ body {
     list-style: none;
 }
 
-.today-quick-add-thought {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
-}
-
 .today-note-update-form {
-    margin-top: 0.85rem;
+    margin-top: 0.65rem;
 }
 
-.btn-today-secondary {
+/* Inline with today’s photos — auxiliary attach, not part of the continuation composer */
+.today-entry-attachments {
+    margin-top: 0.75rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.today-entry-attachments__hint {
+    margin: 0.2rem 0 0;
+}
+
+.today-entry-attachments__status {
+    margin-top: 0.25rem;
+}
+
+.today-entry-attachments__cap {
+    margin: 0;
+}
+
+.today-attach-photo__btn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 0.42rem;
-    width: auto;
-    min-width: auto;
-    padding: 0.42rem 0.95rem;
+    margin: 0;
+    min-height: 2.35rem;
+    padding: 0.28rem 0.2rem 0.28rem 0;
+    font: inherit;
+    font-size: 0.8125rem;
     font-weight: 500;
-    font-size: 0.875rem;
-    color: var(--text);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    color: rgb(100 116 139 / 0.96);
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 0.35rem;
     transition:
-        border-color 0.18s ease,
-        background-color 0.18s ease,
-        box-shadow 0.18s ease,
-        color 0.18s ease;
+        color 0.18s ease,
+        opacity 0.18s ease;
 }
 
-.btn-today-secondary:hover {
-    border-color: var(--accent);
-    background: var(--accent-soft);
+.today-attach-photo__btn:hover {
     color: var(--accent);
-    box-shadow: 0 1px 3px rgba(45, 106, 79, 0.12);
 }
 
-.btn-today-secondary:active {
-    opacity: 0.94;
+.today-attach-photo__btn:focus-visible {
+    outline: 2px solid rgba(45, 106, 79, 0.42);
+    outline-offset: 3px;
 }
 
-.today-action-icon {
+.today-attach-photo__icon {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: inherit;
-    opacity: 0.85;
+    opacity: 0.72;
+    transition: opacity 0.18s ease;
 }
 
-.today-action-icon svg {
+.today-attach-photo__btn:hover .today-attach-photo__icon {
+    opacity: 1;
+}
+
+.today-attach-photo__icon svg {
     display: block;
 }
 
-.today-quick-photo__pick {
+/* Hero continuation — primary place to keep writing */
+.today-continue-surface {
+    margin-top: 1.15rem;
+    padding: 1.15rem 1.05rem 1.2rem;
+    border-radius: 0.85rem;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.96) 0%,
+        rgba(249, 252, 250, 0.99) 55%,
+        rgba(245, 250, 247, 1) 100%
+    );
+    box-shadow:
+        0 3px 14px rgba(15, 23, 42, 0.06),
+        0 0 0 1px rgba(45, 106, 79, 0.09);
+}
+
+.today-continue-hero-title {
+    display: block;
+    margin: 0 0 0.65rem;
+    font-size: 1.08rem;
+    font-weight: 600;
+    letter-spacing: -0.018em;
+    line-height: 1.28;
+    color: var(--text);
+    cursor: text;
+}
+
+.today-continue-submit {
+    appearance: none;
+    margin-top: 0.65rem;
     align-self: flex-start;
+    padding: 0.45rem 0.95rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: rgb(100 116 139 / 0.96);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0.55rem;
+    cursor: pointer;
+    transition:
+        color 0.2s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
 }
 
-.today-quick-photo__hint {
-    margin: 0.35rem 0 0;
+.today-continue-submit:hover {
+    color: var(--text);
+    background: rgba(241, 245, 249, 0.75);
+    border-color: rgba(148, 163, 184, 0.35);
 }
 
-.today-quick-photo__status {
-    margin-top: 0.35rem;
+.today-continue-submit:focus-visible {
+    outline: none;
+    border-color: rgba(45, 106, 79, 0.45);
+    box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.18);
 }
 
-.today-quick-photo__cap {
-    margin: 0;
+.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit {
+    color: #fff;
+    background: var(--accent);
+    border-color: transparent;
+    box-shadow: 0 1px 3px rgba(45, 106, 79, 0.22);
+}
+
+.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit:hover {
+    opacity: 0.94;
+    filter: brightness(1.03);
+}
+
+.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit:focus-visible {
+    box-shadow:
+        0 0 0 3px rgba(45, 106, 79, 0.28),
+        0 1px 3px rgba(45, 106, 79, 0.22);
 }
 
 .today-invite-wrap {
     position: relative;
     width: 100%;
     margin: 0 0 0.5rem;
+}
+
+.today-invite-wrap--hero {
+    margin-bottom: 0.4rem;
 }
 
 .today-invite-wrap__glyph {
@@ -518,8 +596,27 @@ body {
         0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
+.today-invite-textarea--hero {
+    min-height: 6.75rem;
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+    font-size: 1.085rem;
+    line-height: 1.58;
+    border-radius: 0.75rem;
+    background-color: rgba(255, 255, 255, 0.82);
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.today-invite-textarea--hero:focus {
+    background-color: #fff;
+}
+
 .today-invite-wrap:focus-within .today-invite-wrap__glyph {
     opacity: 0.58;
+}
+
+.today-invite-wrap--hero:focus-within .today-invite-wrap__glyph {
+    opacity: 0.62;
 }
 
 .today-micro-confirm {
@@ -562,8 +659,49 @@ body {
     color: var(--muted);
 }
 
-.today-helper--privacy {
+.today-privacy-default {
+    margin: 0.2rem 0 0 1.65rem;
+    padding: 0;
+    font-size: 0.6875rem;
+    font-weight: 400;
+    line-height: 1.42;
+    color: var(--muted);
+    transition:
+        opacity 0.22s ease,
+        max-height 0.28s ease,
+        margin 0.22s ease;
+    opacity: 1;
+    max-height: 5rem;
+}
+
+.today-privacy-row:has(.today-thought-private-check input:checked) .today-privacy-default {
+    opacity: 0;
+    max-height: 0;
+    margin-top: 0;
+    overflow: hidden;
+}
+
+.today-helper--privacy-note {
+    margin: 0;
+    padding: 0;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1.38;
+    color: var(--muted);
     margin-left: 1.65rem;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition:
+        opacity 0.22s ease,
+        max-height 0.28s ease,
+        margin-top 0.22s ease;
+}
+
+.today-privacy-row:has(.today-thought-private-check input:checked) .today-helper--privacy-note {
+    opacity: 0.9;
+    max-height: 2.75rem;
+    margin-top: 0.2rem;
 }
 
 .today-privacy-reassurance {
@@ -723,16 +861,6 @@ body {
     margin: 0;
 }
 
-.today-add-thought__caption {
-    display: block;
-    margin: 0 0 0.35rem;
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--muted);
-}
-
 .today-add-thought__form {
     display: flex;
     flex-direction: column;
@@ -741,13 +869,6 @@ body {
 
 .today-add-thought__form .today-invite-wrap {
     margin-bottom: 0.35rem;
-}
-
-.today-add-thought__submit {
-    margin-top: 0.55rem;
-    align-self: flex-start;
-    width: auto;
-    min-width: 9rem;
 }
 
 .today-yours-meta {
