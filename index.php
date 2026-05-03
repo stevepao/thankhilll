@@ -850,6 +850,7 @@ require_once __DIR__ . '/header.php';
                                                     true,
                                                     $userTimezone,
                                                     ['can_edit' => $canEditThought],
+                                                    false,
                                                 );
                                                 ?>
                                             </div>

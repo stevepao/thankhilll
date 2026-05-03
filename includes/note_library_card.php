@@ -26,6 +26,7 @@ function note_library_card_render(
     bool $noteSharedWithGroup,
     string $commentRedirectTarget,
     string $viewerTz,
+    bool $notesTailwindUi = false,
 ): void {
     $nid = (int) $noteRow['id'];
     $authorId = (int) $noteRow['user_id'];
@@ -37,22 +38,51 @@ function note_library_card_render(
     $groupsLabel = trim((string) ($noteRow['shared_group_names'] ?? ''));
     $ts = strtotime((string) $noteRow['entry_date']);
     $dateLabel = $ts ? date('M j, Y', $ts) : '';
+    $tw = $notesTailwindUi;
+    $cardLi = $tw
+        ? 'notes-library__card tn-rounded-xl tn-bg-tn-surface tn-shadow-tn tn-p-5 md:tn-p-6 tn-space-y-4'
+        : 'notes-library__card';
+    $photoUl = $tw
+        ? 'today-note-photos today-note-photos--notes notes-library__card-photos tn-grid tn-grid-cols-2 md:tn-grid-cols-3 tn-gap-2 tn-list-none tn-m-0 tn-p-0 tn-w-full'
+        : 'today-note-photos today-note-photos--notes notes-library__card-photos';
+    $photoLi = $tw
+        ? 'today-note-photos__item tn-aspect-square tn-overflow-hidden tn-rounded-lg tn-min-w-0 tn-m-0'
+        : 'today-note-photos__item';
+    $photoBtn = $tw
+        ? 'photo-lightbox-trigger tn-block tn-h-full tn-w-full tn-p-0 tn-m-0 tn-overflow-hidden tn-rounded-lg'
+        : 'photo-lightbox-trigger';
+    $photoImg = $tw
+        ? 'today-note-photos__img tn-h-full tn-w-full tn-object-cover tn-rounded-lg tn-max-h-none tn-border-0 tn-bg-stone-100'
+        : 'today-note-photos__img';
+    $articleCls = $tw ? 'notes-library__article tn-space-y-4' : 'notes-library__article';
+    $headerCls = $tw ? 'notes-library__header tn-space-y-1 tn-mb-0' : 'notes-library__header';
+    $dateCls = $tw
+        ? 'notes-library__date tn-block tn-text-xs tn-font-semibold tn-text-tn-muted'
+        : 'notes-library__date';
+    $authorCls = $tw
+        ? 'notes-library__author tn-text-sm tn-font-semibold tn-text-tn-ink tn-m-0 tn-leading-snug'
+        : 'notes-library__author';
+    $groupsCls = $tw
+        ? 'notes-library__groups tn-text-xs tn-text-tn-muted tn-m-0 tn-leading-snug'
+        : 'notes-library__groups';
+    $permalinkP = $tw ? 'notes-library__permalink tn-m-0 tn-pt-1' : 'notes-library__permalink';
+    $permalinkA = $tw ? ' tn-text-tn-accent tn-font-medium tn-no-underline hover:tn-underline' : '';
     ?>
-                        <li class="notes-library__card">
+                        <li class="<?= e($cardLi) ?>">
                             <?php if (count($thumbs) > 0): ?>
-                                <ul class="today-note-photos today-note-photos--notes notes-library__card-photos" aria-label="Note photos — tap a thumbnail to enlarge">
+                                <ul class="<?= e($photoUl) ?>" aria-label="Note photos — tap a thumbnail to enlarge">
                                     <?php foreach ($thumbs as $thumb): ?>
-                                        <li class="today-note-photos__item">
+                                        <li class="<?= e($photoLi) ?>">
                                             <button
                                                 type="button"
-                                                class="photo-lightbox-trigger"
+                                                class="<?= e($photoBtn) ?>"
                                                 aria-haspopup="dialog"
                                                 aria-label="View photo larger"
                                             >
                                                 <img
                                                     src="/media/note_photo.php?id=<?= (int) $thumb['id'] ?>"
                                                     alt=""
-                                                    class="today-note-photos__img"
+                                                    class="<?= e($photoImg) ?>"
                                                     loading="lazy"
                                                     width="<?= (int) $thumb['width'] ?>"
                                                     height="<?= (int) $thumb['height'] ?>"
@@ -62,17 +92,17 @@ function note_library_card_render(
                                     <?php endforeach; ?>
                                 </ul>
                             <?php endif; ?>
-                            <article class="notes-library__article">
-                                <header class="notes-library__header">
+                            <article class="<?= e($articleCls) ?>">
+                                <header class="<?= e($headerCls) ?>">
                                     <time
-                                        class="notes-library__date"
+                                        class="<?= e($dateCls) ?>"
                                         datetime="<?= e((string) $noteRow['entry_date']) ?>"
                                     ><?= e($dateLabel) ?></time>
                                     <?php if (!$isMine): ?>
-                                        <p class="notes-library__author"><?= e($authorLabel) ?></p>
+                                        <p class="<?= e($authorCls) ?>"><?= e($authorLabel) ?></p>
                                     <?php endif; ?>
                                     <?php if ($groupsLabel !== ''): ?>
-                                        <p class="notes-library__groups">Shared in <?= e($groupsLabel) ?></p>
+                                        <p class="<?= e($groupsCls) ?>">Shared in <?= e($groupsLabel) ?></p>
                                     <?php endif; ?>
                                 </header>
                                 <?php
@@ -86,10 +116,11 @@ function note_library_card_render(
                                     $commentRedirectTarget,
                                     $viewerTz,
                                     false,
+                                    $notesTailwindUi,
                                 );
                                 ?>
-                                <p class="notes-library__permalink">
-                                    <a href="/note.php?id=<?= $nid ?>">Permalink</a>
+                                <p class="<?= e($permalinkP) ?>">
+                                    <a href="/note.php?id=<?= $nid ?>" class="<?= e(trim($permalinkA)) ?>">Permalink</a>
                                 </p>
                             </article>
                         </li>

@@ -174,13 +174,30 @@ $hasActiveFilters = ($dateExplicit && $dateFilter !== '')
 $pageTitle = 'Notes';
 $currentNav = 'notes';
 
+$extraStylesheets = ['/public/tailwind.css'];
+$bodyClass = 'tn-bg-tn-bg';
+$mainClass = 'main tn-notes-shell';
+$topBarExtraClass =
+    'tn-border-b tn-border-stone-200/50 tn-bg-tn-surface/95 tn-backdrop-blur-sm tn-shadow-[0_1px_0_0_rgb(0,0,0,0.03)]';
+
 require_once __DIR__ . '/header.php';
 ?>
 
-            <form class="notes-filters" method="get" action="/notes.php" aria-label="Filter notes">
-                <div class="notes-filters__row">
-                    <label class="notes-filters__label" for="filter-date">When</label>
-                    <select class="notes-filters__select" id="filter-date" name="date" onchange="this.form.submit()">
+            <div class="tn-max-w-readable tn-w-full tn-mx-auto tn-px-4 tn-py-6 sm:tn-px-6 tn-space-y-8 tn-min-h-0">
+            <form
+                class="notes-filters tn-space-y-4 tn-pb-6 tn-mb-2 tn-border-b tn-border-stone-200/40"
+                method="get"
+                action="/notes.php"
+                aria-label="Filter notes"
+            >
+                <div class="notes-filters__row tn-flex tn-flex-col tn-gap-1.5 sm:tn-max-w-xs">
+                    <label class="notes-filters__label tn-normal-case tn-text-sm tn-font-medium tn-text-tn-muted" for="filter-date">When</label>
+                    <select
+                        class="notes-filters__select tn-block tn-w-full tn-rounded-xl tn-border-0 tn-bg-white tn-py-2.5 tn-px-3 tn-text-tn-ink tn-shadow-tn tn-text-[0.95rem] focus:tn-ring-2 focus:tn-ring-tn-accent/30 focus:tn-outline-none"
+                        id="filter-date"
+                        name="date"
+                        onchange="this.form.submit()"
+                    >
                         <option value="" <?= $dateFilter === '' ? 'selected' : '' ?>>Any time</option>
                         <option value="today" <?= $dateFilter === 'today' ? 'selected' : '' ?>>Today</option>
                         <option value="week" <?= $dateFilter === 'week' ? 'selected' : '' ?>>This week</option>
@@ -188,9 +205,14 @@ require_once __DIR__ . '/header.php';
                         <option value="older" <?= $dateFilter === 'older' ? 'selected' : '' ?>>Older</option>
                     </select>
                 </div>
-                <div class="notes-filters__row">
-                    <label class="notes-filters__label" for="filter-group">Scope</label>
-                    <select class="notes-filters__select" id="filter-group" name="group" onchange="this.form.submit()">
+                <div class="notes-filters__row tn-flex tn-flex-col tn-gap-1.5 sm:tn-max-w-xs">
+                    <label class="notes-filters__label tn-normal-case tn-text-sm tn-font-medium tn-text-tn-muted" for="filter-group">Scope</label>
+                    <select
+                        class="notes-filters__select tn-block tn-w-full tn-rounded-xl tn-border-0 tn-bg-white tn-py-2.5 tn-px-3 tn-text-tn-ink tn-shadow-tn tn-text-[0.95rem] focus:tn-ring-2 focus:tn-ring-tn-accent/30 focus:tn-outline-none"
+                        id="filter-group"
+                        name="group"
+                        onchange="this.form.submit()"
+                    >
                         <option value="" <?= $groupScope === 'all' ? 'selected' : '' ?>>All notes</option>
                         <option value="mine" <?= $groupScope === 'mine' ? 'selected' : '' ?>>Just mine</option>
                         <?php foreach ($groupsForFilter as $g): ?>
@@ -205,12 +227,12 @@ require_once __DIR__ . '/header.php';
 
             <?php if (count($notes) === 0): ?>
                 <?php if ($hasActiveFilters): ?>
-                    <p class="notes-empty">Nothing matches these filters.</p>
+                    <p class="notes-empty tn-text-tn-muted tn-text-[0.95rem] tn-leading-relaxed tn-mt-1">Nothing matches these filters.</p>
                 <?php else: ?>
-                    <p class="notes-empty">No notes yet.</p>
+                    <p class="notes-empty tn-text-tn-muted tn-text-[0.95rem] tn-leading-relaxed tn-mt-1">No notes yet.</p>
                 <?php endif; ?>
             <?php else: ?>
-                <ul class="notes-library">
+                <ul class="notes-library tn-flex tn-flex-col tn-gap-5 tn-list-none tn-m-0 tn-p-0">
                     <?php foreach ($notes as $note): ?>
                         <?php
                         $nid = (int) $note['id'];
@@ -224,11 +246,14 @@ require_once __DIR__ . '/header.php';
                             $noteSharedMap[$nid] ?? false,
                             $commentsRedirectBase,
                             $viewerTz,
+                            true,
                         );
                         ?>
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
+
+            </div>
 
             <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
             <script src="<?= e(asset_url('/reactions/reactions.js')) ?>"></script>

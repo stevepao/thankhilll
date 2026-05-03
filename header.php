@@ -14,6 +14,14 @@ require_once __DIR__ . '/includes/assets.php';
 
 $pageTitle = $pageTitle ?? 'Gratitude';
 $metaDescription = $metaDescription ?? null;
+/** @var list<string> $extraStylesheets Site-root CSS paths after styles.css (e.g. Notes Tailwind bundle). */
+$extraStylesheets = $extraStylesheets ?? [];
+/** @var string Optional classes on <body> (e.g. Notes page background). */
+$bodyClass = isset($bodyClass) ? trim((string) $bodyClass) : '';
+/** @var string Classes for <main> (default keeps legacy layout). */
+$mainClass = isset($mainClass) ? trim((string) $mainClass) : 'main';
+/** @var string Extra classes on the top header bar. */
+$topBarExtraClass = isset($topBarExtraClass) ? trim((string) $topBarExtraClass) : '';
 $headerUser = currentUser();
 $htmlUserTzAttr = '';
 if ($headerUser !== null) {
@@ -38,10 +46,19 @@ if ($headerUser !== null) {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="stylesheet" href="<?= e(asset_url('/styles.css')) ?>">
+    <?php foreach ($extraStylesheets as $sheetHref): ?>
+        <?php
+        $sheetHref = trim((string) $sheetHref);
+        if ($sheetHref === '') {
+            continue;
+        }
+        ?>
+        <link rel="stylesheet" href="<?= e(asset_url($sheetHref)) ?>">
+    <?php endforeach; ?>
 </head>
-<body>
+<body<?= $bodyClass !== '' ? ' class="' . e($bodyClass) . '"' : '' ?>>
     <div class="app">
-        <header class="top-bar">
+        <header class="top-bar<?= $topBarExtraClass !== '' ? ' ' . e($topBarExtraClass) : '' ?>">
             <div class="top-bar__row">
                 <h1 class="top-bar__title"><?= e($pageTitle) ?></h1>
                 <?php if ($headerUser !== null): ?>
@@ -56,4 +73,4 @@ if ($headerUser !== null) {
                 <?php endif; ?>
             </div>
         </header>
-        <main class="main">
+        <main class="<?= e($mainClass) ?>">

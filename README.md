@@ -57,6 +57,17 @@ This README reflects the product **as of early development / alpha**. Features a
    composer install
    ```
 
+   **Notes screen Tailwind CSS** — `notes.php` loads `/public/tailwind.css`. Keep **Composer-only on production**: deploy with **`public/tailwind.css`** included (committed or baked into your release artifact). **Do not install Node/npm on the app server** for Tailwind; it is build tooling only.
+
+   Regenerate that file on your machine or CI after editing Tailwind markup (`notes.php`, `includes/note_library_card.php`, etc.) or theme tokens (`tailwind.config.js`, `resources/css/tailwind-input.css`):
+
+   ```bash
+   npm install
+   npm run build:css
+   ```
+
+   Use `npm run watch:css` during UI tweaks.
+
 2. **Environment**
 
    ```bash

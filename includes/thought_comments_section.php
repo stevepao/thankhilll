@@ -23,22 +23,25 @@ $thoughtCommentsIconOnlyComposer = $thoughtCommentsIconOnlyComposer ?? false;
 /** @var string $viewerTz */
 $viewerTz = isset($viewerTz) && is_string($viewerTz) ? $viewerTz : 'UTC';
 
+/** @var bool Notes list Tailwind surface (optional; inherited from thought block scope). */
+$notesTailwindUi = isset($notesTailwindUi) && $notesTailwindUi;
+
 if (!$canPostComment && $comments === []) {
     return;
 }
 ?>
-                    <div class="thought-comments" id="thought-comments-<?= (int) $thoughtId ?>">
+                    <div class="thought-comments<?= $notesTailwindUi ? ' tn-mt-3 tn-space-y-3' : '' ?>" id="thought-comments-<?= (int) $thoughtId ?>">
                         <?php if ($comments !== []): ?>
-                            <ul class="thought-comments__list">
+                            <ul class="thought-comments__list<?= $notesTailwindUi ? ' tn-m-0 tn-list-none tn-space-y-2 tn-p-0' : '' ?>">
                                 <?php foreach ($comments as $c): ?>
                                     <?php
                                     $cid = (int) $c['id'];
                                     $canDeleteThis = ((int) $c['user_id']) === $userId && thought_comment_delete_window_open($c['created_at'], $viewerTz);
                                     ?>
-                                    <li class="thought-comments__item" id="comment-<?= $cid ?>">
-                                        <p class="thought-comments__body"><?= nl2br(e($c['body'])) ?></p>
-                                        <div class="thought-comments__footer">
-                                            <p class="thought-comments__meta">
+                                    <li class="thought-comments__item<?= $notesTailwindUi ? ' tn-rounded-lg tn-bg-white/70 tn-px-3 tn-py-2' : '' ?>" id="comment-<?= $cid ?>">
+                                        <p class="thought-comments__body<?= $notesTailwindUi ? ' tn-m-0 tn-text-sm tn-leading-relaxed tn-text-tn-ink' : '' ?>"><?= nl2br(e($c['body'])) ?></p>
+                                        <div class="thought-comments__footer<?= $notesTailwindUi ? ' tn-mt-1.5' : '' ?>">
+                                            <p class="thought-comments__meta<?= $notesTailwindUi ? ' tn-text-xs tn-text-tn-muted' : '' ?>">
                                                 <span class="thought-comments__author"><?= e($c['display_name']) ?></span>
                                                 <span class="thought-comments__sep"> · </span>
                                                 <time class="thought-comments__time" datetime="<?= e(datetime_attr_utc_mysql($c['created_at'])) ?>"><?= e(thought_comment_time_label($c['created_at'], $viewerTz)) ?></time>
@@ -64,8 +67,8 @@ if (!$canPostComment && $comments === []) {
                                     ? ' aria-label="Add comment"'
                                     : '';
                             ?>
-                            <details class="thought-comments__composer-wrap">
-                                <summary class="thought-comments__composer-summary"<?= $composerSummaryAria ?>>
+                            <details class="thought-comments__composer-wrap<?= $notesTailwindUi ? ' tn-rounded-lg tn-bg-white/50 tn-px-2 tn-py-1' : '' ?>">
+                                <summary class="thought-comments__composer-summary<?= $notesTailwindUi ? ' tn-text-sm tn-text-tn-muted hover:tn-text-tn-ink tn-cursor-pointer' : '' ?>"<?= $composerSummaryAria ?>>
                                     <span class="thought-comments__composer-icon" aria-hidden="true">💬</span>
                                     <?php if (!$thoughtCommentsIconOnlyComposer && $comments === []): ?>
                                         <span class="thought-comments__composer-label">Add comment</span>

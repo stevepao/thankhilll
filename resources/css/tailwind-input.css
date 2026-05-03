@@ -1,0 +1,20 @@
+/**
+ * Tailwind entry for Notes list only (preflight off; prefixes tn-).
+ * Rebuild: npm run build:css → public/tailwind.css
+ */
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tn-bg: #f3f2ef;
+  --tn-surface: #ffffff;
+  --tn-ink: #171717;
+  --tn-muted: #737373;
+  --tn-accent: #2d6a4f;
+}
+
+/* Notes page: drop default .main padding so inner shell controls rhythm */
+.main.tn-notes-shell {
+  padding: 0;
+  max-width: none;
+}

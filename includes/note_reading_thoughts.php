@@ -32,22 +32,35 @@ function note_reading_render_thought_block(
     bool $isMine,
     string $viewerTz,
     ?array $todayExtras = null,
+    bool $notesTailwindUi = false,
 ): void {
     $userId = $viewerUserId;
     $canEditTodayThought = !empty($todayExtras['can_edit']);
+    $tw = $notesTailwindUi;
+    $blockCls = $tw ? 'thought-block tn-space-y-2' : 'thought-block';
+    $bodyCls = $tw
+        ? 'thought-block__body note-detail__thought-body tn-m-0 tn-text-[0.98rem] tn-leading-relaxed tn-text-tn-ink'
+        : 'thought-block__body note-detail__thought-body';
+    $metaCls = $tw
+        ? 'thought-block__meta tn-flex tn-flex-wrap tn-items-center tn-gap-x-3 tn-gap-y-1 tn-pt-1'
+        : 'thought-block__meta';
+    $rxCls = $tw ? 'thought-reactions tn-gap-1.5' : 'thought-reactions';
+    $timeCls = $tw
+        ? 'thought-block__time note-detail__thought-time tn-text-xs tn-text-tn-muted tn-shrink-0'
+        : 'thought-block__time note-detail__thought-time';
     ?>
-                                                <div class="thought-block">
+                                                <div class="<?= e($blockCls) ?>">
                                                     <div class="thought-block__text">
-                                                        <p class="thought-block__body note-detail__thought-body"><?php
+                                                        <p class="<?= e($bodyCls) ?>"><?php
                                                             if ($isMine && !empty($th['is_private'])) {
                                                                 echo '<span class="note-detail__thought-private-wrap" role="img" aria-label="Private — only visible to you"><span class="note-detail__thought-private" aria-hidden="true">🔒</span></span>';
                                                             }
                                                             echo nl2br(e(trim((string) $th['body'])));
                                                             ?></p>
                                                     </div>
-                                                    <div class="thought-block__meta">
+                                                    <div class="<?= e($metaCls) ?>">
                                                         <span
-                                                            class="thought-reactions"
+                                                            class="<?= e($rxCls) ?>"
                                                             data-thought-reactions
                                                             data-thought-id="<?= $tid ?>"
                                                         >
@@ -71,7 +84,7 @@ function note_reading_render_thought_block(
                                                                 aria-label="Add reaction"
                                                             >+</button>
                                                         </span>
-                                                        <time class="thought-block__time note-detail__thought-time" datetime="<?= e(datetime_attr_utc_mysql($th['created_at'])) ?>"><?= e(note_thought_time_label($th['created_at'], $viewerTz)) ?></time>
+                                                        <time class="<?= e($timeCls) ?>" datetime="<?= e(datetime_attr_utc_mysql($th['created_at'])) ?>"><?= e(note_thought_time_label($th['created_at'], $viewerTz)) ?></time>
                                                         <?php if ($canEditTodayThought): ?>
                                                             <span class="thought-block__actions today-yours-thought-actions" aria-label="Thought actions">
                                                                 <button type="button" class="today-thought__icon-btn" data-thought-edit-open="<?= $tid ?>" title="Edit" aria-label="Edit moment">✏️</button>
@@ -113,9 +126,17 @@ function note_reading_render_thoughts_list(
     string $commentRedirectTarget,
     string $viewerTz,
     bool $thoughtCommentsIconOnlyComposer = false,
+    bool $notesTailwindUi = false,
 ): void {
+    $tw = $notesTailwindUi;
+    $listCls = $tw
+        ? 'note-detail__thoughts tn-m-0 tn-list-none tn-space-y-6 tn-p-0 tn-max-w-readable'
+        : 'note-detail__thoughts';
+    $itemCls = $tw
+        ? 'note-detail__thought tn-pl-4 tn-border-l-2 tn-border-stone-200/70 tn-m-0'
+        : 'note-detail__thought';
     ?>
-                <ul class="note-detail__thoughts">
+                <ul class="<?= e($listCls) ?>">
                     <?php foreach ($thoughts as $th): ?>
                         <?php
                         $tid = (int) $th['id'];
@@ -125,7 +146,7 @@ function note_reading_render_thoughts_list(
                         $noteEntry = isset($th['entry_date']) && is_string($th['entry_date']) ? $th['entry_date'] : null;
                         $canPostThoughtComment = $showThoughtComments && thought_comment_post_allowed($th['created_at'], $viewerTz, $noteEntry);
                         ?>
-                        <li class="note-detail__thought">
+                        <li class="<?= e($itemCls) ?>">
                             <?php
                             note_reading_render_thought_block(
                                 $tid,
@@ -140,6 +161,7 @@ function note_reading_render_thoughts_list(
                                 $isMine,
                                 $viewerTz,
                                 null,
+                                $notesTailwindUi,
                             );
                             ?>
                         </li>
