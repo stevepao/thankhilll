@@ -83,6 +83,11 @@ function db(): PDO
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
+        // MySQL NOW() / CURRENT_TIMESTAMP follow @@session.time_zone. The app treats stored DATETIME
+        // strings as UTC (see user_datetime_immutable_utc). Without this, a US-hosted server’s default
+        // (e.g. America/New_York) stores local wall time in the column; PHP then mis-labels it as UTC
+        // and viewers see times shifted (e.g. Pacific users ~4h early vs Eastern-shaped NOW() values).
+        $pdo->exec("SET SESSION time_zone = '+00:00'");
     } catch (PDOException $e) {
         $msg = $e->getMessage();
         if (stripos($msg, 'could not find driver') !== false) {
