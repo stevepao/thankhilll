@@ -5,18 +5,10 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/db.php';
+require_once __DIR__ . '/app_url.php';
 require_once __DIR__ . '/email_auth.php';
 require_once __DIR__ . '/session.php';
 require_once __DIR__ . '/auth_redirect.php';
-
-/** Absolute URL for same-origin paths (invite links). */
-function app_absolute_url(string $path): string
-{
-    $scheme = session_request_is_https() ? 'https' : 'http';
-    $host = isset($_SERVER['HTTP_HOST']) ? (string) $_SERVER['HTTP_HOST'] : 'localhost';
-
-    return $scheme . '://' . $host . $path;
-}
 
 /** Redirect target after login when finishing invite acceptance or stored ?next= path. */
 function invite_login_redirect_path(): string
