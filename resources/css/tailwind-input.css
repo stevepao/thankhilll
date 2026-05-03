@@ -6,10 +6,11 @@
 @tailwind utilities;
 
 :root {
-  --tn-bg: #f3f2ef;
+  /* Cool neutral canvas; white surfaces read as editorial panels */
+  --tn-bg: #f1f5f9;
   --tn-surface: #ffffff;
-  --tn-ink: #171717;
-  --tn-muted: #737373;
+  --tn-ink: #0f172a;
+  --tn-muted: #64748b;
   --tn-accent: #2d6a4f;
 }
 
@@ -17,4 +18,131 @@
 .main.tn-notes-shell {
   padding: 0;
   max-width: none;
+}
+
+/* Notes page only: soften header chrome (body class set from notes.php). */
+body.notes-page-modern .top-bar__user {
+  color: rgb(100 116 139);
+  font-size: 0.875rem;
+}
+
+body.notes-page-modern .top-bar__auth a {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--tn-accent);
+  text-decoration: none;
+}
+
+body.notes-page-modern .top-bar__auth a:hover {
+  text-decoration: underline;
+}
+
+body.notes-page-modern .top-bar {
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/**
+ * Notes-only legacy reset: strip boxy borders/dividers/beige chrome inside the
+ * Tailwind-driven subtree so tn-* utilities define the look.
+ */
+.tn-notes-scope .notes-filters {
+  margin: 0;
+  padding: 0;
+  border-bottom: none;
+}
+
+.tn-notes-scope .notes-filters__label {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.tn-notes-scope .notes-filters__select {
+  border: none;
+}
+
+.tn-notes-scope .notes-library__card {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Legacy photo thumb border inside Notes */
+.tn-notes-scope .today-note-photos__img {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.tn-notes-scope .notes-library__date,
+.tn-notes-scope .notes-library__author,
+.tn-notes-scope .notes-library__groups {
+  border: none;
+  box-shadow: none;
+}
+
+.tn-notes-scope .notes-library__article .note-detail__thoughts {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.tn-notes-scope .note-detail__thought {
+  border-left: none !important;
+  padding-left: 0 !important;
+}
+
+/* Reading surface: let Tailwind font/size win over legacy .note-detail__thought-body */
+.tn-notes-scope .note-detail__thought-body {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Secondary actions: text-first, no pill blocks */
+.tn-notes-scope .thought-reaction-pill {
+  border: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: rgb(71 85 105) !important;
+  font-size: 0.8125rem !important;
+  padding: 0.15rem 0.35rem !important;
+}
+
+.tn-notes-scope .thought-reaction-pill.is-active {
+  background-color: transparent !important;
+  color: var(--tn-accent) !important;
+  font-weight: 600 !important;
+}
+
+.tn-notes-scope .thought-reaction-add {
+  border: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: rgb(100 116 139) !important;
+}
+
+.tn-notes-scope .thought-comments__item {
+  border: none !important;
+}
+
+.tn-notes-scope .thought-comments__form .thought-comments__textarea,
+.tn-notes-scope .thought-comments__form .note-form__textarea {
+  border: none !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.tn-notes-scope .thought-comments__submit.btn {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  color: var(--tn-accent) !important;
+  padding-left: 0 !important;
+}
+
+.tn-notes-scope .thought-comments__submit.btn:hover {
+  background-color: transparent !important;
+  text-decoration: underline !important;
+  color: var(--tn-accent) !important;
 }

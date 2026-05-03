@@ -175,25 +175,25 @@ $pageTitle = 'Notes';
 $currentNav = 'notes';
 
 $extraStylesheets = ['/public/tailwind.css'];
-$bodyClass = 'tn-bg-tn-bg';
+$bodyClass = 'tn-bg-tn-bg tn-antialiased notes-page-modern';
 $mainClass = 'main tn-notes-shell';
-$topBarExtraClass =
-    'tn-border-b tn-border-stone-200/50 tn-bg-tn-surface/95 tn-backdrop-blur-sm tn-shadow-[0_1px_0_0_rgb(0,0,0,0.03)]';
+$topBarTitleClass = 'tn-text-xl tn-font-semibold tn-tracking-tight tn-text-slate-800';
+$topBarExtraClass = 'tn-bg-white/75 tn-backdrop-blur-sm';
 
 require_once __DIR__ . '/header.php';
 ?>
 
-            <div class="tn-max-w-readable tn-w-full tn-mx-auto tn-px-4 tn-py-6 sm:tn-px-6 tn-space-y-8 tn-min-h-0">
+            <div class="tn-notes-scope tn-max-w-2xl tn-w-full tn-mx-auto tn-px-5 tn-py-10 sm:tn-px-10 tn-space-y-16 tn-min-h-0">
             <form
-                class="notes-filters tn-space-y-4 tn-pb-6 tn-mb-2 tn-border-b tn-border-stone-200/40"
+                class="notes-filters tn-grid tn-grid-cols-1 tn-gap-y-6 sm:tn-grid-cols-2 sm:tn-gap-x-12 tn-pb-16"
                 method="get"
                 action="/notes.php"
                 aria-label="Filter notes"
             >
-                <div class="notes-filters__row tn-flex tn-flex-col tn-gap-1.5 sm:tn-max-w-xs">
-                    <label class="notes-filters__label tn-normal-case tn-text-sm tn-font-medium tn-text-tn-muted" for="filter-date">When</label>
+                <div class="notes-filters__row tn-flex tn-flex-col tn-gap-2">
+                    <label class="notes-filters__label tn-normal-case tn-text-sm tn-font-medium tn-text-slate-500" for="filter-date">When</label>
                     <select
-                        class="notes-filters__select tn-block tn-w-full tn-rounded-xl tn-border-0 tn-bg-white tn-py-2.5 tn-px-3 tn-text-tn-ink tn-shadow-tn tn-text-[0.95rem] focus:tn-ring-2 focus:tn-ring-tn-accent/30 focus:tn-outline-none"
+                        class="notes-filters__select tn-block tn-w-full tn-max-w-full tn-rounded-none tn-border-0 tn-bg-transparent tn-py-2 tn-px-0 tn-text-slate-800 tn-text-base tn-shadow-none focus:tn-ring-0 focus:tn-outline-none focus:tn-underline"
                         id="filter-date"
                         name="date"
                         onchange="this.form.submit()"
@@ -205,10 +205,10 @@ require_once __DIR__ . '/header.php';
                         <option value="older" <?= $dateFilter === 'older' ? 'selected' : '' ?>>Older</option>
                     </select>
                 </div>
-                <div class="notes-filters__row tn-flex tn-flex-col tn-gap-1.5 sm:tn-max-w-xs">
-                    <label class="notes-filters__label tn-normal-case tn-text-sm tn-font-medium tn-text-tn-muted" for="filter-group">Scope</label>
+                <div class="notes-filters__row tn-flex tn-flex-col tn-gap-2">
+                    <label class="notes-filters__label tn-normal-case tn-text-sm tn-font-medium tn-text-slate-500" for="filter-group">Scope</label>
                     <select
-                        class="notes-filters__select tn-block tn-w-full tn-rounded-xl tn-border-0 tn-bg-white tn-py-2.5 tn-px-3 tn-text-tn-ink tn-shadow-tn tn-text-[0.95rem] focus:tn-ring-2 focus:tn-ring-tn-accent/30 focus:tn-outline-none"
+                        class="notes-filters__select tn-block tn-w-full tn-max-w-full tn-rounded-none tn-border-0 tn-bg-transparent tn-py-2 tn-px-0 tn-text-slate-800 tn-text-base tn-shadow-none focus:tn-ring-0 focus:tn-outline-none focus:tn-underline"
                         id="filter-group"
                         name="group"
                         onchange="this.form.submit()"
@@ -227,12 +227,12 @@ require_once __DIR__ . '/header.php';
 
             <?php if (count($notes) === 0): ?>
                 <?php if ($hasActiveFilters): ?>
-                    <p class="notes-empty tn-text-tn-muted tn-text-[0.95rem] tn-leading-relaxed tn-mt-1">Nothing matches these filters.</p>
+                    <p class="notes-empty tn-text-center tn-text-slate-500 tn-text-base tn-leading-relaxed tn-py-16 tn-px-4">Nothing matches these filters.</p>
                 <?php else: ?>
-                    <p class="notes-empty tn-text-tn-muted tn-text-[0.95rem] tn-leading-relaxed tn-mt-1">No notes yet.</p>
+                    <p class="notes-empty tn-text-center tn-text-slate-500 tn-text-base tn-leading-relaxed tn-py-16 tn-px-4">No notes yet.</p>
                 <?php endif; ?>
             <?php else: ?>
-                <ul class="notes-library tn-flex tn-flex-col tn-gap-5 tn-list-none tn-m-0 tn-p-0">
+                <ul class="notes-library tn-flex tn-flex-col tn-gap-16 md:tn-gap-20 tn-list-none tn-m-0 tn-p-0">
                     <?php foreach ($notes as $note): ?>
                         <?php
                         $nid = (int) $note['id'];

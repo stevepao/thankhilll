@@ -22,6 +22,8 @@ $bodyClass = isset($bodyClass) ? trim((string) $bodyClass) : '';
 $mainClass = isset($mainClass) ? trim((string) $mainClass) : 'main';
 /** @var string Extra classes on the top header bar. */
 $topBarExtraClass = isset($topBarExtraClass) ? trim((string) $topBarExtraClass) : '';
+/** @var string Extra classes on the top-bar page title heading (optional; Notes uses Tailwind). */
+$topBarTitleClass = isset($topBarTitleClass) ? trim((string) $topBarTitleClass) : '';
 $headerUser = currentUser();
 $htmlUserTzAttr = '';
 if ($headerUser !== null) {
@@ -60,7 +62,7 @@ if ($headerUser !== null) {
     <div class="app">
         <header class="top-bar<?= $topBarExtraClass !== '' ? ' ' . e($topBarExtraClass) : '' ?>">
             <div class="top-bar__row">
-                <h1 class="top-bar__title"><?= e($pageTitle) ?></h1>
+                <h1 class="top-bar__title<?= $topBarTitleClass !== '' ? ' ' . e($topBarTitleClass) : '' ?>"><?= e($pageTitle) ?></h1>
                 <?php if ($headerUser !== null): ?>
                     <div class="top-bar__auth">
                         <span class="top-bar__user"><?= e($headerUser['display_name'] ?? '') ?></span>

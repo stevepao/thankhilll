@@ -37,16 +37,16 @@ function note_reading_render_thought_block(
     $userId = $viewerUserId;
     $canEditTodayThought = !empty($todayExtras['can_edit']);
     $tw = $notesTailwindUi;
-    $blockCls = $tw ? 'thought-block tn-space-y-2' : 'thought-block';
+    $blockCls = $tw ? 'thought-block tn-space-y-4' : 'thought-block';
     $bodyCls = $tw
-        ? 'thought-block__body note-detail__thought-body tn-m-0 tn-text-[0.98rem] tn-leading-relaxed tn-text-tn-ink'
+        ? 'thought-block__body note-detail__thought-body tn-m-0 tn-max-w-none tn-text-[1.0625rem] md:tn-text-lg tn-leading-[1.65] tn-text-slate-800 tn-font-normal'
         : 'thought-block__body note-detail__thought-body';
     $metaCls = $tw
-        ? 'thought-block__meta tn-flex tn-flex-wrap tn-items-center tn-gap-x-3 tn-gap-y-1 tn-pt-1'
+        ? 'thought-block__meta tn-flex tn-flex-wrap tn-items-center tn-gap-x-4 tn-gap-y-2 tn-pt-5 tn-mt-0'
         : 'thought-block__meta';
-    $rxCls = $tw ? 'thought-reactions tn-gap-1.5' : 'thought-reactions';
+    $rxCls = $tw ? 'thought-reactions tn-gap-2 tn-opacity-95' : 'thought-reactions';
     $timeCls = $tw
-        ? 'thought-block__time note-detail__thought-time tn-text-xs tn-text-tn-muted tn-shrink-0'
+        ? 'thought-block__time note-detail__thought-time tn-text-[0.8125rem] tn-text-slate-500 tn-shrink-0 tn-font-normal'
         : 'thought-block__time note-detail__thought-time';
     ?>
                                                 <div class="<?= e($blockCls) ?>">
@@ -130,10 +130,10 @@ function note_reading_render_thoughts_list(
 ): void {
     $tw = $notesTailwindUi;
     $listCls = $tw
-        ? 'note-detail__thoughts tn-m-0 tn-list-none tn-space-y-6 tn-p-0 tn-max-w-readable'
+        ? 'note-detail__thoughts tn-m-0 tn-list-none tn-space-y-12 md:tn-space-y-14 tn-p-0 tn-max-w-none'
         : 'note-detail__thoughts';
     $itemCls = $tw
-        ? 'note-detail__thought tn-pl-4 tn-border-l-2 tn-border-stone-200/70 tn-m-0'
+        ? 'note-detail__thought tn-m-0 tn-pl-0 tn-border-0 tn-pt-2 first:tn-pt-0'
         : 'note-detail__thought';
     ?>
                 <ul class="<?= e($listCls) ?>">

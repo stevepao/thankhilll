@@ -40,10 +40,10 @@ function note_library_card_render(
     $dateLabel = $ts ? date('M j, Y', $ts) : '';
     $tw = $notesTailwindUi;
     $cardLi = $tw
-        ? 'notes-library__card tn-rounded-xl tn-bg-tn-surface tn-shadow-tn tn-p-5 md:tn-p-6 tn-space-y-4'
+        ? 'notes-library__card tn-border-0 tn-bg-transparent tn-shadow-none tn-p-0 tn-m-0 tn-space-y-8 md:tn-space-y-9'
         : 'notes-library__card';
     $photoUl = $tw
-        ? 'today-note-photos today-note-photos--notes notes-library__card-photos tn-grid tn-grid-cols-2 md:tn-grid-cols-3 tn-gap-2 tn-list-none tn-m-0 tn-p-0 tn-w-full'
+        ? 'today-note-photos today-note-photos--notes notes-library__card-photos tn-grid tn-grid-cols-2 md:tn-grid-cols-3 tn-gap-3 tn-list-none tn-m-0 tn-p-0 tn-w-full'
         : 'today-note-photos today-note-photos--notes notes-library__card-photos';
     $photoLi = $tw
         ? 'today-note-photos__item tn-aspect-square tn-overflow-hidden tn-rounded-lg tn-min-w-0 tn-m-0'
@@ -52,21 +52,21 @@ function note_library_card_render(
         ? 'photo-lightbox-trigger tn-block tn-h-full tn-w-full tn-p-0 tn-m-0 tn-overflow-hidden tn-rounded-lg'
         : 'photo-lightbox-trigger';
     $photoImg = $tw
-        ? 'today-note-photos__img tn-h-full tn-w-full tn-object-cover tn-rounded-lg tn-max-h-none tn-border-0 tn-bg-stone-100'
+        ? 'today-note-photos__img tn-h-full tn-w-full tn-object-cover tn-rounded-lg tn-max-h-none tn-border-0 tn-bg-transparent'
         : 'today-note-photos__img';
-    $articleCls = $tw ? 'notes-library__article tn-space-y-4' : 'notes-library__article';
-    $headerCls = $tw ? 'notes-library__header tn-space-y-1 tn-mb-0' : 'notes-library__header';
+    $articleCls = $tw ? 'notes-library__article tn-space-y-7' : 'notes-library__article';
+    $headerCls = $tw ? 'notes-library__header tn-space-y-2 tn-mb-0 tn-pb-0' : 'notes-library__header';
     $dateCls = $tw
-        ? 'notes-library__date tn-block tn-text-xs tn-font-semibold tn-text-tn-muted'
+        ? 'notes-library__date tn-block tn-text-[0.8125rem] tn-font-medium tn-text-slate-500 tn-tracking-normal'
         : 'notes-library__date';
     $authorCls = $tw
-        ? 'notes-library__author tn-text-sm tn-font-semibold tn-text-tn-ink tn-m-0 tn-leading-snug'
+        ? 'notes-library__author tn-text-sm tn-font-semibold tn-text-slate-700 tn-m-0 tn-leading-snug'
         : 'notes-library__author';
     $groupsCls = $tw
-        ? 'notes-library__groups tn-text-xs tn-text-tn-muted tn-m-0 tn-leading-snug'
+        ? 'notes-library__groups tn-text-[0.8125rem] tn-text-slate-500 tn-m-0 tn-leading-relaxed'
         : 'notes-library__groups';
-    $permalinkP = $tw ? 'notes-library__permalink tn-m-0 tn-pt-1' : 'notes-library__permalink';
-    $permalinkA = $tw ? ' tn-text-tn-accent tn-font-medium tn-no-underline hover:tn-underline' : '';
+    $permalinkP = $tw ? 'notes-library__permalink tn-m-0 tn-pt-8 tn-mt-0' : 'notes-library__permalink';
+    $permalinkA = $tw ? ' tn-text-xs tn-font-medium tn-text-slate-400 tn-no-underline hover:tn-text-tn-accent hover:tn-underline' : '';
     ?>
                         <li class="<?= e($cardLi) ?>">
                             <?php if (count($thumbs) > 0): ?>
