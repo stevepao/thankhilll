@@ -30,9 +30,9 @@ if (!$canPostComment && $comments === []) {
     return;
 }
 ?>
-                    <div class="thought-comments<?= $notesTailwindUi ? ' tn-mt-8 tn-space-y-6' : '' ?>" id="thought-comments-<?= (int) $thoughtId ?>">
+                    <div class="thought-comments<?= $notesTailwindUi ? ' tn-mt-5 tn-space-y-4' : '' ?>" id="thought-comments-<?= (int) $thoughtId ?>">
                         <?php if ($comments !== []): ?>
-                            <ul class="thought-comments__list<?= $notesTailwindUi ? ' tn-m-0 tn-list-none tn-space-y-6 tn-p-0' : '' ?>">
+                            <ul class="thought-comments__list<?= $notesTailwindUi ? ' tn-m-0 tn-list-none tn-space-y-4 tn-p-0' : '' ?>">
                                 <?php foreach ($comments as $c): ?>
                                     <?php
                                     $cid = (int) $c['id'];
@@ -40,7 +40,7 @@ if (!$canPostComment && $comments === []) {
                                     ?>
                                     <li class="thought-comments__item<?= $notesTailwindUi ? ' tn-m-0 tn-bg-transparent tn-p-0 tn-shadow-none' : '' ?>" id="comment-<?= $cid ?>">
                                         <p class="thought-comments__body<?= $notesTailwindUi ? ' tn-m-0 tn-text-[0.9375rem] tn-leading-relaxed tn-text-slate-700' : '' ?>"><?= nl2br(e($c['body'])) ?></p>
-                                        <div class="thought-comments__footer<?= $notesTailwindUi ? ' tn-mt-3' : '' ?>">
+                                        <div class="thought-comments__footer<?= $notesTailwindUi ? ' tn-mt-2' : '' ?>">
                                             <p class="thought-comments__meta<?= $notesTailwindUi ? ' tn-text-[0.75rem] tn-text-slate-500 tn-font-normal' : '' ?>">
                                                 <span class="thought-comments__author"><?= e($c['display_name']) ?></span>
                                                 <span class="thought-comments__sep"> · </span>

@@ -183,17 +183,17 @@ $topBarExtraClass = 'tn-bg-white/75 tn-backdrop-blur-sm';
 require_once __DIR__ . '/header.php';
 ?>
 
-            <div class="tn-notes-scope tn-max-w-2xl tn-w-full tn-mx-auto tn-px-5 tn-py-10 sm:tn-px-10 tn-space-y-16 tn-min-h-0">
+            <div class="tn-notes-scope tn-max-w-2xl tn-w-full tn-mx-auto tn-px-4 tn-py-5 sm:tn-px-8 tn-space-y-8 tn-min-h-0">
             <form
-                class="notes-filters tn-grid tn-grid-cols-1 tn-gap-y-6 sm:tn-grid-cols-2 sm:tn-gap-x-12 tn-pb-16"
+                class="notes-filters tn-flex tn-flex-col tn-gap-3 sm:tn-flex-row sm:tn-flex-wrap sm:tn-items-center sm:tn-gap-x-8 sm:tn-gap-y-2 tn-pb-6"
                 method="get"
                 action="/notes.php"
                 aria-label="Filter notes"
             >
-                <div class="notes-filters__row tn-flex tn-flex-col tn-gap-2">
-                    <label class="notes-filters__label tn-normal-case tn-text-sm tn-font-medium tn-text-slate-500" for="filter-date">When</label>
+                <div class="notes-filters__row tn-flex tn-flex-row tn-flex-wrap tn-items-center tn-gap-x-2 tn-gap-y-1 tn-min-w-0 tn-flex-1 sm:tn-flex-none">
+                    <label class="notes-filters__label tn-normal-case tn-text-xs tn-font-medium tn-text-slate-500 tn-shrink-0" for="filter-date">When</label>
                     <select
-                        class="notes-filters__select tn-block tn-w-full tn-max-w-full tn-rounded-none tn-border-0 tn-bg-transparent tn-py-2 tn-px-0 tn-text-slate-800 tn-text-base tn-shadow-none focus:tn-ring-0 focus:tn-outline-none focus:tn-underline"
+                        class="notes-filters__select tn-min-w-0 tn-flex-1 tn-rounded-none tn-border-0 tn-bg-transparent tn-py-1 tn-pl-1 tn-pr-2 tn-text-slate-800 tn-text-sm tn-shadow-none focus:tn-ring-0 focus:tn-outline-none focus:tn-underline sm:tn-max-w-[11rem]"
                         id="filter-date"
                         name="date"
                         onchange="this.form.submit()"
@@ -205,10 +205,10 @@ require_once __DIR__ . '/header.php';
                         <option value="older" <?= $dateFilter === 'older' ? 'selected' : '' ?>>Older</option>
                     </select>
                 </div>
-                <div class="notes-filters__row tn-flex tn-flex-col tn-gap-2">
-                    <label class="notes-filters__label tn-normal-case tn-text-sm tn-font-medium tn-text-slate-500" for="filter-group">Scope</label>
+                <div class="notes-filters__row tn-flex tn-flex-row tn-flex-wrap tn-items-center tn-gap-x-2 tn-gap-y-1 tn-min-w-0 tn-flex-1 sm:tn-flex-none">
+                    <label class="notes-filters__label tn-normal-case tn-text-xs tn-font-medium tn-text-slate-500 tn-shrink-0" for="filter-group">Scope</label>
                     <select
-                        class="notes-filters__select tn-block tn-w-full tn-max-w-full tn-rounded-none tn-border-0 tn-bg-transparent tn-py-2 tn-px-0 tn-text-slate-800 tn-text-base tn-shadow-none focus:tn-ring-0 focus:tn-outline-none focus:tn-underline"
+                        class="notes-filters__select tn-min-w-0 tn-flex-1 tn-rounded-none tn-border-0 tn-bg-transparent tn-py-1 tn-pl-1 tn-pr-2 tn-text-slate-800 tn-text-sm tn-shadow-none focus:tn-ring-0 focus:tn-outline-none focus:tn-underline sm:tn-max-w-[13rem]"
                         id="filter-group"
                         name="group"
                         onchange="this.form.submit()"
@@ -227,12 +227,12 @@ require_once __DIR__ . '/header.php';
 
             <?php if (count($notes) === 0): ?>
                 <?php if ($hasActiveFilters): ?>
-                    <p class="notes-empty tn-text-center tn-text-slate-500 tn-text-base tn-leading-relaxed tn-py-16 tn-px-4">Nothing matches these filters.</p>
+                    <p class="notes-empty tn-text-center tn-text-slate-500 tn-text-sm tn-leading-relaxed tn-py-10 tn-px-4">Nothing matches these filters.</p>
                 <?php else: ?>
-                    <p class="notes-empty tn-text-center tn-text-slate-500 tn-text-base tn-leading-relaxed tn-py-16 tn-px-4">No notes yet.</p>
+                    <p class="notes-empty tn-text-center tn-text-slate-500 tn-text-sm tn-leading-relaxed tn-py-10 tn-px-4">No notes yet.</p>
                 <?php endif; ?>
             <?php else: ?>
-                <ul class="notes-library tn-flex tn-flex-col tn-gap-10 md:tn-gap-12 tn-list-none tn-m-0 tn-p-0">
+                <ul class="notes-library tn-flex tn-flex-col tn-gap-5 md:tn-gap-6 tn-list-none tn-m-0 tn-p-0">
                     <?php foreach ($notes as $note): ?>
                         <?php
                         $nid = (int) $note['id'];
