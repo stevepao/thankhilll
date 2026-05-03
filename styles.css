@@ -472,38 +472,84 @@ body {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(244, 249, 246, 0.92) 100%);
 }
 
+/* Default = idle (empty textarea); promoted rules override when there’s content */
 .today-continue-submit {
     appearance: none;
-    margin-top: 0.45rem;
+    margin-top: 0.35rem;
     align-self: flex-start;
-    padding: 0.2rem 0;
+    padding: 0.15rem 0;
     font-family: inherit;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 500;
     letter-spacing: 0.01em;
-    color: rgb(100 116 139 / 0.82);
+    color: rgb(100 116 139 / 0.58);
     background: none;
     border: none;
     border-radius: 0;
+    opacity: 0.72;
     cursor: pointer;
     text-decoration: underline;
-    text-decoration-color: transparent;
+    text-decoration-color: rgba(148, 163, 184, 0.35);
     text-underline-offset: 0.18em;
+    box-shadow: none;
     transition:
-        color 0.18s ease,
-        text-decoration-color 0.18s ease;
+        opacity 0.22s ease,
+        color 0.22s ease,
+        background-color 0.22s ease,
+        border-color 0.22s ease,
+        box-shadow 0.22s ease,
+        margin-top 0.22s ease,
+        padding 0.22s ease,
+        font-size 0.22s ease,
+        font-weight 0.22s ease,
+        filter 0.22s ease;
 }
 
 .today-continue-submit:hover {
-    color: var(--accent);
-    text-decoration-color: rgba(45, 106, 79, 0.42);
+    opacity: 1;
+    color: rgb(100 116 139 / 0.88);
+    text-decoration-color: rgba(45, 106, 79, 0.38);
 }
 
 .today-continue-submit:focus-visible {
     outline: none;
+    opacity: 1;
     color: var(--accent);
-    text-decoration-color: rgba(45, 106, 79, 0.55);
-    box-shadow: 0 2px 0 0 rgba(45, 106, 79, 0.35);
+    text-decoration-color: rgba(45, 106, 79, 0.5);
+    box-shadow: 0 2px 0 0 rgba(45, 106, 79, 0.32);
+}
+
+.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit {
+    margin-top: 0.85rem;
+    padding: 0.52rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: var(--accent);
+    border: 1px solid transparent;
+    border-radius: 0.55rem;
+    opacity: 1;
+    text-decoration: none;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.06),
+        0 2px 8px rgba(45, 106, 79, 0.18);
+}
+
+.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit:hover {
+    filter: brightness(1.04);
+}
+
+.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit:active {
+    filter: brightness(0.97);
+}
+
+.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 3px rgba(45, 106, 79, 0.26),
+        0 1px 2px rgba(15, 23, 42, 0.06),
+        0 2px 8px rgba(45, 106, 79, 0.18);
 }
 
 .today-invite-wrap {
@@ -636,6 +682,17 @@ body {
 .today-privacy-row {
     margin: 0.35rem 0 0;
     padding: 0;
+}
+
+/* Light separator before the promoted submit reads as “finish this beat” */
+.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-privacy-row::after {
+    content: '';
+    display: block;
+    margin-top: 0.55rem;
+    width: 100%;
+    max-width: 10rem;
+    height: 1px;
+    background: rgba(45, 106, 79, 0.1);
 }
 
 .today-helper {
