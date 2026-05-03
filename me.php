@@ -160,7 +160,7 @@ require_once __DIR__ . '/header.php';
             <?php endif; ?>
 
             <?php if ($flashExportRequested): ?>
-                <p class="flash" role="status">Export requested. Preparation can take a few minutes or longer—you’ll get an email when it’s ready (check Me here anytime).</p>
+                <p class="flash" role="status">Export requested. Processing runs on a schedule, so you should get an email within about a day when it’s ready—you can also open Me anytime to check.</p>
             <?php endif; ?>
             <?php if ($flashExportBusy): ?>
                 <p class="flash flash--error" role="alert">You already have an export in progress. Please wait until it finishes.</p>
@@ -333,7 +333,7 @@ require_once __DIR__ . '/header.php';
                 <h2 id="me-your-data-heading" class="me-section__heading">Your data</h2>
                 <p class="me-muted">
                     Request a ZIP of your notes, photos you uploaded, and activity we associate with your account.
-                    Export preparation can take a few minutes or longer on busy hosts—we’ll email you when it’s ready, and you can always check here while signed in.
+                    Exports are prepared when your site’s scheduled job runs (on many hosts that’s only a few times a day). Expect an email within about a day; you can always check here while signed in, too.
                 </p>
                 <?php if (!$exportsTableOk): ?>
                     <p class="me-muted">This feature isn’t available until your database is updated (run migrations).</p>
