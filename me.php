@@ -19,6 +19,8 @@ $flashPrefs = isset($_GET['saved']) && $_GET['saved'] === 'prefs';
 $flashExportRequested = isset($_GET['export_requested']) && $_GET['export_requested'] === '1';
 $flashExportBusy = isset($_GET['export_busy']) && $_GET['export_busy'] === '1';
 $flashExportErr = isset($_GET['export_err']) && $_GET['export_err'] === '1';
+$flashExportDeleted = isset($_GET['export_deleted']) && $_GET['export_deleted'] === '1';
+$flashExportDeleteErr = isset($_GET['export_delete_err']) && $_GET['export_delete_err'] === '1';
 $notifPrefs = user_notification_prefs_get($pdo, $userId);
 $deleteErr = isset($_GET['delete_err']) ? (string) $_GET['delete_err'] : '';
 $errorMessage = null;
@@ -76,6 +78,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         header('Location: ' . app_absolute_url('/me.php?export_requested=1'));
+        exit;
+    } elseif ($save === 'delete_export') {
+        if (!user_export_table_exists($pdo)) {
+            header('Location: ' . app_absolute_url('/me.php?export_err=1'));
+            exit;
+        }
+        $delId = isset($_POST['export_id']) ? (int) $_POST['export_id'] : 0;
+        $delRes = user_export_user_delete_ready($pdo, $userId, $delId);
+        if (!$delRes['ok']) {
+            header('Location: ' . app_absolute_url('/me.php?export_delete_err=1'));
+            exit;
+        }
+        header('Location: ' . app_absolute_url('/me.php?export_deleted=1'));
         exit;
     }
 }
@@ -167,6 +182,12 @@ require_once __DIR__ . '/header.php';
             <?php endif; ?>
             <?php if ($flashExportErr): ?>
                 <p class="flash flash--error" role="alert">That export request couldn’t be recorded. Try again, or ask your host whether data export is enabled.</p>
+            <?php endif; ?>
+            <?php if ($flashExportDeleted): ?>
+                <p class="flash" role="status">That export file was removed from the server.</p>
+            <?php endif; ?>
+            <?php if ($flashExportDeleteErr): ?>
+                <p class="flash flash--error" role="alert">That export couldn’t be removed. It may already be gone—refresh Me.</p>
             <?php endif; ?>
 
             <section class="me-section" aria-labelledby="me-profile-heading">
@@ -356,6 +377,9 @@ require_once __DIR__ . '/header.php';
                                 $reqRaw = (string) ($er['requested_at'] ?? '');
                                 $reqTs = strtotime($reqRaw);
                                 $reqLabel = $reqTs ? gmdate('Y-m-d H:i', $reqTs) . ' UTC' : $reqRaw;
+                                $delRaw = (string) ($er['deleted_at'] ?? '');
+                                $delTs = strtotime($delRaw);
+                                $delLabel = $delTs ? gmdate('Y-m-d H:i', $delTs) . ' UTC' : $delRaw;
                                 $errMsg = isset($er['error_message']) && is_string($er['error_message']) ? trim($er['error_message']) : '';
                                 $shortErr = $errMsg !== '' ? (mb_strlen($errMsg) > 160 ? mb_substr($errMsg, 0, 157) . '…' : $errMsg) : '';
                                 $statusLabel = match ($st) {
@@ -363,16 +387,34 @@ require_once __DIR__ . '/header.php';
                                     'running' => 'Running — preparing files',
                                     'ready' => 'Ready — download below',
                                     'failed' => 'Failed',
+                                    'deleted_by_user' => 'Deleted by user',
                                     default => $st,
                                 };
                                 ?>
                                 <li class="me-export-list__item">
                                     <div class="me-export-list__meta">
                                         <span class="me-export-list__status"><?= e($statusLabel) ?></span>
-                                        <span class="me-export-list__time">Requested <?= e($reqLabel) ?></span>
+                                        <?php if ($st === 'deleted_by_user' && $delLabel !== ''): ?>
+                                            <span class="me-export-list__time">Deleted <?= e($delLabel) ?></span>
+                                        <?php else: ?>
+                                            <span class="me-export-list__time">Requested <?= e($reqLabel) ?></span>
+                                        <?php endif; ?>
                                     </div>
                                     <?php if ($st === 'ready'): ?>
-                                        <a class="btn btn--primary me-export-list__download" href="<?= e(app_absolute_url('/me_export_download.php?export_id=' . $eid)) ?>">Download ZIP</a>
+                                        <div class="me-export-list__actions">
+                                            <a class="btn btn--primary me-export-list__download" href="<?= e(app_absolute_url('/me_export_download.php?export_id=' . $eid)) ?>">Download ZIP</a>
+                                            <form
+                                                class="me-export-list__delete-form"
+                                                method="post"
+                                                action="/me.php"
+                                                onsubmit="return confirm('Remove this export from the server? You can request a new export later.');"
+                                            >
+                                                <?php csrf_hidden_field(); ?>
+                                                <input type="hidden" name="save" value="delete_export">
+                                                <input type="hidden" name="export_id" value="<?= $eid ?>">
+                                                <button type="submit" class="btn btn--ghost me-export-list__delete">Delete export</button>
+                                            </form>
+                                        </div>
                                     <?php elseif ($st === 'failed' && $shortErr !== ''): ?>
                                         <p class="me-muted me-export-list__err"><?= e($shortErr) ?></p>
                                     <?php endif; ?>

@@ -2423,8 +2423,22 @@ body {
     color: var(--muted);
 }
 
-.me-export-list__download {
+.me-export-list__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
     margin-top: 0.45rem;
+}
+
+.me-export-list__delete-form {
+    margin: 0;
+    padding: 0;
+    display: inline;
+}
+
+.me-export-list__download {
+    margin-top: 0;
 }
 
 .me-export-list__err {

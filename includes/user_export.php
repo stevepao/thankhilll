@@ -190,7 +190,7 @@ function user_export_mark_failed(PDO $pdo, int $exportId, string $message): void
 function user_export_list_for_user(PDO $pdo, int $userId, int $limit = 12): array
 {
     $stmt = $pdo->prepare(
-        'SELECT id, status, requested_at, started_at, completed_at, file_size, error_message
+        'SELECT id, status, requested_at, started_at, completed_at, deleted_at, file_size, error_message
          FROM user_data_exports
          WHERE user_id = ?
          ORDER BY id DESC
@@ -200,6 +200,62 @@ function user_export_list_for_user(PDO $pdo, int $userId, int $limit = 12): arra
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     return is_array($rows) ? $rows : [];
+}
+
+/**
+ * Remove a ready export ZIP from disk and mark the row deleted_by_user (audit retention).
+ *
+ * @return array{ok: true}|array{ok: false, error: string}
+ */
+function user_export_user_delete_ready(PDO $pdo, int $userId, int $exportId): array
+{
+    if ($exportId <= 0 || $userId <= 0) {
+        return ['ok' => false, 'error' => 'invalid'];
+    }
+
+    $pdo->beginTransaction();
+
+    try {
+        $stmt = $pdo->prepare(
+            'SELECT id, file_path FROM user_data_exports
+             WHERE id = ? AND user_id = ? AND status = ?
+             LIMIT 1 FOR UPDATE'
+        );
+        $stmt->execute([$exportId, $userId, 'ready']);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!is_array($row)) {
+            $pdo->rollBack();
+
+            return ['ok' => false, 'error' => 'not_found'];
+        }
+
+        $path = isset($row['file_path']) && is_string($row['file_path']) ? $row['file_path'] : null;
+        if ($path !== null && $path !== '') {
+            user_export_delete_relative_file($path);
+        }
+
+        $upd = $pdo->prepare(
+            'UPDATE user_data_exports
+             SET status = ?, deleted_at = UTC_TIMESTAMP(), file_path = NULL, file_size = NULL
+             WHERE id = ? AND user_id = ? AND status = ?'
+        );
+        $upd->execute(['deleted_by_user', $exportId, $userId, 'ready']);
+        if ($upd->rowCount() === 0) {
+            $pdo->rollBack();
+
+            return ['ok' => false, 'error' => 'conflict'];
+        }
+
+        $pdo->commit();
+
+        return ['ok' => true];
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+
+        throw $e;
+    }
 }
 
 function user_export_delete_row_and_file(PDO $pdo, int $exportId, ?string $relativePath): void
