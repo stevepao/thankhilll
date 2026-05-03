@@ -131,6 +131,38 @@ function user_datetime_immutable_utc(string $mysqlDatetime): ?DateTimeImmutable
     }
 }
 
+/**
+ * Human-readable label for a MySQL DATETIME stored in UTC (e.g. export timestamps).
+ * Avoid strtotime() alone — it assumes the server default zone, not UTC.
+ */
+function user_mysql_utc_label(?string $mysqlDatetime): string
+{
+    $mysqlDatetime = trim((string) $mysqlDatetime);
+    if ($mysqlDatetime === '') {
+        return '';
+    }
+    $dt = user_datetime_immutable_utc($mysqlDatetime);
+
+    return $dt === null ? $mysqlDatetime : $dt->format('Y-m-d H:i') . ' UTC';
+}
+
+/**
+ * Format MySQL DATE ('Y-m-d') for display without tying it to the server's default timezone.
+ */
+function user_mysql_date_only_label(?string $mysqlDate): string
+{
+    $mysqlDate = trim((string) $mysqlDate);
+    if ($mysqlDate === '') {
+        return '';
+    }
+    $dt = DateTimeImmutable::createFromFormat('Y-m-d', $mysqlDate, new DateTimeZone('UTC'));
+    if ($dt === false) {
+        return $mysqlDate;
+    }
+
+    return $dt->format('M j, Y');
+}
+
 function datetime_attr_utc_mysql(string $mysqlUtc): string
 {
     $dt = user_datetime_immutable_utc($mysqlUtc);

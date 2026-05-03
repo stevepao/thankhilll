@@ -6,6 +6,8 @@
  */
 declare(strict_types=1);
 
+require_once __DIR__ . '/user_timezone.php';
+
 const EMAIL_OTP_VALID_SECONDS = 600;
 const EMAIL_OTP_RESEND_SECONDS = 60;
 /** Failed verify tries allowed before row is no longer accepted (then SELECT skips it). */
@@ -33,13 +35,12 @@ function email_otp_repo_is_throttled(?array $latestRow): bool
         return false;
     }
 
-    $ts = strtotime((string) $latestRow['last_sent_at']);
-
-    if ($ts === false) {
+    $sent = user_datetime_immutable_utc((string) $latestRow['last_sent_at']);
+    if ($sent === null) {
         return false;
     }
 
-    return (time() - $ts) < EMAIL_OTP_RESEND_SECONDS;
+    return (time() - $sent->getTimestamp()) < EMAIL_OTP_RESEND_SECONDS;
 }
 
 /** Marks prior unconsumed codes for this email invalid so only the newest challenge works. */

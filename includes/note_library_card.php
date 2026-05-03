@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/escape.php';
 require_once __DIR__ . '/note_reading_thoughts.php';
+require_once __DIR__ . '/user_timezone.php';
 
 /**
  * @param array{id:int,entry_date:string,user_id:int,author_name?:string,shared_group_names?:string|null} $noteRow
@@ -36,8 +37,7 @@ function note_library_card_render(
         $authorLabel = 'Someone';
     }
     $groupsLabel = trim((string) ($noteRow['shared_group_names'] ?? ''));
-    $ts = strtotime((string) $noteRow['entry_date']);
-    $dateLabel = $ts ? date('M j, Y', $ts) : '';
+    $dateLabel = user_mysql_date_only_label(isset($noteRow['entry_date']) ? (string) $noteRow['entry_date'] : null);
     $tw = $notesTailwindUi;
     $cardLi = $tw
         ? 'notes-library__card tn-th-item tn-space-y-3'

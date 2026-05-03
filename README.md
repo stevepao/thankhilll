@@ -49,6 +49,10 @@ This README reflects the product **as of early development / alpha**. Features a
 - **PHP** 8.0+ (8.2+ recommended if you use Web Push libraries as configured in this repo), **PDO MySQL**, **Composer**
 - **MySQL** (MariaDB-compatible setups often work; production examples include IONOS MySQL)
 
+### Developer docs
+
+Best-practice notes grounded in this repo (ownership/export ZIP, privacy and sharing, HTTP cron workers, data glossary, non-goals, security audits): start at **`docs/README.md`**.
+
 ### Setup
 
 1. **Dependencies**
@@ -83,6 +87,8 @@ This README reflects the product **as of early development / alpha**. Features a
    ```bash
    php bin/migrate.php
    ```
+
+   **Conventions** — Full index: **`docs/README.md`**. **Timezones:** **`DATETIME`** is UTC after **`db.php`** session setup; helpers in **`includes/user_timezone.php`**; checklist in **`docs/TIMEZONE.md`** (**`docs/TIMEZONE_AUDIT.md`** points there). **Security:** **`docs/SECURITY.md`** and **`docs/SECURITY_AUDIT.md`**.
 
 4. **Local server**
 
@@ -121,6 +127,7 @@ There are **no** other rewrite rules in this file (no mapped **`public/`**, **`i
 | `mcp/v1.php` | MCP JSON-RPC endpoint (**canonical URL** `/mcp/v1.php`); Bearer auth |
 | `includes/` | Shared libraries (sessions, auth refresh tokens, push, mailer, MCP token helpers for internal routes, …) |
 | `migrations/` | SQL migrations applied by `bin/migrate.php` |
+| `docs/` | **`README.md`** (index): timezone, security, export, privacy, jobs, glossary, non-goals |
 
 ---
 

@@ -8,6 +8,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/app_url.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/user_export.php';
+require_once __DIR__ . '/includes/user_timezone.php';
 require_once __DIR__ . '/includes/user_preferences.php';
 require_once __DIR__ . '/includes/user_notification_prefs_repository.php';
 
@@ -147,8 +148,12 @@ foreach ($providers as $p) {
     }
 }
 
-$createdTs = strtotime((string) $userRow['created_at']);
-$accountSince = $createdTs ? date('M j, Y', $createdTs) : '';
+$createdDt = user_datetime_immutable_utc((string) $userRow['created_at']);
+$accountSince = '';
+if ($createdDt !== null) {
+    $viewerZ = new DateTimeZone(user_timezone_get($pdo, $userId));
+    $accountSince = $createdDt->setTimezone($viewerZ)->format('M j, Y');
+}
 
 $pageTitle = 'Me';
 $currentNav = 'me';
@@ -374,12 +379,8 @@ require_once __DIR__ . '/header.php';
                                 }
                                 $eid = (int) ($er['id'] ?? 0);
                                 $st = (string) ($er['status'] ?? '');
-                                $reqRaw = (string) ($er['requested_at'] ?? '');
-                                $reqTs = strtotime($reqRaw);
-                                $reqLabel = $reqTs ? gmdate('Y-m-d H:i', $reqTs) . ' UTC' : $reqRaw;
-                                $delRaw = (string) ($er['deleted_at'] ?? '');
-                                $delTs = strtotime($delRaw);
-                                $delLabel = $delTs ? gmdate('Y-m-d H:i', $delTs) . ' UTC' : $delRaw;
+                                $reqLabel = user_mysql_utc_label(isset($er['requested_at']) ? (string) $er['requested_at'] : null);
+                                $delLabel = user_mysql_utc_label(isset($er['deleted_at']) ? (string) $er['deleted_at'] : null);
                                 $errMsg = isset($er['error_message']) && is_string($er['error_message']) ? trim($er['error_message']) : '';
                                 $shortErr = $errMsg !== '' ? (mb_strlen($errMsg) > 160 ? mb_substr($errMsg, 0, 157) . '…' : $errMsg) : '';
                                 $statusLabel = match ($st) {

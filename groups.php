@@ -7,9 +7,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/includes/csrf.php';
 require_once __DIR__ . '/includes/group_helpers.php';
+require_once __DIR__ . '/includes/user_timezone.php';
 
 $userId = require_login();
 $pdo = db();
+$inviteExpiryTz = new DateTimeZone(user_timezone_get($pdo, $userId));
 $pendingInvites = group_invitations_pending_for_user($pdo, $userId);
 $groups = groups_for_user_with_counts($pdo, $userId);
 $ownerInviteRequestCounts = group_invite_requests_pending_counts_for_owner_groups($pdo, $userId);
@@ -48,8 +50,8 @@ require_once __DIR__ . '/header.php';
                     <ul class="group-invites-pending__list tn-th-stack">
                         <?php foreach ($pendingInvites as $inv): ?>
                             <?php
-                            $expTs = strtotime((string) $inv['expires_at']);
-                            $expLabel = $expTs ? date('M j, Y', $expTs) : '';
+                            $expDt = user_datetime_immutable_utc((string) $inv['expires_at']);
+                            $expLabel = $expDt !== null ? $expDt->setTimezone($inviteExpiryTz)->format('M j, Y') : '';
                             ?>
                             <li class="group-invites-pending__card">
                                 <div class="group-invites-pending__body">

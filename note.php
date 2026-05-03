@@ -72,8 +72,7 @@ if ($authorLabel === '') {
     $authorLabel = 'Someone';
 }
 
-$ts = strtotime((string) $note['entry_date']);
-$dateLabel = $ts ? date('M j, Y', $ts) : '';
+$dateLabel = user_mysql_date_only_label(isset($note['entry_date']) ? (string) $note['entry_date'] : null);
 
 $pageTitle = 'Note';
 $currentNav = 'notes';
