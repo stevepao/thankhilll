@@ -383,14 +383,28 @@ body {
 }
 
 .today-note-update-form {
-    margin-top: 0.65rem;
+    margin-top: 0.45rem;
 }
 
-/* Inline with today’s photos — auxiliary attach, not part of the continuation composer */
+/* Photos + attach read as one media band for this entry */
+.today-media-strip {
+    margin-top: 0.85rem;
+}
+
+.today-media-strip .today-daily-card__gallery {
+    margin-top: 0;
+}
+
 .today-entry-attachments {
-    margin-top: 0.75rem;
-    padding-top: 0.6rem;
-    border-top: 1px solid rgba(148, 163, 184, 0.22);
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.today-media-strip--has-photos .today-entry-attachments {
+    margin-top: 0.45rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.16);
 }
 
 .today-entry-attachments__hint {
@@ -448,93 +462,54 @@ body {
     display: block;
 }
 
-/* Hero continuation — primary place to keep writing */
-.today-continue-surface {
-    margin-top: 1.15rem;
-    padding: 1.15rem 1.05rem 1.2rem;
-    border-radius: 0.85rem;
-    background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.96) 0%,
-        rgba(249, 252, 250, 0.99) 55%,
-        rgba(245, 250, 247, 1) 100%
-    );
-    box-shadow:
-        0 3px 14px rgba(15, 23, 42, 0.06),
-        0 0 0 1px rgba(45, 106, 79, 0.09);
-}
-
-.today-continue-hero-title {
-    display: block;
-    margin: 0 0 0.65rem;
-    font-size: 1.08rem;
-    font-weight: 600;
-    letter-spacing: -0.018em;
-    line-height: 1.28;
-    color: var(--text);
-    cursor: text;
+/* Writing continues inside the same card — one surface, not a nested panel */
+.today-continue-compose {
+    margin-top: 0;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding: 1rem 1rem 1rem;
+    border-top: 1px solid rgba(45, 106, 79, 0.07);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(244, 249, 246, 0.92) 100%);
 }
 
 .today-continue-submit {
     appearance: none;
-    margin-top: 0.65rem;
+    margin-top: 0.45rem;
     align-self: flex-start;
-    padding: 0.45rem 0.95rem;
+    padding: 0.2rem 0;
     font-family: inherit;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 500;
     letter-spacing: 0.01em;
-    color: rgb(100 116 139 / 0.96);
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 0.55rem;
+    color: rgb(100 116 139 / 0.82);
+    background: none;
+    border: none;
+    border-radius: 0;
     cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.18em;
     transition:
-        color 0.2s ease,
-        background-color 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        opacity 0.2s ease;
+        color 0.18s ease,
+        text-decoration-color 0.18s ease;
 }
 
 .today-continue-submit:hover {
-    color: var(--text);
-    background: rgba(241, 245, 249, 0.75);
-    border-color: rgba(148, 163, 184, 0.35);
+    color: var(--accent);
+    text-decoration-color: rgba(45, 106, 79, 0.42);
 }
 
 .today-continue-submit:focus-visible {
     outline: none;
-    border-color: rgba(45, 106, 79, 0.45);
-    box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.18);
-}
-
-.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit {
-    color: #fff;
-    background: var(--accent);
-    border-color: transparent;
-    box-shadow: 0 1px 3px rgba(45, 106, 79, 0.22);
-}
-
-.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit:hover {
-    opacity: 0.94;
-    filter: brightness(1.03);
-}
-
-.today-add-thought__form:has(#add-thought-body:not(:placeholder-shown)) .today-continue-submit:focus-visible {
-    box-shadow:
-        0 0 0 3px rgba(45, 106, 79, 0.28),
-        0 1px 3px rgba(45, 106, 79, 0.22);
+    color: var(--accent);
+    text-decoration-color: rgba(45, 106, 79, 0.55);
+    box-shadow: 0 2px 0 0 rgba(45, 106, 79, 0.35);
 }
 
 .today-invite-wrap {
     position: relative;
     width: 100%;
     margin: 0 0 0.5rem;
-}
-
-.today-invite-wrap--hero {
-    margin-bottom: 0.4rem;
 }
 
 .today-invite-wrap__glyph {
@@ -596,27 +571,40 @@ body {
         0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
-.today-invite-textarea--hero {
-    min-height: 6.75rem;
-    padding-top: 0.85rem;
-    padding-bottom: 0.85rem;
+.today-invite-textarea--continue {
+    min-height: 7rem;
+    padding: 0.55rem 0.12rem 0.75rem;
     font-size: 1.085rem;
-    line-height: 1.58;
-    border-radius: 0.75rem;
-    background-color: rgba(255, 255, 255, 0.82);
-    border-color: rgba(148, 163, 184, 0.35);
+    line-height: 1.62;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
 }
 
-.today-invite-textarea--hero:focus {
-    background-color: #fff;
+.today-invite-textarea--continue:hover {
+    border-color: transparent;
+}
+
+.today-invite-textarea--continue:focus {
+    outline: none;
+    border-color: transparent;
+    background: rgba(255, 255, 255, 0.62);
+    border-radius: 0.5rem;
+    box-shadow: inset 0 0 0 1px rgba(45, 106, 79, 0.14);
+}
+
+.today-invite-textarea--continue::placeholder {
+    font-size: 1.18rem;
+    font-weight: 650;
+    letter-spacing: -0.022em;
+    line-height: 1.45;
+    color: var(--text);
+    opacity: 0.34;
 }
 
 .today-invite-wrap:focus-within .today-invite-wrap__glyph {
     opacity: 0.58;
-}
-
-.today-invite-wrap--hero:focus-within .today-invite-wrap__glyph {
-    opacity: 0.62;
 }
 
 .today-micro-confirm {
@@ -865,10 +853,6 @@ body {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-}
-
-.today-add-thought__form .today-invite-wrap {
-    margin-bottom: 0.35rem;
 }
 
 .today-yours-meta {

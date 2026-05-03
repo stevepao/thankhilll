@@ -812,7 +812,7 @@ require_once __DIR__ . '/header.php';
                                 || $errorContext === 'note_meta';
                             ?>
                             <article class="today-daily-card today-daily-card--reflection" aria-labelledby="today-daily-card-label">
-                                <p id="today-daily-card-label" class="today-daily-card__label">Today’s reflection</p>
+                                <p id="today-daily-card-label" class="visually-hidden">Today’s reflection</p>
 
                                 <div class="today-daily-card__content">
                                     <ul class="today-thought-stream" aria-label="Today’s gratitude moments">
@@ -891,122 +891,117 @@ require_once __DIR__ . '/header.php';
                                     <?php endforeach; ?>
                                     </ul>
 
-                                    <?php if (!empty($todayPhotos[$todayPrimaryId])): ?>
-                                        <div class="today-daily-card__gallery" role="group" aria-label="Photos for today">
-                                            <ul class="today-note-photos today-note-photos--daily">
-                                                <?php foreach ($todayPhotos[$todayPrimaryId] as $ph): ?>
-                                                    <li class="today-note-photos__item">
-                                                        <button
-                                                            type="button"
-                                                            class="photo-lightbox-trigger"
-                                                            aria-haspopup="dialog"
-                                                            aria-label="View photo larger"
-                                                        >
-                                                            <img
-                                                                src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
-                                                                alt=""
-                                                                class="today-note-photos__img"
-                                                                loading="lazy"
-                                                                width="<?= (int) $ph['width'] ?>"
-                                                                height="<?= (int) $ph['height'] ?>"
+                                    <?php $todayHasPhotosStrip = !empty($todayPhotos[$todayPrimaryId]); ?>
+                                    <div class="today-media-strip<?= $todayHasPhotosStrip ? ' today-media-strip--has-photos' : '' ?>" aria-label="Today’s photos and attachments">
+                                        <?php if ($todayHasPhotosStrip): ?>
+                                            <div class="today-daily-card__gallery" role="group" aria-label="Photos for today">
+                                                <ul class="today-note-photos today-note-photos--daily">
+                                                    <?php foreach ($todayPhotos[$todayPrimaryId] as $ph): ?>
+                                                        <li class="today-note-photos__item">
+                                                            <button
+                                                                type="button"
+                                                                class="photo-lightbox-trigger"
+                                                                aria-haspopup="dialog"
+                                                                aria-label="View photo larger"
                                                             >
-                                                        </button>
-                                                    </li>
-                                                <?php endforeach; ?>
-                                            </ul>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <div class="today-entry-attachments" aria-label="Attachments for today">
-                                        <?php if ($editMaxNewUploads > 0): ?>
-                                            <button
-                                                type="button"
-                                                class="today-attach-photo__btn"
-                                                id="today-edit-photo-trigger"
-                                                aria-describedby="today-quick-photo-help today-edit-photo-status"
-                                            >
-                                                <span class="today-attach-photo__icon" aria-hidden="true">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
-                                                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                                                        <circle cx="12" cy="13" r="4"/>
-                                                    </svg>
-                                                </span>
-                                                <span>Add a photo</span>
-                                            </button>
-                                            <p id="today-quick-photo-help" class="today-helper today-entry-attachments__hint">JPEG or PNG · resized before upload</p>
-                                            <input
-                                                type="file"
-                                                id="today-edit-photo-picker"
-                                                form="today-edit-form"
-                                                class="visually-hidden"
-                                                multiple
-                                                accept="image/jpeg,image/png"
-                                                aria-describedby="today-quick-photo-help today-edit-photo-status"
-                                                tabindex="-1"
-                                            >
-                                            <input
-                                                type="file"
-                                                name="photos_edit[]"
-                                                id="today-edit-photos-staged"
-                                                form="today-edit-form"
-                                                class="visually-hidden"
-                                                multiple
-                                                accept="image/jpeg,image/png"
-                                                tabindex="-1"
-                                                aria-hidden="true"
-                                            >
-                                            <p id="today-edit-photo-status" class="today-photo-status today-entry-attachments__status" aria-live="polite"></p>
-                                            <p id="today-edit-photo-error" class="flash flash--error today-photo-error" role="alert" hidden></p>
-                                        <?php else: ?>
-                                            <p class="today-entry-attachments__cap today-helper">Photo limit reached — remove one under <strong>Sharing &amp; photos</strong> (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
+                                                                <img
+                                                                    src="/media/note_photo.php?id=<?= (int) $ph['id'] ?>"
+                                                                    alt=""
+                                                                    class="today-note-photos__img"
+                                                                    loading="lazy"
+                                                                    width="<?= (int) $ph['width'] ?>"
+                                                                    height="<?= (int) $ph['height'] ?>"
+                                                                >
+                                                            </button>
+                                                        </li>
+                                                    <?php endforeach; ?>
+                                                </ul>
+                                            </div>
                                         <?php endif; ?>
-                                    </div>
-                                </div>
 
-                                <section class="today-continue-surface" aria-labelledby="today-continue-heading">
-                                    <?php if ($thoughtAddedFlash): ?>
-                                        <p class="today-micro-confirm" role="status">Moment saved.</p>
-                                    <?php endif; ?>
-                                    <?php if ($errorContext === 'add_thought' && $validationError !== null): ?>
-                                        <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
-                                    <?php endif; ?>
-                                    <form class="note-form note-form--compact today-add-thought__form" method="post" action="/index.php">
-                                        <?php csrf_hidden_field(); ?>
-                                        <input type="hidden" name="today_action" value="add_thought">
-                                        <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
-                                        <label class="today-continue-hero-title" for="add-thought-body" id="today-continue-heading">Add another moment</label>
-                                        <div class="today-invite-wrap today-invite-wrap--hero">
-                                            <span class="today-invite-wrap__glyph" aria-hidden="true">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
-                                                    <path d="M12 20h9"/>
-                                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                                                </svg>
-                                            </span>
+                                        <div class="today-entry-attachments">
+                                            <?php if ($editMaxNewUploads > 0): ?>
+                                                <button
+                                                    type="button"
+                                                    class="today-attach-photo__btn"
+                                                    id="today-edit-photo-trigger"
+                                                    aria-describedby="today-quick-photo-help today-edit-photo-status"
+                                                >
+                                                    <span class="today-attach-photo__icon" aria-hidden="true">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                                                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                                            <circle cx="12" cy="13" r="4"/>
+                                                        </svg>
+                                                    </span>
+                                                    <span>Add a photo</span>
+                                                </button>
+                                                <p id="today-quick-photo-help" class="today-helper today-entry-attachments__hint">JPEG or PNG · resized before upload</p>
+                                                <input
+                                                    type="file"
+                                                    id="today-edit-photo-picker"
+                                                    form="today-edit-form"
+                                                    class="visually-hidden"
+                                                    multiple
+                                                    accept="image/jpeg,image/png"
+                                                    aria-describedby="today-quick-photo-help today-edit-photo-status"
+                                                    tabindex="-1"
+                                                >
+                                                <input
+                                                    type="file"
+                                                    name="photos_edit[]"
+                                                    id="today-edit-photos-staged"
+                                                    form="today-edit-form"
+                                                    class="visually-hidden"
+                                                    multiple
+                                                    accept="image/jpeg,image/png"
+                                                    tabindex="-1"
+                                                    aria-hidden="true"
+                                                >
+                                                <p id="today-edit-photo-status" class="today-photo-status today-entry-attachments__status" aria-live="polite"></p>
+                                                <p id="today-edit-photo-error" class="flash flash--error today-photo-error" role="alert" hidden></p>
+                                            <?php else: ?>
+                                                <p class="today-entry-attachments__cap today-helper">Photo limit reached — remove one under <strong>Sharing &amp; photos</strong> (limit <?= (int) NOTE_MEDIA_MAX_FILES_PER_UPLOAD ?> per note).</p>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+
+                                    <div class="today-continue-compose" role="region" aria-label="Continue writing">
+                                        <?php if ($thoughtAddedFlash): ?>
+                                            <p class="today-micro-confirm" role="status">Moment saved.</p>
+                                        <?php endif; ?>
+                                        <?php if ($errorContext === 'add_thought' && $validationError !== null): ?>
+                                            <p class="flash flash--error" role="alert"><?= e((string) $validationError) ?></p>
+                                        <?php endif; ?>
+                                        <form class="note-form note-form--compact today-add-thought__form" method="post" action="/index.php">
+                                            <?php csrf_hidden_field(); ?>
+                                            <input type="hidden" name="today_action" value="add_thought">
+                                            <input type="hidden" name="note_id" value="<?= $todayPrimaryId ?>">
+                                            <label class="visually-hidden" for="add-thought-body">Continue today’s reflection</label>
                                             <textarea
                                                 id="add-thought-body"
                                                 name="thought_body"
-                                                class="today-invite-textarea today-invite-textarea--hero"
-                                                rows="4"
+                                                class="today-invite-textarea today-invite-textarea--continue"
+                                                rows="5"
                                                 placeholder="Keep writing…"
                                             ><?= e($addThoughtBodyValue) ?></textarea>
-                                        </div>
-                                        <div class="today-privacy-row">
-                                            <label class="share-check today-thought-private-check">
-                                                <input
-                                                    type="checkbox"
-                                                    name="thought_is_private"
-                                                    value="1"
-                                                    <?= $addThoughtPrivateSticky ? 'checked' : '' ?>
-                                                >
-                                                <span>Just for me</span>
-                                            </label>
-                                            <p class="today-helper today-privacy-default">By default, nothing extra happens — new moments follow how you’ve shared today’s entry (see Sharing &amp; photos).</p>
-                                            <p class="today-helper today-helper--privacy-note">This moment won’t go to your groups.</p>
-                                            <p class="today-privacy-reassurance">Only you’ll see this moment.</p>
-                                        </div>
-                                        <button type="submit" class="today-continue-submit">Add to today</button>
-                                    </form>
-                                </section>
+                                            <div class="today-privacy-row">
+                                                <label class="share-check today-thought-private-check">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="thought_is_private"
+                                                        value="1"
+                                                        <?= $addThoughtPrivateSticky ? 'checked' : '' ?>
+                                                    >
+                                                    <span>Just for me</span>
+                                                </label>
+                                                <p class="today-helper today-privacy-default">By default, nothing extra happens — new moments follow how you’ve shared today’s entry (see Sharing &amp; photos).</p>
+                                                <p class="today-helper today-helper--privacy-note">This moment won’t go to your groups.</p>
+                                                <p class="today-privacy-reassurance">Only you’ll see this moment.</p>
+                                            </div>
+                                            <button type="submit" class="today-continue-submit">Add to today</button>
+                                        </form>
+                                    </div>
+                                </div>
 
                                 <form id="today-edit-form" class="today-note-update-form note-form note-form--compact" method="post" action="/index.php" enctype="multipart/form-data">
                                     <?php csrf_hidden_field(); ?>
