@@ -110,6 +110,9 @@
                 return;
             }
             pickerMount.hidden = true;
+            if (pickerHost) {
+                pickerHost.style.maxHeight = '';
+            }
             activeThoughtId = 0;
             activeContainer = null;
         }
@@ -122,12 +125,90 @@
             activeThoughtId = thoughtId;
             activeContainer = anchorEl.closest('[data-thought-reactions]');
 
-            const rect = anchorEl.getBoundingClientRect();
-            const top = rect.bottom + 6;
-            const left = rect.left;
-            pickerMount.style.top = `${top}px`;
-            pickerMount.style.left = `${left}px`;
+            const gap = 6;
+            const pad = 8;
+
+            function layoutPicker() {
+                const rect = anchorEl.getBoundingClientRect();
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                if (pickerHost) {
+                    pickerHost.style.maxHeight = '';
+                }
+
+                const pr = pickerMount.getBoundingClientRect();
+                const h = pr.height;
+                const w = pr.width;
+
+                const spaceBelow = vh - pad - rect.bottom - gap;
+                const spaceAbove = rect.top - gap - pad;
+
+                let top;
+                if (h <= spaceBelow) {
+                    top = rect.bottom + gap;
+                } else if (h <= spaceAbove) {
+                    top = rect.top - h - gap;
+                } else {
+                    const preferBelow = spaceBelow >= spaceAbove;
+                    const cap = preferBelow ? spaceBelow : spaceAbove;
+                    if (pickerHost) {
+                        pickerHost.style.maxHeight = `${Math.max(0, cap)}px`;
+                    }
+                    const h2 = pickerMount.getBoundingClientRect().height;
+                    if (preferBelow) {
+                        top = rect.bottom + gap;
+                    } else {
+                        top = rect.top - h2 - gap;
+                    }
+                }
+
+                let left = rect.left;
+                if (left + w > vw - pad) {
+                    left = Math.max(pad, vw - pad - w);
+                }
+                if (left < pad) {
+                    left = pad;
+                }
+
+                pickerMount.style.top = `${top}px`;
+                pickerMount.style.left = `${left}px`;
+
+                const pr2 = pickerMount.getBoundingClientRect();
+                let adjTop = top;
+                if (pr2.bottom > vh - pad) {
+                    adjTop -= pr2.bottom - (vh - pad);
+                }
+                if (pr2.top < pad) {
+                    adjTop += pad - pr2.top;
+                }
+                if (adjTop !== top) {
+                    pickerMount.style.top = `${adjTop}px`;
+                }
+
+                const pr3 = pickerMount.getBoundingClientRect();
+                let adjLeft = left;
+                if (pr3.right > vw - pad) {
+                    adjLeft -= pr3.right - (vw - pad);
+                }
+                if (pr3.left < pad) {
+                    adjLeft += pad - pr3.left;
+                }
+                if (adjLeft !== left) {
+                    pickerMount.style.left = `${adjLeft}px`;
+                }
+            }
+
+            const rect0 = anchorEl.getBoundingClientRect();
+            pickerMount.style.top = `${rect0.bottom + gap}px`;
+            pickerMount.style.left = `${rect0.left}px`;
+            if (pickerHost) {
+                pickerHost.style.maxHeight = '';
+            }
             pickerMount.hidden = false;
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(layoutPicker);
+            });
         }
 
         function sendToggle(thoughtId, emoji) {
