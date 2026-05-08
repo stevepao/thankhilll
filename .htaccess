@@ -5,6 +5,9 @@
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    # Block direct access to dotfiles like .env, .git, etc.
+    # Keep /.well-known/ reachable for ACME and similar standards.
+    RewriteRule "(^|/)\.(?!well-known/)" - [F]
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
     RewriteRule ^mcp/v1/?$ mcp/v1.php [L,QSA]
