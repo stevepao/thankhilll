@@ -15,6 +15,8 @@
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    # Block direct web access to Composer dependencies.
+    RewriteRule ^vendor(?:/|$) - [F,L]
     # Block direct access to dotfiles like .env, .git, etc.
     # Keep /.well-known/ reachable for ACME and similar standards.
     RewriteRule "(^|/)\.(?!well-known/)" - [F]
