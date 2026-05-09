@@ -141,6 +141,9 @@ if ($rpcMethod === 'notifications/initialized') {
 th_mcp_assert_streamable_session($id, $mcpUserId);
 
 switch ($rpcMethod) {
+    case 'ping':
+        th_mcp_jsonrpc_success($id, new stdClass());
+
     case 'tools/list':
         th_mcp_jsonrpc_success($id, [
             'tools' => [
@@ -296,7 +299,7 @@ function th_mcp_respond_401(): void
  * @param string|int|float|null $id
  * @return never
  */
-function th_mcp_jsonrpc_success(string|int|float|null $id, array $result, ?string $mcpSessionId = null): void
+function th_mcp_jsonrpc_success(string|int|float|null $id, array|stdClass $result, ?string $mcpSessionId = null): void
 {
     if ($mcpSessionId !== null && $mcpSessionId !== '') {
         header('Mcp-Session-Id: ' . $mcpSessionId);
