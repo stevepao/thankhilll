@@ -127,8 +127,6 @@ if ($rpcMethod === 'initialize') {
         ],
         'capabilities' => [
             'tools' => ['listChanged' => false],
-            'resources' => new stdClass(),
-            'prompts' => new stdClass(),
         ],
     ], $sessionId);
 }
