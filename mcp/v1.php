@@ -2,6 +2,9 @@
 /**
  * MCP v1 — minimal JSON-RPC (JSON-RPC 2.0) + Bearer token auth.
  *
+ * Streamable HTTP transport: session via Mcp-Session-Id (initialize issues ID; subsequent POSTs
+ * validate; DELETE clears session). See MCP Streamable HTTP spec / gateway compatibility (e.g. Peta).
+ *
  * Canonical URL path: /mcp/v1.php (avoid extensionless /mcp/v1 on shared hosting).
  */
 declare(strict_types=1);
@@ -10,6 +13,12 @@ declare(strict_types=1);
 date_default_timezone_set('UTC');
 
 const TH_MCP_JSONRPC = '2.0';
+
+/** Session TTL (seconds). Sliding window refreshed on each validated request. */
+const TH_MCP_SESSION_TTL_SEC = 86400;
+
+/** APCu key prefix for MCP HTTP sessions (optional accelerator; files always written too). */
+const TH_MCP_SESSION_APCU_PREFIX = 'th_mcp_sess:';
 
 /** Flags for JSON-RPC bodies: never drop output due to invalid UTF-8 in nested tool text. */
 const TH_MCP_JSON_ENCODE = JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE;
@@ -43,8 +52,23 @@ if ($httpMethod === 'GET') {
     exit;
 }
 
+if ($httpMethod === 'DELETE') {
+    $sid = th_mcp_session_id_from_request();
+    if ($sid === '') {
+        th_mcp_session_not_found_response(null);
+    }
+    $storedUid = th_mcp_session_get($sid);
+    if ($storedUid === null || $storedUid !== $mcpUserId) {
+        th_mcp_session_not_found_response(null);
+    }
+    th_mcp_session_delete($sid);
+    header('Cache-Control: no-store');
+    http_response_code(200);
+    exit;
+}
+
 if ($httpMethod !== 'POST') {
-    header('Allow: GET, POST');
+    header('Allow: GET, POST, DELETE');
     header('Content-Type: application/json; charset=UTF-8');
     header('Cache-Control: no-store');
     http_response_code(405);
@@ -92,27 +116,33 @@ if ($idPresent && $id !== null && !is_string($id) && !is_int($id) && !is_float($
     th_mcp_jsonrpc_error_response(null, -32600, 'Invalid Request');
 }
 
+if ($rpcMethod === 'initialize') {
+    $sessionId = th_mcp_generate_uuid_v4();
+    th_mcp_session_put($sessionId, $mcpUserId);
+    th_mcp_jsonrpc_success($id, [
+        'protocolVersion' => '2025-03-26',
+        'serverInfo' => [
+            'name' => 'thankhill-mcp',
+            'version' => 'v1',
+        ],
+        'capabilities' => [
+            'tools' => ['listChanged' => false],
+            'resources' => new stdClass(),
+            'prompts' => new stdClass(),
+        ],
+    ], $sessionId);
+}
+
 if ($rpcMethod === 'notifications/initialized') {
+    th_mcp_assert_streamable_session($id, $mcpUserId);
     header('Cache-Control: no-store');
-    http_response_code(204);
+    http_response_code(202);
     exit;
 }
 
-switch ($rpcMethod) {
-    case 'initialize':
-        th_mcp_jsonrpc_success($id, [
-            'protocolVersion' => '2025-03-26',
-            'serverInfo' => [
-                'name' => 'thankhill-mcp',
-                'version' => 'v1',
-            ],
-            'capabilities' => [
-                'tools' => ['listChanged' => false],
-                'resources' => new stdClass(),
-                'prompts' => new stdClass(),
-            ],
-        ]);
+th_mcp_assert_streamable_session($id, $mcpUserId);
 
+switch ($rpcMethod) {
     case 'tools/list':
         th_mcp_jsonrpc_success($id, [
             'tools' => [
@@ -268,8 +298,11 @@ function th_mcp_respond_401(): void
  * @param string|int|float|null $id
  * @return never
  */
-function th_mcp_jsonrpc_success(string|int|float|null $id, array $result): void
+function th_mcp_jsonrpc_success(string|int|float|null $id, array $result, ?string $mcpSessionId = null): void
 {
+    if ($mcpSessionId !== null && $mcpSessionId !== '') {
+        header('Mcp-Session-Id: ' . $mcpSessionId);
+    }
     header('Content-Type: application/json; charset=UTF-8');
     header('Cache-Control: no-store');
     http_response_code(200);
@@ -612,6 +645,175 @@ function th_mcp_pdo_from_env(string $projectRoot): PDO
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
+}
+
+function th_mcp_generate_uuid_v4(): string
+{
+    $bytes = random_bytes(16);
+    $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+    $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+    $hex = bin2hex($bytes);
+
+    return substr($hex, 0, 8)
+        . '-' . substr($hex, 8, 4)
+        . '-' . substr($hex, 12, 4)
+        . '-' . substr($hex, 16, 4)
+        . '-' . substr($hex, 20, 12);
+}
+
+function th_mcp_session_id_from_request(): string
+{
+    $raw = $_SERVER['HTTP_MCP_SESSION_ID'] ?? '';
+    if (!is_string($raw)) {
+        return '';
+    }
+    $raw = trim($raw);
+    if ($raw === '') {
+        return '';
+    }
+    if (preg_match(
+        '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+        $raw
+    ) !== 1) {
+        return '';
+    }
+
+    return strtolower($raw);
+}
+
+function th_mcp_session_dir(): string
+{
+    $dir = sys_get_temp_dir() . '/thankhill-mcp-sessions';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0700, true);
+    }
+
+    return $dir;
+}
+
+function th_mcp_session_file_path(string $sessionId): string
+{
+    return th_mcp_session_dir() . '/' . hash('sha256', $sessionId) . '.json';
+}
+
+function th_mcp_session_put(string $sessionId, int $userId): void
+{
+    $payloadJson = json_encode(
+        ['uid' => $userId, 'iat' => time()],
+        JSON_THROW_ON_ERROR
+    );
+    if (function_exists('apcu_store')) {
+        @apcu_store(TH_MCP_SESSION_APCU_PREFIX . $sessionId, $payloadJson, TH_MCP_SESSION_TTL_SEC);
+    }
+    @file_put_contents(th_mcp_session_file_path($sessionId), $payloadJson, LOCK_EX);
+}
+
+function th_mcp_session_delete(string $sessionId): void
+{
+    if (function_exists('apcu_delete')) {
+        @apcu_delete(TH_MCP_SESSION_APCU_PREFIX . $sessionId);
+    }
+    $path = th_mcp_session_file_path($sessionId);
+    if (is_file($path)) {
+        @unlink($path);
+    }
+}
+
+function th_mcp_session_payload_decode(?string $json): ?array
+{
+    if ($json === null || $json === '') {
+        return null;
+    }
+    try {
+        $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+    } catch (JsonException) {
+        return null;
+    }
+
+    return is_array($data) ? $data : null;
+}
+
+function th_mcp_session_get(string $sessionId): ?int
+{
+    $json = null;
+    if (function_exists('apcu_fetch')) {
+        $fromApcu = @apcu_fetch(TH_MCP_SESSION_APCU_PREFIX . $sessionId);
+        if (is_string($fromApcu) && $fromApcu !== '') {
+            $json = $fromApcu;
+        }
+    }
+    if ($json === null) {
+        $path = th_mcp_session_file_path($sessionId);
+        if (!is_readable($path)) {
+            return null;
+        }
+        $fileRaw = file_get_contents($path);
+        $json = is_string($fileRaw) ? $fileRaw : null;
+    }
+
+    $payload = th_mcp_session_payload_decode($json);
+    if ($payload === null) {
+        return null;
+    }
+
+    $iat = (int) ($payload['iat'] ?? 0);
+    if ($iat <= 0 || (time() - $iat) > TH_MCP_SESSION_TTL_SEC) {
+        th_mcp_session_delete($sessionId);
+
+        return null;
+    }
+
+    $uid = (int) ($payload['uid'] ?? 0);
+
+    return $uid > 0 ? $uid : null;
+}
+
+/**
+ * Refresh session TTL after successful validation (sliding window).
+ */
+function th_mcp_session_touch(string $sessionId, int $userId): void
+{
+    th_mcp_session_put($sessionId, $userId);
+}
+
+/**
+ * @param string|int|float|null $id JSON-RPC id (may be null for notifications)
+ */
+function th_mcp_session_not_found_response(string|int|float|null $id): never
+{
+    header('Content-Type: application/json; charset=UTF-8');
+    header('Cache-Control: no-store');
+    http_response_code(400);
+    echo json_encode(
+        [
+            'jsonrpc' => TH_MCP_JSONRPC,
+            'id' => $id,
+            'error' => [
+                'code' => -32000,
+                'message' => 'Session not found or expired',
+            ],
+        ],
+        TH_MCP_JSON_ENCODE
+    );
+    exit;
+}
+
+/**
+ * Require valid Mcp-Session-Id tied to the current Bearer user (Streamable HTTP transport).
+ *
+ * @param string|int|float|null $id
+ */
+function th_mcp_assert_streamable_session(string|int|float|null $id, int $mcpUserId): void
+{
+    $sid = th_mcp_session_id_from_request();
+    if ($sid === '') {
+        th_mcp_session_not_found_response($id);
+    }
+    $storedUid = th_mcp_session_get($sid);
+    if ($storedUid === null || $storedUid !== $mcpUserId) {
+        th_mcp_session_not_found_response($id);
+    }
+    th_mcp_session_touch($sid, $mcpUserId);
 }
 
 function th_mcp_resolve_bearer_user_id(PDO $pdo, string $plaintextHex): ?int
