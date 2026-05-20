@@ -6,6 +6,20 @@
 .env.*
 !.env.example
 
+# Docker/local runtime data
+/docker-data/*
+!/docker-data/.gitkeep
+!/docker-data/note_media/
+!/docker-data/note_media/.gitkeep
+!/docker-data/exports/
+!/docker-data/exports/.gitkeep
+/mysql-data/
+/db-data/
+*.sql.gz
+*.sql.bz2
+*.sql.xz
+*.dump
+
 # macOS Finder metadata
 .DS_Store
 

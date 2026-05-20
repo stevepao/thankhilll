@@ -1,0 +1,52 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-thankhill}
+      DB_USER: ${DB_USER:-thankhill}
+      DB_PASS: ${DB_PASS:-thankhill}
+      NOTE_MEDIA_STORAGE_PATH: /var/www/thankhill-private/note_media
+      EXPORT_STORAGE_PATH: /var/www/thankhill-private/exports
+    volumes:
+      - .:/var/www/html
+      - ./docker-data/note_media:/var/www/thankhill-private/note_media
+      - ./docker-data/exports:/var/www/thankhill-private/exports
+    expose:
+      - "80"
+    networks:
+      - default
+      - proxy-tier
+
+  db:
+    image: mysql:8.0
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-thankhill}
+      MYSQL_USER: ${DB_USER:-thankhill}
+      MYSQL_PASSWORD: ${DB_PASS:-thankhill}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-thankhill_root}
+    volumes:
+      - thankhill_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - default
+
+networks:
+  proxy-tier:
+    external: true
+
+volumes:
+  thankhill_data:
