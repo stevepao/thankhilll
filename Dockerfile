@@ -16,4 +16,11 @@ RUN apt-get update \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+RUN { \
+        echo 'display_errors=Off'; \
+        echo 'log_errors=On'; \
+        echo 'error_reporting=E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED'; \
+        echo 'expose_php=Off'; \
+    } > "$PHP_INI_DIR/conf.d/thankhill.ini"
+
 WORKDIR /var/www/html

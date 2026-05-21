@@ -10,8 +10,10 @@
 /docker-data/*
 !/docker-data/.gitkeep
 !/docker-data/note_media/
+/docker-data/note_media/*
 !/docker-data/note_media/.gitkeep
 !/docker-data/exports/
+/docker-data/exports/*
 !/docker-data/exports/.gitkeep
 /mysql-data/
 /db-data/
