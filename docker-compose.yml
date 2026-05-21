@@ -13,10 +13,15 @@ services:
       DB_PASS: ${DB_PASS:-thankhill}
       NOTE_MEDIA_STORAGE_PATH: /var/www/thankhill-private/note_media
       EXPORT_STORAGE_PATH: /var/www/thankhill-private/exports
-    command: >
-      bash -lc "mkdir -p /var/www/thankhill-private/note_media /var/www/thankhill-private/exports
-      && chown -R www-data:www-data /var/www/thankhill-private
-      && apache2-foreground"
+    command:
+      - bash
+      - -lc
+      - |
+        mkdir -p /var/www/thankhill-private/note_media /var/www/thankhill-private/exports
+        if ! chown -R www-data:www-data /var/www/thankhill-private; then
+          echo 'warning: could not chown /var/www/thankhill-private; uploads may fail until host permissions are fixed' >&2
+        fi
+        exec apache2-foreground
     volumes:
       - .:/var/www/html
       - ./docker-data/note_media:/var/www/thankhill-private/note_media
