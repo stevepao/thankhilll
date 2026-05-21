@@ -125,6 +125,7 @@ function note_media_store_file(string $tmpPath, string $ext): ?string
     $root = note_media_storage_root();
     if (!is_dir($root)) {
         if (!@mkdir($root, 0770, true) && !is_dir($root)) {
+            error_log('note_media_store_file: could not create storage root ' . $root);
             return null;
         }
     }
@@ -132,6 +133,7 @@ function note_media_store_file(string $tmpPath, string $ext): ?string
     $relDir = bin2hex(random_bytes(1)) . '/' . bin2hex(random_bytes(1));
     $dir = $root . '/' . $relDir;
     if (!is_dir($dir) && !@mkdir($dir, 0770, true) && !is_dir($dir)) {
+        error_log('note_media_store_file: could not create media directory ' . $dir);
         return null;
     }
 
@@ -141,6 +143,7 @@ function note_media_store_file(string $tmpPath, string $ext): ?string
 
     if (!@move_uploaded_file($tmpPath, $targetAbs)) {
         if (!@rename($tmpPath, $targetAbs)) {
+            error_log('note_media_store_file: could not move uploaded file to ' . $targetAbs);
             return null;
         }
     }

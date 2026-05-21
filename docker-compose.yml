@@ -13,6 +13,10 @@ services:
       DB_PASS: ${DB_PASS:-thankhill}
       NOTE_MEDIA_STORAGE_PATH: /var/www/thankhill-private/note_media
       EXPORT_STORAGE_PATH: /var/www/thankhill-private/exports
+    command: >
+      bash -lc "mkdir -p /var/www/thankhill-private/note_media /var/www/thankhill-private/exports
+      && chown -R www-data:www-data /var/www/thankhill-private
+      && apache2-foreground"
     volumes:
       - .:/var/www/html
       - ./docker-data/note_media:/var/www/thankhill-private/note_media
