@@ -55,6 +55,28 @@ services:
     networks:
       - default
 
+  db-backup:
+    image: databack/mysql-backup
+    user: "0:0"
+    command: dump
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_SERVER: db
+      DB_USER: root
+      DB_PASS: "${MYSQL_ROOT_PASSWORD:-thankhill_root}"
+      DB_DUMP_TARGET: /db
+      # For one-off manual backups, clear DB_DUMP_BEGIN and DB_DUMP_FREQUENCY
+      # when setting DB_DUMP_ONCE=true; this image treats them as mutually exclusive.
+      DB_DUMP_FREQUENCY: "1440"
+      DB_DUMP_BEGIN: "0300"
+    volumes:
+      - ./backups/db:/db
+    networks:
+      - default
+
 networks:
   proxy-tier:
     external: true

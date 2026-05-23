@@ -17,6 +17,7 @@
 !/docker-data/exports/.gitkeep
 /mysql-data/
 /db-data/
+/backups/
 *.sql.gz
 *.sql.bz2
 *.sql.xz
