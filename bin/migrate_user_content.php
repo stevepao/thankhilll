@@ -5,7 +5,8 @@
  *
  * One-off merge: move notes and related data from a mistaken account (e.g. email OTP)
  * into the user's real account (e.g. Google). Duplicate entry dates merge thoughts/media
- * onto the target user's existing note for that day.
+ * onto the target user's existing note for that day. Migrated notes are shared with
+ * every group the target user belongs to (note_groups rows added when missing).
  *
  * Usage:
  *   php bin/migrate_user_content.php --from-email=mpao@spao.net --to-email=marsha@bykumi.com --dry-run
@@ -303,6 +304,81 @@ function th_migrate_merge_preferences(PDO $pdo, int $fromUserId, int $toUserId, 
     return $patch;
 }
 
+/**
+ * @param list<int> $noteIds
+ * @return list<array{note_id:int,group_id:int,group_name:string}>
+ */
+function th_migrate_planned_note_group_shares(PDO $pdo, array $noteIds, int $targetUserId): array
+{
+    $noteIds = array_values(array_unique(array_filter(array_map('intval', $noteIds), static fn (int $id): bool => $id > 0)));
+    if ($noteIds === []) {
+        return [];
+    }
+
+    $stmt = $pdo->prepare(
+        <<<'SQL'
+        SELECT gm.group_id, g.name AS group_name
+        FROM group_members gm
+        INNER JOIN `groups` g ON g.id = gm.group_id
+        WHERE gm.user_id = ?
+        ORDER BY g.name ASC, gm.group_id ASC
+        SQL
+    );
+    $stmt->execute([$targetUserId]);
+    $targetGroups = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $targetGroups[] = [
+            'group_id' => (int) $row['group_id'],
+            'group_name' => (string) $row['group_name'],
+        ];
+    }
+    if ($targetGroups === []) {
+        return [];
+    }
+
+    $existsStmt = $pdo->prepare(
+        'SELECT 1 FROM note_groups WHERE note_id = ? AND group_id = ? LIMIT 1'
+    );
+
+    $planned = [];
+    foreach ($noteIds as $noteId) {
+        foreach ($targetGroups as $group) {
+            $existsStmt->execute([$noteId, $group['group_id']]);
+            if ($existsStmt->fetchColumn()) {
+                continue;
+            }
+            $planned[] = [
+                'note_id' => $noteId,
+                'group_id' => $group['group_id'],
+                'group_name' => $group['group_name'],
+            ];
+        }
+    }
+
+    return $planned;
+}
+
+/**
+ * @param list<int> $noteIds
+ */
+function th_migrate_share_notes_with_target_groups(PDO $pdo, array $noteIds, int $targetUserId): int
+{
+    $planned = th_migrate_planned_note_group_shares($pdo, $noteIds, $targetUserId);
+    if ($planned === []) {
+        return 0;
+    }
+
+    $ins = $pdo->prepare('INSERT INTO note_groups (note_id, group_id) VALUES (?, ?)');
+    foreach ($planned as $link) {
+        $ins->execute([$link['note_id'], $link['group_id']]);
+    }
+
+    return count($planned);
+}
+
 $fromEmailRaw = null;
 $toEmailRaw = null;
 $apply = false;
@@ -468,6 +544,21 @@ if (isset($prefPatch['default_note_visibility'])) {
     echo '  - default_note_visibility: ' . $prefPatch['default_note_visibility'] . "\n";
 }
 
+$migratedNoteIds = [];
+foreach ($reassign as $note) {
+    $migratedNoteIds[$note['id']] = $note['id'];
+}
+foreach ($merge as $item) {
+    $migratedNoteIds[$item['target_note_id']] = $item['target_note_id'];
+}
+$migratedNoteIds = array_values($migratedNoteIds);
+$plannedShares = th_migrate_planned_note_group_shares($pdo, $migratedNoteIds, $toUserId);
+
+echo "\nNote group shares to add (all target memberships): " . count($plannedShares) . "\n";
+foreach ($plannedShares as $link) {
+    echo "  - note #{$link['note_id']} → {$link['group_name']} (#{$link['group_id']})\n";
+}
+
 if (!$apply) {
     echo "\nDry run complete. Re-run with --apply to execute";
     if ($deleteSource) {
@@ -477,6 +568,7 @@ if (!$apply) {
     exit(0);
 }
 
+$sharedLinkCount = 0;
 try {
     $pdo->beginTransaction();
 
@@ -502,6 +594,8 @@ try {
 
     th_migrate_merge_preferences($pdo, $fromUserId, $toUserId, true);
 
+    $sharedLinkCount = th_migrate_share_notes_with_target_groups($pdo, $migratedNoteIds, $toUserId);
+
     $pdo->commit();
 } catch (Throwable $e) {
     if ($pdo->inTransaction()) {
@@ -512,6 +606,9 @@ try {
 }
 
 echo "\nMigration applied successfully.\n";
+if ($sharedLinkCount > 0) {
+    echo "Shared migrated notes with {$sharedLinkCount} group link(s).\n";
+}
 
 if ($deleteSource) {
     $remainingNotes = th_migrate_notes_for_user($pdo, $fromUserId);
