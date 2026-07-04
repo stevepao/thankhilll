@@ -71,7 +71,7 @@ function th_migrate_user_by_email_any(PDO $pdo, string $email): ?array
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     if (is_array($row)) {
         return [
-            'user_id' => (int) $row['user_id'],
+            'user_id' => (int) $row['id'],
             'display_name' => (string) $row['display_name'],
             'provider' => 'login_email',
         ];
@@ -383,6 +383,10 @@ if (!$targetGoogle->fetchColumn()) {
 
 $fromUserId = $source['user_id'];
 $toUserId = $target['user_id'];
+if ($fromUserId <= 0 || $toUserId <= 0) {
+    fwrite(STDERR, "Error: invalid resolved user id (from={$fromUserId}, to={$toUserId}).\n");
+    exit(1);
+}
 if ($fromUserId === $toUserId) {
     fwrite(STDERR, "Error: source and target resolve to the same user id {$fromUserId}.\n");
     exit(1);
