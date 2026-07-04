@@ -14,8 +14,17 @@
  *
  * Docker host:
  *   docker compose exec web php bin/migrate_user_content.php --from-email=... --to-email=... --dry-run
+ *
+ * CLI only — not invokable via HTTP (see PHP_SAPI guard at top of file).
  */
 declare(strict_types=1);
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo "Forbidden\n";
+    exit(1);
+}
 
 require_once dirname(__DIR__) . '/db.php';
 require_once dirname(__DIR__) . '/includes/email_auth.php';
